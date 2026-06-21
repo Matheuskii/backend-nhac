@@ -33,7 +33,6 @@ public class Loja {
     private String nome;
 
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     @Size(max = 2000, message = "A descrição não pode passar de 2000 caracteres.")
     @Schema(description = "Descrição detalhada da loja", example = "Filial focada em produtos orgânicos.")
@@ -44,10 +43,11 @@ public class Loja {
     @Schema(description = "Categoria que a loja se encaixa", example = "Restaurantes")
     private String categoria;
 
-    @Lob
+
     @Column(columnDefinition = "TEXT")
-    @Size(max = 2000, message = "A url do banner da loja")
+    @Size(max = 500, message = "A url do banner da loja")
     @NotBlank
+    @Schema(description = "URL do banner da loja", example = " https://amazonaws.com/photo-1579202673506-ca3ce28943ef.jpg")
     private  String imagemUrl;
 
     @NotNull(message = "O status de abertura da loja deve ser informado.")
