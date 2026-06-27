@@ -3,6 +3,8 @@ package br.com.nhac.backend_nhac.exceptions;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -59,5 +61,24 @@ public class ResourceExceptionHandler {
         e.printStackTrace();
 
         return ResponseEntity.status(status).body(erro);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErroPadraoDTO> tratarErrosDeValidacao(MethodArgumentNotValidException e, HttpServletRequest request) {
+
+        StringBuilder mensagens = new StringBuilder("Erro de validação: ");
+        for (FieldError fieldError : e.getBindingResult().getFieldErrors()) {
+            mensagens.append(fieldError.getDefaultMessage()).append(" ");
+        }
+
+        ErroPadraoDTO erro = new ErroPadraoDTO(
+                Instant.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Dados inválidos",
+                mensagens.toString().trim(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(erro);
     }
 }
