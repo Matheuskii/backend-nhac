@@ -21,6 +21,8 @@ public class Loja {
     @Id
     @Column(updatable = false, nullable = false, length = 50)
     private String id;
+
+
     private String nome;
 
 
