@@ -1,10 +1,9 @@
 package br.com.nhac.backend_nhac.domain.produto.dto;
 
+import br.com.nhac.backend_nhac.domain.loja.Loja;
+import br.com.nhac.backend_nhac.domain.produto.Produto;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 
@@ -34,8 +33,7 @@ public record ProdutoCreateDTO(
         @Schema(description = "URL da imagem no Firebase Storage", example = "https://firebasestorage.googleapis.com/.../hossomaki.png")
         String imagemUrl,
 
-        @Schema(description = "Indica se o produto está visível para os clientes", example = "true", defaultValue = "true")
-        boolean isAtivo,
+
 
         @Schema(description = "Peso ou porção para exibição", example = "200g")
         String peso,
@@ -43,4 +41,24 @@ public record ProdutoCreateDTO(
         @Schema(description = "Percentual de desconto ativo (0 a 100)", example = "10")
         Integer percentualDesconto
 ) {
+
+        public Produto toEntity(Loja lojaDaBaseDeDados) {
+                Produto produto = new Produto();
+
+                produto.setId(java.util.UUID.randomUUID().toString());
+
+                produto.setLoja(lojaDaBaseDeDados);
+
+                produto.setNome(this.nome());
+                produto.setDescricao(this.descricao());
+                produto.setPreco(this.preco());
+                produto.setCategoriaMenu(this.categoriaMenu());
+                produto.setImagemUrl(this.imagemUrl());
+                produto.setPeso(this.peso());
+                produto.setPercentualDesconto(this.percentualDesconto());
+
+                produto.setCriadoEm(java.time.Instant.now());
+
+                return produto;
+        }
 }
