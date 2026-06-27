@@ -1,6 +1,7 @@
 package br.com.nhac.backend_nhac.domain.produto;
 
 import br.com.nhac.backend_nhac.domain.loja.Loja;
+import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoCreateDTO;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -50,4 +51,7 @@ public class Produto {
 
     @Column(name = "percentual_desconto")
     private Integer percentualDesconto;
+
+    public Produto(ProdutoCreateDTO dto) {
+    }
 }
