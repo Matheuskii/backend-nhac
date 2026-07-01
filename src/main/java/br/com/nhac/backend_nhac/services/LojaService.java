@@ -6,13 +6,11 @@ import br.com.nhac.backend_nhac.domain.loja.dto.LojaResumoDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaDetalhesDTO;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
 import br.com.nhac.backend_nhac.repositories.LojaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
 
 @Service
 public class LojaService {
@@ -25,7 +23,6 @@ public class LojaService {
     }
 
 
-    // Função que devolve page de DTO
     public Page<LojaResumoDTO> obterLojasPaginadas(int page, int size){
         Pageable paginacao = PageRequest.of(page, size);
 

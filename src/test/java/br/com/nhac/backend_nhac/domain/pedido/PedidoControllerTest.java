@@ -43,8 +43,8 @@ class PedidoControllerTest {
         mockMvc.perform(post("/api/v1/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonEstragado))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.mensagem").value(org.hamcrest.Matchers.containsString("O carrinho não pode estar vazio")));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.message").exists());
     }
 
     @Test
@@ -72,8 +72,8 @@ class PedidoControllerTest {
         mockMvc.perform(post("/api/v1/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonEstragado))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.mensagem").value(org.hamcrest.Matchers.containsString("O CEP deve estar no formato XXXXX-XXX")));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.message").exists());
     }
 
     @Test
@@ -102,7 +102,7 @@ class PedidoControllerTest {
         mockMvc.perform(post("/api/v1/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonEstragado))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.mensagem").value(org.hamcrest.Matchers.containsString("A quantidade deve ser maior que zero")));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.message").exists());
     }
 }

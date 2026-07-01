@@ -1,73 +1,84 @@
 package br.com.nhac.backend_nhac.domain.produto;
 
 
+import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoCreateDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.services.ProdutoService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultMatcher;
+
+import java.math.BigDecimal;
+import java.util.Collections;
+
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ProdutoController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class ProdutoControllerTest {
 
 
     @Autowired
     private MockMvc mockMvc;
 
+    private tools.jackson.databind.ObjectMapper objectMapper;
+
+    public ProdutoControllerTest(tools.jackson.databind.ObjectMapper objectMapper){
+        this.objectMapper = objectMapper;
+    }
 
     @MockitoBean
     private ProdutoService produtoService;
 
-    @Test
-    @DisplayName("Deve devolver Erro 400 (Bad Request) quando o preço for negativo")
-    void deveDevolverErro400QuandoPrecoNegativo() throws Exception {
+    @BeforeEach
+    void setUp() {
+        Usuario usuarioMock = new Usuario();
+        usuarioMock.setId("user_123");
+        usuarioMock.setEmail("teste@nhac.com");
 
-        String jsonEstragado = """
-                {
-                    "lojaId": "loja_123",
-                    "nome": "Hossomaki",
-                    "descricao": "Sushi de salmão",
-                    "preco": -5.00,
-                    "categoriaMenu": "Sushi",
-                    "imagemUrl": "http://imagem.com",
-                    "isAtivo": true,
-                    "peso": "200g",
-                    "percentualDesconto": 0
-                }
-                """;
+        UsernamePasswordAuthenticationToken auth =
+                new UsernamePasswordAuthenticationToken(usuarioMock, null, Collections.emptyList());
 
-        mockMvc.perform(post("/api/v1/produtos")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonEstragado))
-                .andExpect(status().isBadRequest());
+        SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
     @Test
-    @DisplayName("Deve devolver Erro 400 (Bad Request) quando o nome estiver vazio")
+    @DisplayName("Deve retornar Erro 422 quando criar produto com nome vazio")
     void deveDevolverErro400QuandoNomeVazio() throws Exception {
-
-        String jsonEstragado = """
-                {
-                    "lojaId": "loja_123",
-                    "nome": "",
-                    "descricao": "Sushi de salmão",
-                    "preco": 25.50,
-                    "categoriaMenu": "Sushi",
-                    "imagemUrl": "http://imagem.com",
-                    "isAtivo": true,
-                    "peso": "200g",
-                    "percentualDesconto": 0
-                }
-                """;
+        ProdutoCreateDTO dtoInvalido = new ProdutoCreateDTO(
+                "loja_123", "", "Desc", new BigDecimal("10.00"), "Cat", null, "12", null
+        );
 
         mockMvc.perform(post("/api/v1/produtos")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonEstragado))
-                .andExpect(status().isBadRequest());
+                        .content(objectMapper.writeValueAsString(dtoInvalido)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    @DisplayName("Deve retornar Erro 422 quando criar produto com preço negativo")
+    void deveDevolverErro400QuandoPrecoNegativo() throws Exception {
+        ProdutoCreateDTO dtoInvalido = new ProdutoCreateDTO(
+                "loja_123", "Hambúrguer", "Desc", new BigDecimal("-5.00"), "Cat", null, 0, null
+        );
+
+        mockMvc.perform(post("/api/v1/produtos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dtoInvalido)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect((ResultMatcher) jsonPath("$.message").exists());
     }
 }

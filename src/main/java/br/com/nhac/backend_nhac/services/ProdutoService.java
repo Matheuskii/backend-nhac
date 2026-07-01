@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 
 
 @Service
@@ -35,14 +36,33 @@ public class ProdutoService {
         return produtoRepository.save(novoProduto);
     }
 
-    public Page<ProdutoResumoDTO> listarProdutoPorLoja(String lojaId, Pageable pageable){
+    public Page<ProdutoResumoDTO> listarProdutos(String lojaId, BigDecimal precoMaximo, String categoriaMenu, String nome, Pageable pageable) {
+        Page<Produto> produtos;
 
-        if(!lojaRepository.existsById(lojaId)){
-            throw new IdNaoEncontradoException("A loja com o id: " + lojaId + " não foi encontrada.");
+        if (nome != null && !nome.isBlank()) {
+            produtos = produtoRepository.findByNomeContainingIgnoreCase(nome, pageable);
+
+        } else if (precoMaximo != null) {
+            produtos = produtoRepository.findByPrecoLessThanEqual(precoMaximo, pageable);
+
+        } else if (categoriaMenu != null && !categoriaMenu.isBlank()) {
+            produtos = produtoRepository.findByCategoriaMenuIgnoreCase(categoriaMenu, pageable);
+
+        } else if (lojaId != null && !lojaId.isBlank()) {
+            produtos = produtoRepository.findByLojaId(lojaId, pageable);
+
+        } else {
+            produtos = produtoRepository.findAll(pageable);
         }
 
-        Page<Produto> produtosPaginados = produtoRepository.findByLojaId(lojaId, pageable);
-
-        return produtosPaginados.map(ProdutoResumoDTO::new);
-    }
+        return produtos.map(produto -> new ProdutoResumoDTO(
+                produto.getId(),
+                produto.getLoja().getId(),
+                produto.getNome(),
+                produto.getPreco(),
+                produto.getCategoriaMenu(),
+                produto.getImagemUrl(),
+                produto.getPercentualDesconto()
+        ));
+}
 }

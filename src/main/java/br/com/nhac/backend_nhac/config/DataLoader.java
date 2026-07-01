@@ -2,16 +2,20 @@ package br.com.nhac.backend_nhac.config;
 
 import br.com.nhac.backend_nhac.domain.loja.*;
 import br.com.nhac.backend_nhac.domain.produto.Produto;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.repositories.LojaRepository;
 import br.com.nhac.backend_nhac.repositories.ProdutoRepository;
+import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import org.slf4j.Logger;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -21,107 +25,101 @@ public class DataLoader implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(DataLoader.class);
 
     private final LojaRepository lojaRepository;
-
     private final ProdutoRepository produtoRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final UsuarioRepository usuarioRepository;
 
-    public DataLoader(LojaRepository lojaRepository, ProdutoRepository produtoRepository) {
+    public DataLoader(LojaRepository lojaRepository,
+                      ProdutoRepository produtoRepository,
+                      UsuarioRepository usuarioRepository,
+                      PasswordEncoder passwordEncoder) {
         this.lojaRepository = lojaRepository;
         this.produtoRepository = produtoRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     public void run(String... args) throws Exception {
 
+
+        if (usuarioRepository.count() == 0) {
+            log.info("Banco de dados sem usuários. Cadastrando usuários padrão para teste...");
+
+            Usuario cliente = new Usuario();
+            cliente.setId("firebase_user_matheus123");
+            cliente.setNome("Matheus Alves Cliente");
+            cliente.setEmail("matheus@nhac.com");
+            cliente.setTelefone("11999998888");
+            cliente.setImagemUrl("https://picsum.photos/seed/matheus/200");
+            cliente.setSenha(passwordEncoder.encode("senha123"));
+            cliente.setEnderecos(new ArrayList<>());
+            usuarioRepository.save(cliente);
+
+            Usuario motoca = new Usuario();
+            motoca.setId("firebase_user_carlos456");
+            motoca.setNome("Carlos Motoca");
+            motoca.setEmail("carlos@nhac.com");
+            motoca.setTelefone("11988887777");
+            motoca.setImagemUrl("https://picsum.photos/seed/carlos/200");
+            motoca.setSenha(passwordEncoder.encode("motoca123"));
+            motoca.setEnderecos(new ArrayList<>());
+            usuarioRepository.save(motoca);
+
+            log.info("Usuários de teste criados com sucesso! (Logins: matheus@nhac.com / carlos@nhac.com)");
+        }
+
+
         if (lojaRepository.count() > 0) {
-            log.info("Banco de dados já contém dados. DataLoader ignorado.");
+            log.info("Banco de dados já contém lojas cadastrados. Seção de Lojas do DataLoader ignorada.");
             return;
         }
 
-        log.info("Iniciando o cadastro de dados de teste (DataLoader)...");
+        log.info("Iniciando o cadastro de lojas e produtos de teste...");
 
         Loja lojaSushi = new Loja();
-        lojaSushi.setId("loja-001");
-        lojaSushi.setNome("Pizzaria Nostra");
-        lojaSushi.setDescricao("A melhor pizza da cidade feita no forno a lenha, com ingredientes selecionados.");
-        lojaSushi.setCategoria("Pizzaria");
-        lojaSushi.setImagemUrl("https://exemplo.com/imagens/pizzaria.jpg");
+        lojaSushi.setId("loja_sushi_001");
+        lojaSushi.setNome("Nhac Sushi Premium");
+        lojaSushi.setDescricao("O melhor da culinária japonesa tradicional e contemporânea");
+        lojaSushi.setCategoria("Japonesa");
+        lojaSushi.setImagemUrl("https://picsum.photos/seed/sushi/400/400");
         lojaSushi.setAberto(true);
 
-        DadosOperacionais dados1 = new DadosOperacionais();
-        dados1.setAvaliacaoMedia(4.8f);
-        dados1.setTaxaEntregaBase(new BigDecimal("5.50"));
-        dados1.setTempoEntregaMin(30);
-        dados1.setTempoEntregaMax(45);
-        dados1.setTotalAvaliacoes(320);
-        lojaSushi.setDadosOperacionais(dados1);
+        DadosOperacionais dadosSushi = new DadosOperacionais();
+        dadosSushi.setAvaliacaoMedia(4.8f);
+        dadosSushi.setTotalAvaliacoes(154);
+        lojaSushi.setDadosOperacionais(dadosSushi);
 
-        Endereco end1 = new Endereco();
-        end1.setRua("Avenida das Pizzas");
-        end1.setNumero("123");
-        end1.setCidade("São Paulo");
-        end1.setEstado("SP");
-        end1.setCep("01000-000");
-        lojaSushi.setEndereco(end1);
-
-        GeoLocalizacao geo1 = new GeoLocalizacao();
-        geo1.setGeoLat(-23.550520);
-        geo1.setGeoLng(-46.633308);
-        geo1.setGeoHash("6gyf4");
-        lojaSushi.setGeoLocalizacao(geo1);
-
-        HorariosFuncionamento hor1 = new HorariosFuncionamento();
-        hor1.setDomingo("18:00-23:59");
-        hor1.setSegunda("Fechado");
-        hor1.setTerca("18:00-23:00");
-        hor1.setQuarta("18:00-23:00");
-        hor1.setQuinta("18:00-23:00");
-        hor1.setSexta("18:00-23:59");
-        hor1.setSabado("18:00-23:59");
-        lojaSushi.setHorariosFuncionamento(hor1);
-
+        EnderecoLoja endSushi = new EnderecoLoja();
+        endSushi.setRua("Alameda dos Autores");
+        endSushi.setNumero("100");
+        endSushi.setCidade("São Paulo");
+        endSushi.setEstado("SP");
+        endSushi.setCep("01000-000");
+        lojaSushi.setEndereco(endSushi);
 
         Loja lojaHamburguer = new Loja();
-        lojaHamburguer.setId("loja-002");
-        lojaHamburguer.setNome("Hamburgueria do Zé");
-        lojaHamburguer.setDescricao("Hambúrguer artesanal com blend especial de carnes e pão brioche.");
+        lojaHamburguer.setId("loja_burger_002");
+        lojaHamburguer.setNome("Nhac Burger & Fries");
+        lojaHamburguer.setDescricao("Hambúrgueres artesanais grelhados no fogo como você nunca viu");
         lojaHamburguer.setCategoria("Lanches");
-        lojaHamburguer.setImagemUrl("https://exemplo.com/imagens/hamburgueria.jpg");
-        lojaHamburguer.setAberto(false);
+        lojaHamburguer.setImagemUrl("https://picsum.photos/seed/burger/400/400");
+        lojaHamburguer.setAberto(true);
 
-        DadosOperacionais dados2 = new DadosOperacionais();
-        dados2.setAvaliacaoMedia(4.5f);
-        dados2.setTaxaEntregaBase(new BigDecimal("7.00"));
-        dados2.setTempoEntregaMin(20);
-        dados2.setTempoEntregaMax(40);
-        dados2.setTotalAvaliacoes(150);
-        lojaHamburguer.setDadosOperacionais(dados2);
+        DadosOperacionais dadosBurger = new DadosOperacionais();
+        dadosBurger.setAvaliacaoMedia(4.6f);
+        dadosBurger.setTotalAvaliacoes(98);
+        lojaHamburguer.setDadosOperacionais(dadosBurger);
 
-        Endereco end2 = new Endereco();
-        end2.setRua("Rua dos Lanches");
-        end2.setNumero("45");
-        end2.setCidade("Rio de Janeiro");
-        end2.setEstado("RJ");
-        end2.setCep("20000-123");
-        lojaHamburguer.setEndereco(end2);
-
-        GeoLocalizacao geo2 = new GeoLocalizacao();
-        geo2.setGeoLat(-22.906847);
-        geo2.setGeoLng(-43.172896);
-        geo2.setGeoHash("7h2m1");
-        lojaHamburguer.setGeoLocalizacao(geo2);
-
-        HorariosFuncionamento hor2 = new HorariosFuncionamento();
-        hor2.setDomingo("11:00-22:00");
-        hor2.setSegunda("11:00-22:00");
-        hor2.setTerca("11:00-22:00");
-        hor2.setQuarta("11:00-22:00");
-        hor2.setQuinta("11:00-22:00");
-        hor2.setSexta("11:00-23:00");
-        hor2.setSabado("11:00-23:00");
-        lojaHamburguer.setHorariosFuncionamento(hor2);
+        EnderecoLoja endBurger = new EnderecoLoja();
+        endBurger.setRua("Avenida dos Sabores");
+        endBurger.setNumero("550");
+        endBurger.setCidade("São Paulo");
+        endBurger.setEstado("SP");
+        endBurger.setCep("02000-000");
+        lojaHamburguer.setEndereco(endBurger);
 
         lojaRepository.saveAll(List.of(lojaSushi, lojaHamburguer));
-        log.info("Lojas cadastradas com sucesso!");
 
         Produto hossomaki = new Produto();
         hossomaki.setId("prod_sushi_001");
@@ -150,12 +148,13 @@ public class DataLoader implements CommandLineRunner {
         Produto batata = new Produto();
         batata.setId("prod_burger_002");
         batata.setLoja(lojaHamburguer);
-        batata.setNome("Batata Frita Grande");
-        batata.setDescricao("Porção generosa de batatas crocantes");
-        batata.setPreco(new BigDecimal("15.00"));
+        batata.setNome("Batata Frita Tradicional");
+        batata.setDescricao("Batatas crocantes com sal e alecrim");
+        batata.setPreco(new BigDecimal("18.00"));
         batata.setCategoriaMenu("Acompanhamentos");
 
         produtoRepository.saveAll(List.of(hossomaki, temaki, whopper, batata));
-        log.info("Produtos cadastrados com sucesso! O DataLoader terminou o seu trabalho.");
+
+        log.info("Cadastro de dados de teste (DataLoader) finalizado com sucesso!");
     }
 }

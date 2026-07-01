@@ -2,6 +2,7 @@ package br.com.nhac.backend_nhac.domain.pedido;
 
 
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCreateDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.exceptions.ErroPadraoDTO;
 import br.com.nhac.backend_nhac.services.PedidoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -44,11 +46,13 @@ public class PedidoController {
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class)))
     })
     @PostMapping
-    public ResponseEntity<String> criarPedido(@Valid @RequestBody PedidoCreateDTO dto) {
+    public ResponseEntity<String> criarPedido(
+            @RequestBody @Valid PedidoCreateDTO dto,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
 
-        String idPedidoGerado = pedidoService.finalizarPedido(dto);
+        String pedidoId = pedidoService.finalizarPedido(dto, usuarioLogado.getId());
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(idPedidoGerado);
+        return ResponseEntity.status(HttpStatus.CREATED).body(pedidoId);
     }
 
 }

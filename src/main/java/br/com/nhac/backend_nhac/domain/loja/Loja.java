@@ -1,11 +1,7 @@
 package br.com.nhac.backend_nhac.domain.loja;
 
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 
 
@@ -43,7 +39,7 @@ public class Loja {
     private DadosOperacionais dadosOperacionais;
 
     @Embedded
-    private Endereco endereco;
+    private EnderecoLoja endereco;
 
     @Embedded
     private GeoLocalizacao geoLocalizacao;
