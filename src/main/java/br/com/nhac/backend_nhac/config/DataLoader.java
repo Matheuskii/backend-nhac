@@ -55,7 +55,7 @@ public class DataLoader implements CommandLineRunner {
         dados1.setTotalAvaliacoes(320);
         lojaSushi.setDadosOperacionais(dados1);
 
-        Endereco end1 = new Endereco();
+        EnderecoLoja end1 = new EnderecoLoja();
         end1.setRua("Avenida das Pizzas");
         end1.setNumero("123");
         end1.setCidade("São Paulo");
@@ -96,7 +96,7 @@ public class DataLoader implements CommandLineRunner {
         dados2.setTotalAvaliacoes(150);
         lojaHamburguer.setDadosOperacionais(dados2);
 
-        Endereco end2 = new Endereco();
+        EnderecoLoja end2 = new EnderecoLoja();
         end2.setRua("Rua dos Lanches");
         end2.setNumero("45");
         end2.setCidade("Rio de Janeiro");

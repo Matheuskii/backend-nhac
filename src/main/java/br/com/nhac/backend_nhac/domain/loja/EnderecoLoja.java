@@ -13,7 +13,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Endereco {
+public class EnderecoLoja {
 
     @Schema(description = "Nome da rua/avenida da loja", example = "Rua Felipe Schmidt")
     @Column(name = "end_rua", length = 150)
