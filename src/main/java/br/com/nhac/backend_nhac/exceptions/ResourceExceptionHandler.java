@@ -41,7 +41,7 @@ public class ResourceExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErroPadraoDTO> validacaoDeCampos(MethodArgumentNotValidException e, HttpServletRequest request) {
-        HttpStatus status = HttpStatus.UNPROCESSABLE_ENTITY; // 422
+        HttpStatus status = HttpStatus.UNPROCESSABLE_ENTITY;
 
         String mensagensValidacao = e.getBindingResult().getFieldErrors().stream()
                 .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
@@ -65,6 +65,32 @@ public class ResourceExceptionHandler {
                 Instant.now(),
                 status.value(),
                 "Erro Interno do Servidor",
+                e.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(status).body(erro);
+    }
+
+    @ExceptionHandler(CredenciaisInvalidasException.class)
+    public ResponseEntity<ErroPadraoDTO> credenciaisInvalidas(CredenciaisInvalidasException e, HttpServletRequest request) {
+        HttpStatus status = HttpStatus.UNAUTHORIZED; // 401
+        ErroPadraoDTO erro = new ErroPadraoDTO(
+                Instant.now(),
+                status.value(),
+                "Não Autorizado",
+                e.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(status).body(erro);
+    }
+
+    @ExceptionHandler(AcessoNegadoException.class)
+    public ResponseEntity<ErroPadraoDTO> acessoNegado(AcessoNegadoException e, HttpServletRequest request) {
+        HttpStatus status = HttpStatus.FORBIDDEN; // 403
+        ErroPadraoDTO erro = new ErroPadraoDTO(
+                Instant.now(),
+                status.value(),
+                "Acesso Negado (Forbidden)",
                 e.getMessage(),
                 request.getRequestURI()
         );
