@@ -18,9 +18,7 @@ import java.util.UUID;
 @Schema(description = "Objeto de transferência que representa o Carrinho de Compras finalizado pelo cliente no Flutter")
 public record PedidoCreateDTO(
 
-        @Schema(description = "ID do utilizador (UID do Firebase)", example = "firebase_user_abc123")
-        @NotBlank(message = "O ID do usuário é obrigatório.")
-        String usuarioId,
+
 
         @Schema(description = "ID da loja onde o pedido foi feito", example = "loja-001")
         @NotBlank(message = "O ID da loja é obrigatório.")
@@ -50,7 +48,6 @@ public record PedidoCreateDTO(
                 Pedido pedido = new Pedido();
 
                 pedido.setId(UUID.randomUUID().toString());
-                pedido.setUsuarioId(this.usuarioId());
                 pedido.setLoja(lojaDaBaseDeDados);
 
                 pedido.setFormaPagamento(this.formaPagamento());

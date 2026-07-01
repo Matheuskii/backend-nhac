@@ -19,6 +19,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+
 @RestController
 @RequestMapping("/api/v1/produtos")
 @Tag(name = "Produtos", description = "Endpoints para gerenciamento do cardápio das lojas")
@@ -52,7 +54,7 @@ public class ProdutoController {
         return ResponseEntity.status(HttpStatus.CREATED).body("O produto chegou no Controller com sucesso!");
     }
 
-    @Operation(summary = "Listar produtos de uma loja", description = "Traz o cardápio completo de uma loja filtrado por ID, de forma paginada.")
+    @Operation(summary = "Listar produtos com filtros dinâmicos", description = "            description = \"Aceita filtros opcionais de loja, preço máximo, categoria ou nome. Retorna paginação.\")\n")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Listagem de produtos retornada com sucesso."),
 
@@ -63,12 +65,14 @@ public class ProdutoController {
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class)))
     })
     @GetMapping
-    public ResponseEntity<Page<ProdutoResumoDTO>> listarPorLoja(
-            @RequestParam String lojaId,
-            @PageableDefault(size = 10, sort = {"categoriaMenu", "nome"}) Pageable pageable) {
+    public ResponseEntity<Page<ProdutoResumoDTO>> listarProdutos(
+            @RequestParam(required = false) String lojaId,
+            @RequestParam(required = false) BigDecimal precoMaximo,
+            @RequestParam(required = false) String categoriaMenu,
+            @RequestParam(required = false) String nome,
+            Pageable pageable) {
 
-        Page<ProdutoResumoDTO> cardapio = produtoService.listarProdutoPorLoja(lojaId, pageable);
-
-        return ResponseEntity.ok(cardapio);
-    }
+        Page<ProdutoResumoDTO> page = produtoService.listarProdutos(lojaId, precoMaximo, categoriaMenu, nome, pageable);
+        return ResponseEntity.ok(page);
+}
 }

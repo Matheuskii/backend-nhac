@@ -28,12 +28,15 @@ public class PedidoService {
     }
 
     @Transactional
-    public String finalizarPedido(PedidoCreateDTO dto) {
+    public String finalizarPedido(PedidoCreateDTO dto, String usuarioIdLogado) {
 
         Loja loja = lojaRepository.findByIdAndIsAbertoTrue(dto.lojaId())
-                .orElseThrow(() -> new IdNaoEncontradoException("A loja informada não existe ou está fechada no momento."));
+                .orElseThrow(() -> new IdNaoEncontradoException("A loja informada não existe ou está fechada."));
 
         Pedido pedido = dto.toEntity(loja);
+
+
+        pedido.setUsuarioId(usuarioIdLogado);
 
         BigDecimal valorTotalItens = BigDecimal.ZERO;
 
