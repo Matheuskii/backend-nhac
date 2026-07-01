@@ -12,6 +12,8 @@ import br.com.nhac.backend_nhac.repositories.ProdutoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+
 @Service
 public class PedidoService {
 
@@ -33,16 +35,33 @@ public class PedidoService {
 
         Pedido pedido = dto.toEntity(loja);
 
+        BigDecimal valorTotalItens = BigDecimal.ZERO;
+
         for (PedidoCreateDTO.ItemPedidoDTO itemDto : dto.itens()) {
 
-            Produto produtoReferencia = produtoRepository.findById(itemDto.produtoId())
+            Produto produtoReal = produtoRepository.findById(itemDto.produtoId())
                     .orElseThrow(() -> new IdNaoEncontradoException(
                             "O produto com ID '" + itemDto.produtoId() + "' não existe no catálogo."
                     ));
-            ItemPedido novoItem = itemDto.toEntity(produtoReferencia);
+
+            if (!produtoReal.getLoja().getId().equals(loja.getId())) {
+                throw new IllegalArgumentException("O produto '" + produtoReal.getNome() + "' não pertence à loja selecionada.");
+            }
+
+            ItemPedido novoItem = itemDto.toEntity(produtoReal);
+
+            BigDecimal precoReal = produtoReal.getPreco();
+            novoItem.setPrecoHistorico(precoReal);
+
+            BigDecimal subtotal = precoReal.multiply(BigDecimal.valueOf(novoItem.getQuantidade()));
+            valorTotalItens = valorTotalItens.add(subtotal);
 
             pedido.adicionarItem(novoItem);
         }
+
+        BigDecimal taxaFrete = new BigDecimal("5.00");
+        pedido.setTaxaFrete(taxaFrete);
+        pedido.setValorTotal(valorTotalItens.add(taxaFrete));
 
         Pedido pedidoSalvo = pedidoRepository.save(pedido);
 

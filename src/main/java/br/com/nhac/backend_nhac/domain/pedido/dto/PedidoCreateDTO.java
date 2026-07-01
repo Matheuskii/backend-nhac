@@ -26,15 +26,6 @@ public record PedidoCreateDTO(
         @NotBlank(message = "O ID da loja é obrigatório.")
         String lojaId,
 
-        @Schema(description = "Valor total da compra (Itens + Frete - Descontos)", example = "82.90")
-        @NotNull(message = "O valor total é obrigatório.")
-        @PositiveOrZero(message = "O valor total não pode ser negativo.")
-        BigDecimal valorTotal,
-
-        @Schema(description = "Taxa de entrega cobrada", example = "5.50")
-        @NotNull(message = "A taxa de frete é obrigatória.")
-        @PositiveOrZero(message = "A taxa de frete não pode ser negativa.")
-        BigDecimal taxaFrete,
 
         @Schema(description = "Forma de pagamento escolhida (ex: PIX, CARTAO_CREDITO)", example = "PIX")
         @NotBlank(message = "A forma de pagamento é obrigatória.")
@@ -61,8 +52,7 @@ public record PedidoCreateDTO(
                 pedido.setId(UUID.randomUUID().toString());
                 pedido.setUsuarioId(this.usuarioId());
                 pedido.setLoja(lojaDaBaseDeDados);
-                pedido.setValorTotal(this.valorTotal());
-                pedido.setTaxaFrete(this.taxaFrete());
+
                 pedido.setFormaPagamento(this.formaPagamento());
                 pedido.setObservacao(this.observacao());
 
@@ -121,9 +111,6 @@ public record PedidoCreateDTO(
 
                 String imagemUrl,
 
-                @NotNull(message = "O preço histórico do item é obrigatório.")
-                @PositiveOrZero(message = "O preço do item não pode ser negativo.")
-                BigDecimal precoHistorico,
 
                 @NotNull(message = "A quantidade é obrigatória.")
                 @Positive(message = "A quantidade deve ser maior que zero.")
@@ -138,7 +125,6 @@ public record PedidoCreateDTO(
 
                         item.setNome(this.nome());
                         item.setImagemUrl(this.imagemUrl());
-                        item.setPrecoHistorico(this.precoHistorico());
                         item.setQuantidade(this.quantidade());
 
                         return item;
