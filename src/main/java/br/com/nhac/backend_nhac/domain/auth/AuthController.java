@@ -4,6 +4,8 @@ import br.com.nhac.backend_nhac.domain.auth.dto.LoginRequestDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.LoginResponseDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.RegistroRequestDTO;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.exceptions.CredenciaisInvalidasException;
+import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 import br.com.nhac.backend_nhac.infra.security.TokenService;
 import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,27 +34,23 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid LoginRequestDTO body) {
-        Usuario usuario = usuarioRepository.findAll().stream()
-                .filter(u -> u.getEmail().equalsIgnoreCase(body.email()))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado ou senha inválida."));
+        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(body.email())
+                .orElseThrow(() -> new CredenciaisInvalidasException("E-mail não encontrado ou senha inválida."));
 
         if (passwordEncoder.matches(body.senha(), usuario.getSenha())) {
             String token = tokenService.gerarToken(usuario);
             return ResponseEntity.ok(new LoginResponseDTO(token, usuario.getId(), usuario.getNome()));
         }
 
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        throw new CredenciaisInvalidasException("E-mail não encontrado ou senha inválida.");
     }
 
     @PostMapping("/registrar")
     public ResponseEntity<LoginResponseDTO> registrar(@RequestBody @Valid RegistroRequestDTO body) {
-        boolean emailJaExiste = usuarioRepository.findAll().stream()
-                .anyMatch(u -> u.getEmail().equalsIgnoreCase(body.email()));
-
-        if (emailJaExiste) {
-            return ResponseEntity.badRequest().build();
+        if (usuarioRepository.findByEmailIgnoreCase(body.email()).isPresent()) {
+            throw new RegraDeNegocioException("Este e-mail já está em uso.");
         }
+
 
         Usuario novoUsuario = new Usuario();
         novoUsuario.setId(body.id());
