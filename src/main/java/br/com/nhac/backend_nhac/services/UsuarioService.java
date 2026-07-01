@@ -3,16 +3,17 @@ package br.com.nhac.backend_nhac.services;
 import br.com.nhac.backend_nhac.domain.usuario.EnderecoUsuario;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.domain.usuario.dto.EnderecoUsuarioDTO;
-import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioDTO;
+import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioCreateDTO;
+import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioResponseDTO;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
 import br.com.nhac.backend_nhac.repositories.EnderecoUsuarioRepository;
 import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
+import org.springframework.security.crypto.password.PasswordEncoder; // 🔴 NOVO IMPORT
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,24 +21,30 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final EnderecoUsuarioRepository enderecoRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UsuarioService(UsuarioRepository usuarioRepository, EnderecoUsuarioRepository enderecoRepository) {
+    public UsuarioService(UsuarioRepository usuarioRepository,
+                          EnderecoUsuarioRepository enderecoRepository,
+                          PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
         this.enderecoRepository = enderecoRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
-
-
-    public UsuarioDTO buscarUsuario(String id) {
+    public UsuarioResponseDTO buscarUsuario(String id) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new IdNaoEncontradoException("Usuário não encontrado."));
-
-        return new UsuarioDTO(usuario.getId(), usuario.getNome(), usuario.getEmail(), usuario.getTelefone(), usuario.getImagemUrl());
+        return new UsuarioResponseDTO(usuario);
     }
 
     @Transactional
-    public void salvarUsuario(UsuarioDTO dto) {
+    public void salvarUsuario(UsuarioCreateDTO dto) {
         Usuario usuario = dto.toEntity();
+
+        if (dto.senha() != null && !dto.senha().isBlank()) {
+            usuario.setSenha(passwordEncoder.encode(dto.senha()));
+        }
+
         usuarioRepository.save(usuario);
     }
 
@@ -46,14 +53,12 @@ public class UsuarioService {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new IdNaoEncontradoException("Usuário não encontrado."));
 
-
         if (dados.containsKey("nome")) usuario.setNome((String) dados.get("nome"));
         if (dados.containsKey("telefone")) usuario.setTelefone((String) dados.get("telefone"));
         if (dados.containsKey("imagemUrl")) usuario.setImagemUrl((String) dados.get("imagemUrl"));
 
         usuarioRepository.save(usuario);
     }
-
 
     public List<EnderecoUsuarioDTO> listarEnderecos(String usuarioId) {
         return enderecoRepository.findByUsuarioId(usuarioId).stream()
@@ -67,10 +72,7 @@ public class UsuarioService {
     public void adicionarEndereco(String usuarioId, EnderecoUsuarioDTO dto) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new IdNaoEncontradoException("Usuário não encontrado."));
-
-        String novoId = dto.id() != null && !dto.id().isEmpty() ? dto.id() : UUID.randomUUID().toString();
-
-        EnderecoUsuario endereco =dto.toEntity(usuario);
+        EnderecoUsuario endereco = dto.toEntity(usuario);
         enderecoRepository.save(endereco);
     }
 
