@@ -59,10 +59,10 @@ public class ProdutoService {
                 produto.getId(),
                 produto.getLoja().getId(),
                 produto.getNome(),
+                produto.getDescricao(),
                 produto.getPreco(),
                 produto.getCategoriaMenu(),
                 produto.getImagemUrl(),
-                produto.getPercentualDesconto()
-        ));
-}
-}
+                produto.getPeso(),
+                produto.getPercentualDesconto()));
+}}

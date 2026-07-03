@@ -34,7 +34,6 @@ public record ProdutoCreateDTO(
         String imagemUrl,
 
 
-
         @Schema(description = "Peso ou porção para exibição", example = "200g")
         String peso,
 
