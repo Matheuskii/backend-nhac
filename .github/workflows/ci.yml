@@ -47,7 +47,7 @@ jobs:
 
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: ☕ Configurar JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
@@ -126,7 +126,7 @@ jobs:
       security-events: write
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: ☕ Configurar JDK
         uses: actions/setup-java@v4
@@ -167,7 +167,7 @@ jobs:
       image-digest: ${{ steps.build.outputs.digest }}
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 🏷️ Gerar metadata/tags da imagem
         id: meta
