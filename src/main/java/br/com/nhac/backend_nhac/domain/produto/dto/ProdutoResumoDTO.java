@@ -11,6 +11,9 @@ public record ProdutoResumoDTO(
         @Schema(description = "ID do produto", example = "prod_123")
         String id,
 
+        @Schema(description = "ID da Loja", example = "loja-123")
+        String lojaId,
+
         @Schema(description = "Nome do produto", example = "Hossomaki de Salmão")
         String nome,
 
@@ -26,17 +29,22 @@ public record ProdutoResumoDTO(
         @Schema(description = "URL da imagem", example = "https://firebasestorage...")
         String imagemUrl,
 
+        @Schema(description = "peso do produto em g ou em kg", example = "23g")
+        String peso,
+
         @Schema(description = "Percentual de desconto", example = "0")
         Integer percentualDesconto
 ) {
     public ProdutoResumoDTO(Produto produto) {
         this(
                 produto.getId(),
+                produto.getLoja().getId(),
                 produto.getNome(),
                 produto.getDescricao(),
                 produto.getPreco(),
                 produto.getCategoriaMenu(),
                 produto.getImagemUrl(),
+                produto.getPeso(),
                 produto.getPercentualDesconto()
         );
     }

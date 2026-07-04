@@ -1,5 +1,6 @@
 package br.com.nhac.backend_nhac.domain.loja.dto;
 
+import br.com.nhac.backend_nhac.domain.loja.*;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -93,5 +94,49 @@ public record LojaCreateDTO(
             @Schema(description = "Horário de Sexta-feira", example = "11:00 - 23:59") String sexta,
             @Schema(description = "Horário de Sábado", example = "11:00 - 23:59") String sabado
     ) {
+    }
+
+
+    public Loja toEntity() {
+        Loja loja = new Loja();
+        loja.setId(java.util.UUID.randomUUID().toString());
+        loja.setNome(this.nome());
+        loja.setDescricao(this.descricao());
+        loja.setCategoria(this.categoria());
+        loja.setImagemUrl(this.imagemUrl());
+        loja.setAberto(this.isAberto());
+
+        DadosOperacionais dados = new DadosOperacionais();
+        dados.setTaxaEntregaBase(this.dadosOperacionais().taxaEntregaBase());
+        dados.setTempoEntregaMin(this.dadosOperacionais().tempoEntregaMin());
+        dados.setTempoEntregaMax(this.dadosOperacionais().tempoEntregaMax());
+        dados.setAvaliacaoMedia(0.0f);
+        dados.setTotalAvaliacoes(0);
+        loja.setDadosOperacionais(dados);
+
+        EnderecoLoja end = new EnderecoLoja();
+        end.setRua(this.endereco().rua());
+        end.setNumero(this.endereco().numero());
+        end.setCidade(this.endereco().cidade());
+        end.setEstado(this.endereco().estado());
+        end.setCep(this.endereco().cep());
+        loja.setEndereco(end);
+
+        HorariosFuncionamento h = new HorariosFuncionamento();
+        h.setDomingo(this.horarios().domingo());
+        h.setSegunda(this.horarios().segunda());
+        h.setTerca(this.horarios().terca());
+        h.setQuarta(this.horarios().quarta());
+        h.setQuinta(this.horarios().quinta());
+        h.setSexta(this.horarios().sexta());
+        h.setSabado(this.horarios().sabado());
+        loja.setHorariosFuncionamento(h);
+
+        GeoLocalizacao geo = new GeoLocalizacao();
+        geo.setGeoLat(0.0);
+        geo.setGeoLng(0.0);
+        loja.setGeoLocalizacao(geo);
+
+        return loja;
     }
 }
