@@ -136,7 +136,7 @@ jobs:
           cache: maven
 
       - name: 🔍 Trivy — scan do filesystem (deps Maven)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v3
         with:
           scan-type: fs
           scan-ref: .
