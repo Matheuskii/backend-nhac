@@ -1,1 +1,0 @@
-ALTER TABLE tb_usuarios ADD COLUMN fcm_token VARCHAR(255) NULL;
