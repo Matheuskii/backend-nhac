@@ -39,11 +39,12 @@ public class Pedido {
     @Column(name = "forma_pagamento", nullable = false)
     private String formaPagamento;
 
-    @Column(columnDefinition = "TEXT")
-    private String observacao;
 
     @Column(name = "troco_para", precision = 10, scale = 2)
     private BigDecimal trocoPara;
+
+    @Column(columnDefinition = "TEXT")
+    private String observacao;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)

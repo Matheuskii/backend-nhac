@@ -39,7 +39,8 @@ public record UsuarioCreateDTO(
                 this.telefone(),
                 this.imagemUrl(),
                 new ArrayList<>(),
-                this.senha()
+                this.senha(),
+                null
         );
     }
 }

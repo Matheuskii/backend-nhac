@@ -119,4 +119,31 @@ class ProdutoControllerTest {
                 .andExpect(status().isOk())
                 .andExpect((ResultMatcher) jsonPath("$.content[0].id").value("produto_1"));
     }
+
+    @Test
+    @DisplayName("Deve retornar 200 com os dados do produto ao buscar por ID")
+    void deveBuscarProdutoPorIdComSucesso() throws Exception {
+        ProdutoResumoDTO produto = new ProdutoResumoDTO(
+                "produto_1", "loja_123", "Hossomaki", "Hossomakinho", new BigDecimal("25.50"), "Sushi", "url", "23g", 0
+        );
+
+        when(produtoService.buscarProdutoPorId("produto_1")).thenReturn(produto);
+
+        mockMvc.perform(get("/api/v1/produtos/{produtoId}", "produto_1"))
+                .andExpect(status().isOk())
+                .andExpect((ResultMatcher) jsonPath("$.id").value("produto_1"))
+                .andExpect((ResultMatcher) jsonPath("$.nome").value("Hossomaki"));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 404 ao buscar um produto que não existe ou está inativo")
+    void deveRetornar404AoBuscarProdutoInexistente() throws Exception {
+        when(produtoService.buscarProdutoPorId("produto_fantasma"))
+                .thenThrow(new br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException(
+                        "O produto com o id: produto_fantasma não foi encontrado."));
+
+        mockMvc.perform(get("/api/v1/produtos/{produtoId}", "produto_fantasma"))
+                .andExpect(status().isNotFound())
+                .andExpect((ResultMatcher) jsonPath("$.message").value("O produto com o id: produto_fantasma não foi encontrado."));
+    }
 }

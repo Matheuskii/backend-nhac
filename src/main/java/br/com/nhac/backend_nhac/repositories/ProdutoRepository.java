@@ -7,19 +7,26 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
 @Repository
 public interface ProdutoRepository extends JpaRepository<Produto, String> {
 
+    // GET /produtos/{id}
+    Optional<Produto> findByIdAndIsAtivoTrue(String id);
+
     // GET /produtos?lojaId=X
-    Page<Produto> findByLojaId(String lojaId, Pageable pageable);
+    Page<Produto> findByLojaIdAndIsAtivoTrue(String lojaId, Pageable pageable);
 
     // GET /produtos?precoMaximo=20.0
-    Page<Produto> findByPrecoLessThanEqual(BigDecimal precoMaximo, Pageable pageable);
+    Page<Produto> findByPrecoLessThanEqualAndIsAtivoTrue(BigDecimal precoMaximo, Pageable pageable);
 
     // GET /produtos?categoriaMenu=X
-    Page<Produto> findByCategoriaMenuIgnoreCase(String categoriaMenu, Pageable pageable);
+    Page<Produto> findByCategoriaMenuIgnoreCaseAndIsAtivoTrue(String categoriaMenu, Pageable pageable);
 
     // GET /produtos?nome=X
-    Page<Produto> findByNomeContainingIgnoreCase(String nome, Pageable pageable);
+    Page<Produto> findByNomeContainingIgnoreCaseAndIsAtivoTrue(String nome, Pageable pageable);
+
+    // GET /produtos (sem filtros)
+    Page<Produto> findByIsAtivoTrue(Pageable pageable);
 }

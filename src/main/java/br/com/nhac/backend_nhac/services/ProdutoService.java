@@ -36,32 +36,33 @@ public class ProdutoService {
         return produtoRepository.save(novoProduto);
     }
 
+    public ProdutoResumoDTO buscarProdutoPorId(String produtoId) {
+        Produto produto = produtoRepository.findByIdAndIsAtivoTrue(produtoId)
+                .orElseThrow(() -> new IdNaoEncontradoException(
+                        "O produto com o id: " + produtoId + " não foi encontrado."));
+
+        return new ProdutoResumoDTO(produto);
+    }
+
     public Page<ProdutoResumoDTO> listarProdutos(String lojaId, BigDecimal precoMaximo, String categoriaMenu, String nome, Pageable pageable) {
         Page<Produto> produtos;
 
+
         if (nome != null && !nome.isBlank()) {
-            produtos = produtoRepository.findByNomeContainingIgnoreCase(nome, pageable);
+            produtos = produtoRepository.findByNomeContainingIgnoreCaseAndIsAtivoTrue(nome, pageable);
 
         } else if (precoMaximo != null) {
-            produtos = produtoRepository.findByPrecoLessThanEqual(precoMaximo, pageable);
+            produtos = produtoRepository.findByPrecoLessThanEqualAndIsAtivoTrue(precoMaximo, pageable);
 
         } else if (categoriaMenu != null && !categoriaMenu.isBlank()) {
-            produtos = produtoRepository.findByCategoriaMenuIgnoreCase(categoriaMenu, pageable);
+            produtos = produtoRepository.findByCategoriaMenuIgnoreCaseAndIsAtivoTrue(categoriaMenu, pageable);
 
         } else if (lojaId != null && !lojaId.isBlank()) {
-            produtos = produtoRepository.findByLojaId(lojaId, pageable);
+            produtos = produtoRepository.findByLojaIdAndIsAtivoTrue(lojaId, pageable);
 
         } else {
-            produtos = produtoRepository.findAll(pageable);
+            produtos = produtoRepository.findByIsAtivoTrue(pageable);
         }
 
         return produtos.map(ProdutoResumoDTO::new);
-}
-public ProdutoResumoDTO listarProdutoPorId(String produtoId){
-        Produto produto = produtoRepository.findById(produtoId)
-                .orElseThrow(() -> new IdNaoEncontradoException("O id: " + produtoId + "não foi encontrado"));
-
-                return new ProdutoResumoDTO(produto);
-}
-
-}
+}}

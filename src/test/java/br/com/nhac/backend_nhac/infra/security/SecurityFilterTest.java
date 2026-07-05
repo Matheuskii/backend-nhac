@@ -14,9 +14,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -73,7 +72,7 @@ class SecurityFilterTest {
 
         when(request.getHeader("Authorization")).thenReturn("Bearer token_valido");
         when(tokenService.validarToken("token_valido")).thenReturn("matheus@nhac.com");
-        when(usuarioRepository.findAll()).thenReturn(List.of(usuario));
+        when(usuarioRepository.findByEmailIgnoreCase("matheus@nhac.com")).thenReturn(java.util.Optional.of(usuario));
 
         securityFilter.doFilterInternal(request, response, filterChain);
 
@@ -91,7 +90,7 @@ class SecurityFilterTest {
         securityFilter.doFilterInternal(request, response, filterChain);
 
         assertNull(SecurityContextHolder.getContext().getAuthentication());
-        verify(usuarioRepository, never()).findAll();
+        verify(usuarioRepository, never()).findByEmailIgnoreCase(anyString());
         verify(filterChain, times(1)).doFilter(request, response);
     }
 
@@ -100,7 +99,7 @@ class SecurityFilterTest {
     void naoDeveAutenticarQuandoUsuarioNaoEncontrado() throws Exception {
         when(request.getHeader("Authorization")).thenReturn("Bearer token_valido");
         when(tokenService.validarToken("token_valido")).thenReturn("fantasma@nhac.com");
-        when(usuarioRepository.findAll()).thenReturn(List.of(usuarioDeTeste()));
+        when(usuarioRepository.findByEmailIgnoreCase("fantasma@nhac.com")).thenReturn(java.util.Optional.empty());
 
         securityFilter.doFilterInternal(request, response, filterChain);
 

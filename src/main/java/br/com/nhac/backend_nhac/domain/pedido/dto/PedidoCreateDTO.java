@@ -33,6 +33,9 @@ public record PedidoCreateDTO(
         @Size(max = 500, message = "A observação não pode ter mais de 500 caracteres.")
         String observacao,
 
+        @Schema(description = "Valor em dinheiro para calcular o troco (apenas quando formaPagamento = Dinheiro)", example = "50.00")
+        BigDecimal trocoPara,
+
         @Schema(description = "Endereço completo e exato para entrega")
         @NotNull(message = "O endereço de entrega é obrigatório.")
         @Valid
@@ -41,10 +44,7 @@ public record PedidoCreateDTO(
         @Schema(description = "Lista de produtos comprados")
         @NotEmpty(message = "O pedido deve conter pelo menos um item. O carrinho não pode estar vazio.")
         @Valid
-        List<ItemPedidoDTO> itens,
-
-        @Schema(description = "Valor em dinheiro que o cliente vai usar para pagar, para calcular o troco. Só relevante quando formaPagamento for dinheiro.", example = "50.00")
-        BigDecimal trocoPara
+        List<ItemPedidoDTO> itens
 ) {
 
         public Pedido toEntity(Loja lojaDaBaseDeDados) {
@@ -55,6 +55,7 @@ public record PedidoCreateDTO(
 
                 pedido.setFormaPagamento(this.formaPagamento());
                 pedido.setObservacao(this.observacao());
+                pedido.setTrocoPara(this.trocoPara());
 
                 pedido.setStatus(StatusPedido.PENDENTE);
                 pedido.setCriadoEm(Instant.now());

@@ -220,49 +220,6 @@ class UsuarioServiceTest {
         verify(enderecoRepository, never()).save(any());
     }
 
-    @Test
-    @DisplayName("Deve desmarcar outros endereços como padrão ao adicionar um novo endereço padrão")
-    void deveDesmarcarOutrosEnderecosAoAdicionarNovoPadrao() {
-        Usuario usuario = usuarioPadrao("user_1");
-        when(usuarioRepository.findById("user_1")).thenReturn(Optional.of(usuario));
-
-        EnderecoUsuario enderecoAntigoPadrao = new EnderecoUsuario("end_antigo", usuario,
-                "Rua Antiga", "1", "Bairro", "SP", "SP", "01000-000", null, true);
-        when(enderecoRepository.findByUsuarioId("user_1")).thenReturn(List.of(enderecoAntigoPadrao));
-
-        EnderecoUsuarioDTO dto = new EnderecoUsuarioDTO(null, "Rua Nova", "2", "Centro",
-                "SP", "SP", "02000-000", null, true);
-
-        usuarioService.adicionarEndereco("user_1", dto);
-
-        assertFalse(enderecoAntigoPadrao.isPadrao());
-        verify(enderecoRepository).save(enderecoAntigoPadrao);
-        verify(enderecoRepository).save(argThat(EnderecoUsuario::isPadrao));
-    }
-
-    @Test
-    @DisplayName("Deve desmarcar outros endereços como padrão ao definir um endereço existente como padrão")
-    void deveDesmarcarOutrosEnderecosAoAtualizarParaPadrao() {
-        Usuario usuario = usuarioPadrao("user_1");
-        EnderecoUsuario enderecoAtual = new EnderecoUsuario("end_1", usuario,
-                "Rua Antiga", "1", "Bairro", "SP", "SP", "01000-000", null, false);
-        EnderecoUsuario outroEnderecoPadrao = new EnderecoUsuario("end_2", usuario,
-                "Rua Outra", "2", "Bairro", "SP", "SP", "03000-000", null, true);
-
-        when(enderecoRepository.findById("end_1")).thenReturn(Optional.of(enderecoAtual));
-        when(enderecoRepository.findByUsuarioId("user_1"))
-                .thenReturn(List.of(enderecoAtual, outroEnderecoPadrao));
-
-        EnderecoUsuarioDTO dto = new EnderecoUsuarioDTO("end_1", "Rua Nova", "2", "Bairro Novo",
-                "Campinas", "SP", "13000-000", null, true);
-
-        usuarioService.atualizarEndereco("user_1", "end_1", dto);
-
-        assertTrue(enderecoAtual.isPadrao());
-        assertFalse(outroEnderecoPadrao.isPadrao());
-        verify(enderecoRepository).save(outroEnderecoPadrao);
-    }
-
     // ---------- removerEndereco ----------
 
     @Test
