@@ -73,6 +73,11 @@ public class UsuarioService {
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new IdNaoEncontradoException("Usuário não encontrado."));
         EnderecoUsuario endereco = dto.toEntity(usuario);
+
+        if (endereco.isPadrao()) {
+            desmarcarOutrosEnderecosComoPadrao(usuarioId, null);
+        }
+
         enderecoRepository.save(endereco);
     }
 
@@ -94,7 +99,22 @@ public class UsuarioService {
         endereco.setComplemento(dto.complemento());
         endereco.setPadrao(dto.isPadrao());
 
+     if (endereco.isPadrao()) {
+            desmarcarOutrosEnderecosComoPadrao(usuarioId, enderecoId);
+        }
+
         enderecoRepository.save(endereco);
+    }
+
+    private void desmarcarOutrosEnderecosComoPadrao(String usuarioId, String enderecoIdAtual) {
+        List<EnderecoUsuario> enderecos = enderecoRepository.findByUsuarioId(usuarioId);
+        for (EnderecoUsuario outro : enderecos) {
+            boolean ehOOutroEndereco = enderecoIdAtual == null || !outro.getId().equals(enderecoIdAtual);
+            if (ehOOutroEndereco && outro.isPadrao()) {
+                outro.setPadrao(false);
+                enderecoRepository.save(outro);
+            }
+        }
     }
 
     @Transactional

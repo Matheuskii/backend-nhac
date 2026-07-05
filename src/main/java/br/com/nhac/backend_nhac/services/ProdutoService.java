@@ -55,14 +55,13 @@ public class ProdutoService {
             produtos = produtoRepository.findAll(pageable);
         }
 
-        return produtos.map(produto -> new ProdutoResumoDTO(
-                produto.getId(),
-                produto.getLoja().getId(),
-                produto.getNome(),
-                produto.getDescricao(),
-                produto.getPreco(),
-                produto.getCategoriaMenu(),
-                produto.getImagemUrl(),
-                produto.getPeso(),
-                produto.getPercentualDesconto()));
-}}
+        return produtos.map(ProdutoResumoDTO::new);
+}
+public ProdutoResumoDTO listarProdutoPorId(String produtoId){
+        Produto produto = produtoRepository.findById(produtoId)
+                .orElseThrow(() -> new IdNaoEncontradoException("O id: " + produtoId + "não foi encontrado"));
+
+                return new ProdutoResumoDTO(produto);
+}
+
+}

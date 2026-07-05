@@ -1,6 +1,5 @@
 package br.com.nhac.backend_nhac.domain.loja;
 
-import br.com.nhac.backend_nhac.domain.loja.dto.LojaCreateDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaDetalhesDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaResumoDTO;
 import br.com.nhac.backend_nhac.exceptions.ErroPadraoDTO;
@@ -11,9 +10,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -50,16 +47,5 @@ public class LojaController {
     @GetMapping("/{id}")
     public ResponseEntity<LojaDetalhesDTO> obterLojaPorId(@PathVariable String id) {
         return ResponseEntity.ok(lojaService.obterLojaId(id));
-    }
-
-
-    @Operation(summary = "Criar nova loja", description = "Cadastra um novo restaurante no sistema.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Loja criada com sucesso")
-    })
-    @PostMapping
-    public ResponseEntity<String> criarLoja(@RequestBody @Valid LojaCreateDTO dto) {
-        String lojaId = lojaService.criarLoja(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(lojaId);
     }
 }
