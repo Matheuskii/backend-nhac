@@ -62,9 +62,14 @@ public class PedidoService {
             pedido.adicionarItem(novoItem);
         }
 
-        BigDecimal taxaFrete = new BigDecimal("5.00");
+        BigDecimal taxaFrete = loja.getDadosOperacionais() != null
+                && loja.getDadosOperacionais().getTaxaEntregaBase() != null
+                ? loja.getDadosOperacionais().getTaxaEntregaBase()
+                : new BigDecimal("5.00");
         pedido.setTaxaFrete(taxaFrete);
         pedido.setValorTotal(valorTotalItens.add(taxaFrete));
+
+        pedido.setTrocoPara(dto.trocoPara());
 
         Pedido pedidoSalvo = pedidoRepository.save(pedido);
 

@@ -1,5 +1,6 @@
 package br.com.nhac.backend_nhac.services;
 
+import br.com.nhac.backend_nhac.domain.loja.DadosOperacionais;
 import br.com.nhac.backend_nhac.domain.loja.Loja;
 import br.com.nhac.backend_nhac.domain.pedido.Pedido;
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCreateDTO;
@@ -35,10 +36,8 @@ class PedidoServiceTest {
     @Test
     @DisplayName("Deve calcular o preço total usando o valor do Banco de Dados, prevenindo fraudes do Frontend")
     void deveCalcularPrecoRealDoBancoIgnorandoOCliente() {
-        // 1. DADOS SIMULADOS (MOCKS)
         String usuarioId = "user_teste_123";
 
-        // 🔴 MOCK DO ENDEREÇO (Passando os 7 parâmetros exatos do teu record)
         PedidoCreateDTO.EnderecoEntregaDTO enderecoMock = new PedidoCreateDTO.EnderecoEntregaDTO(
                 "Rua Teste", "123", "Bairro", "Cidade", "SP", "01000-000", null
         );
@@ -56,7 +55,7 @@ class PedidoServiceTest {
         );
 
         PedidoCreateDTO dto = new PedidoCreateDTO(
-                "loja_1", "PIX", "Sem cebola", enderecoMock, List.of(itemFraudulento)
+                "loja_1", "PIX", "Sem cebola", enderecoMock, List.of(itemFraudulento), null
         );
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
@@ -89,7 +88,7 @@ class PedidoServiceTest {
         PedidoCreateDTO.ItemPedidoDTO item = new PedidoCreateDTO.ItemPedidoDTO(
                 "prod_1", "Hambúrguer", "http://imagem.com/burger.jpg", 1
         );
-        PedidoCreateDTO dto = new PedidoCreateDTO("loja_fechada", "PIX", null, enderecoMock, List.of(item));
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_fechada", "PIX", null, enderecoMock, List.of(item), null);
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_fechada")).thenReturn(Optional.empty());
 
@@ -113,7 +112,7 @@ class PedidoServiceTest {
         PedidoCreateDTO.ItemPedidoDTO itemFantasma = new PedidoCreateDTO.ItemPedidoDTO(
                 "prod_fantasma", "Produto Inexistente", null, 1
         );
-        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "PIX", null, enderecoMock, List.of(itemFantasma));
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "PIX", null, enderecoMock, List.of(itemFantasma), null);
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
         when(produtoRepository.findById("prod_fantasma")).thenReturn(Optional.empty());
@@ -147,7 +146,7 @@ class PedidoServiceTest {
         PedidoCreateDTO.ItemPedidoDTO item = new PedidoCreateDTO.ItemPedidoDTO(
                 "prod_1", "Hambúrguer", null, 1
         );
-        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "PIX", null, enderecoMock, List.of(item));
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "PIX", null, enderecoMock, List.of(item), null);
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaSelecionada));
         when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(produtoDeOutraLoja));
@@ -182,7 +181,7 @@ class PedidoServiceTest {
         PedidoCreateDTO.ItemPedidoDTO item1 = new PedidoCreateDTO.ItemPedidoDTO("prod_1", "Item 1", null, 2);
         PedidoCreateDTO.ItemPedidoDTO item2 = new PedidoCreateDTO.ItemPedidoDTO("prod_2", "Item 2", null, 1);
 
-        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "PIX", null, enderecoMock, List.of(item1, item2));
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "PIX", null, enderecoMock, List.of(item1, item2), null);
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
         when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(produto1));
@@ -200,6 +199,70 @@ class PedidoServiceTest {
                 pedido.getValorTotal().compareTo(new BigDecimal("45.00")) == 0
                         && pedido.getTaxaFrete().compareTo(new BigDecimal("5.00")) == 0
                         && pedido.getItens().size() == 2
+        ));
+    }
+
+    @Test
+    @DisplayName("Deve usar a taxa de entrega real configurada pela loja, e não um valor fixo")
+    void deveUsarTaxaDeEntregaRealDaLoja() {
+        PedidoCreateDTO.EnderecoEntregaDTO enderecoMock = new PedidoCreateDTO.EnderecoEntregaDTO(
+                "Rua Teste", "123", "Bairro", "Cidade", "SP", "01000-000", null
+        );
+
+        Loja lojaComTaxaPropria = new Loja();
+        lojaComTaxaPropria.setId("loja_1");
+        lojaComTaxaPropria.setDadosOperacionais(
+                new DadosOperacionais(4.5f, new BigDecimal("8.90"), 30, 45, 100));
+
+        Produto produto = new Produto();
+        produto.setId("prod_1");
+        produto.setLoja(lojaComTaxaPropria);
+        produto.setPreco(new BigDecimal("10.00"));
+
+        PedidoCreateDTO.ItemPedidoDTO item = new PedidoCreateDTO.ItemPedidoDTO("prod_1", "Item 1", null, 1);
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "PIX", null, enderecoMock, List.of(item), null);
+
+        when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaComTaxaPropria));
+        when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(produto));
+        when(pedidoRepository.save(any(Pedido.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        pedidoService.finalizarPedido(dto, "user_teste");
+
+        // 10.00 (item) + 8.90 (taxa real da loja, não os 5.00 fixos) = 18.90
+        verify(pedidoRepository).save(argThat(pedido ->
+                pedido.getTaxaFrete().compareTo(new BigDecimal("8.90")) == 0
+                        && pedido.getValorTotal().compareTo(new BigDecimal("18.90")) == 0
+        ));
+    }
+
+    @Test
+    @DisplayName("Deve persistir o valor de troco solicitado quando a forma de pagamento for dinheiro")
+    void devePersistirTrocoParaQuandoInformado() {
+        PedidoCreateDTO.EnderecoEntregaDTO enderecoMock = new PedidoCreateDTO.EnderecoEntregaDTO(
+                "Rua Teste", "123", "Bairro", "Cidade", "SP", "01000-000", null
+        );
+
+        Loja loja = new Loja();
+        loja.setId("loja_1");
+
+        Produto produto = new Produto();
+        produto.setId("prod_1");
+        produto.setLoja(loja);
+        produto.setPreco(new BigDecimal("10.00"));
+
+        PedidoCreateDTO.ItemPedidoDTO item = new PedidoCreateDTO.ItemPedidoDTO("prod_1", "Item 1", null, 1);
+        PedidoCreateDTO dto = new PedidoCreateDTO(
+                "loja_1", "Dinheiro", null, enderecoMock, List.of(item), new BigDecimal("50.00"));
+
+        when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(loja));
+        when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(produto));
+        when(pedidoRepository.save(any(Pedido.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        pedidoService.finalizarPedido(dto, "user_teste");
+
+        verify(pedidoRepository).save(argThat(pedido ->
+                pedido.getTrocoPara() != null
+                        && pedido.getTrocoPara().compareTo(new BigDecimal("50.00")) == 0
         ));
     }
 }
