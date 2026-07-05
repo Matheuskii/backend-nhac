@@ -42,6 +42,9 @@ public class Pedido {
     @Column(columnDefinition = "TEXT")
     private String observacao;
 
+    @Column(name = "troco_para", precision = 10, scale = 2)
+    private BigDecimal trocoPara;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private StatusPedido status;

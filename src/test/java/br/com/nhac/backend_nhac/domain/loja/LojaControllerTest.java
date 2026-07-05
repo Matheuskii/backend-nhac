@@ -82,7 +82,8 @@ class LojaControllerTest {
         when(lojaService.obterLojaId("loja_fantasma"))
                 .thenThrow(new IdNaoEncontradoException("A loja com o id: loja_fantasma não foi encontrada."));
 
-        mockMvc.perform(get("/api/v1/lojas/{id}", "loja_fantasma"))                .andExpect(status().isNotFound())
+        mockMvc.perform(get("/api/v1/lojas/loja_fantasma"))
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("A loja com o id: loja_fantasma não foi encontrada."));
     }
 }

@@ -41,7 +41,10 @@ public record PedidoCreateDTO(
         @Schema(description = "Lista de produtos comprados")
         @NotEmpty(message = "O pedido deve conter pelo menos um item. O carrinho não pode estar vazio.")
         @Valid
-        List<ItemPedidoDTO> itens
+        List<ItemPedidoDTO> itens,
+
+        @Schema(description = "Valor em dinheiro que o cliente vai usar para pagar, para calcular o troco. Só relevante quando formaPagamento for dinheiro.", example = "50.00")
+        BigDecimal trocoPara
 ) {
 
         public Pedido toEntity(Loja lojaDaBaseDeDados) {

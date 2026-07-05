@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -74,5 +75,10 @@ public class ProdutoController {
 
         Page<ProdutoResumoDTO> page = produtoService.listarProdutos(lojaId, precoMaximo, categoriaMenu, nome, pageable);
         return ResponseEntity.ok(page);
+}
+
+@GetMapping("/{produtoId}")
+    public ResponseEntity<ProdutoResumoDTO> listarProdutoPorId(@PathVariable("produtoId") String produtoid){
+        return ResponseEntity.ok(produtoService.listarProdutoPorId(produtoid));
 }
 }

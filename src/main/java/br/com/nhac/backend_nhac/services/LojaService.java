@@ -2,12 +2,10 @@ package br.com.nhac.backend_nhac.services;
 
 
 import br.com.nhac.backend_nhac.domain.loja.Loja;
-import br.com.nhac.backend_nhac.domain.loja.dto.LojaCreateDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaResumoDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaDetalhesDTO;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
 import br.com.nhac.backend_nhac.repositories.LojaRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -40,13 +38,5 @@ public class LojaService {
                 .orElseThrow(() -> new IdNaoEncontradoException("A loja com o id: " + id + " não foi encontrada."));
 
         return new LojaDetalhesDTO(loja);
-
-
-    }
-    @Transactional
-    public String criarLoja(LojaCreateDTO dto) {
-        Loja novaLoja = dto.toEntity();
-        lojaRepository.save(novaLoja);
-        return novaLoja.getId();
     }
 }
