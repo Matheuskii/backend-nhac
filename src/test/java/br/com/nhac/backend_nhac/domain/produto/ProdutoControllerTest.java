@@ -70,6 +70,7 @@ class ProdutoControllerTest {
                 "loja_123", "", "Desc", new BigDecimal("10.00"), "Cat", null, "12", null
         );
 
+        //noinspection deprecation
         mockMvc.perform(post("/api/v1/produtos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dtoInvalido)))
@@ -84,6 +85,7 @@ class ProdutoControllerTest {
                 "loja_123", "Hambúrguer", "Desc", new BigDecimal("-5.00"), "Cat", "url", "23", 0
         );
 
+        //noinspection deprecation
         mockMvc.perform(post("/api/v1/produtos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dtoInvalido)))

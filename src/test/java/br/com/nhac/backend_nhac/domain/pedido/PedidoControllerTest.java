@@ -69,6 +69,7 @@ class PedidoControllerTest {
                 }
                 """;
 
+        //noinspection deprecation
         mockMvc.perform(post("/api/v1/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonEstragado))
@@ -89,15 +90,16 @@ class PedidoControllerTest {
                   "formaPagamento": "PIX",
                   "enderecoEntrega": {
                     "rua": "Rua A", "numero": "123", "bairro": "Centro",
-                    "cidade": "SP", "estado": "SP", 
-                    "cep": "123" 
+                    "cidade": "SP", "estado": "SP",\s
+                    "cep": "123"\s
                   },
                   "itens": [
                     { "produtoId": "p1", "nome": "Sushi", "precoHistorico": 20.00, "quantidade": 1 }
                   ]
                 }
-                """;
+               \s""";
 
+        //noinspection deprecation
         mockMvc.perform(post("/api/v1/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonEstragado))
@@ -121,12 +123,12 @@ class PedidoControllerTest {
                     "cidade": "SP", "estado": "SP", "cep": "01000-000"
                   },
                   "itens": [
-                    { "produtoId": "p1", "nome": "Sushi", "precoHistorico": 20.00, 
-                      "quantidade": 0 
+                    { "produtoId": "p1", "nome": "Sushi", "precoHistorico": 20.00,\s
+                      "quantidade": 0\s
                     }
                   ]
                 }
-                """;
+               \s""";
 
         mockMvc.perform(post("/api/v1/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)

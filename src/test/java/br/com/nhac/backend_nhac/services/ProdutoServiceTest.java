@@ -76,9 +76,7 @@ class ProdutoServiceTest {
 
         when(lojaRepository.findById(lojaFantasmaId)).thenReturn(Optional.empty());
 
-        Exception excecao = assertThrows(IdNaoEncontradoException.class, () -> {
-            produtoService.cadastrarProduto(dto);
-        });
+        Exception excecao = assertThrows(IdNaoEncontradoException.class, () -> produtoService.cadastrarProduto(dto));
 
         assertEquals("A loja com o id: " + lojaFantasmaId + " não foi encontrada.", excecao.getMessage());
         verify(produtoRepository, never()).save(any(Produto.class));

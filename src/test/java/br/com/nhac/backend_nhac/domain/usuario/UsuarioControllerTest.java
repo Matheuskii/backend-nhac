@@ -99,6 +99,7 @@ class UsuarioControllerTest {
         UsuarioCreateDTO dto = new UsuarioCreateDTO("user_novo", "Nome Novo", "email-invalido",
                 "11999998888", null, "senha123");
 
+        //noinspection deprecation
         mockMvc.perform(post("/api/v1/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
