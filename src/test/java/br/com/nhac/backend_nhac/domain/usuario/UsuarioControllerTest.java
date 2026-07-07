@@ -153,6 +153,7 @@ class UsuarioControllerTest {
         EnderecoUsuarioDTO dto = new EnderecoUsuarioDTO(null, "Rua A", "123", "Centro",
                 "SP", "SP", "cep-invalido", null, true);
 
+        //noinspection deprecation
         mockMvc.perform(post("/api/v1/usuarios/{usuarioId}/enderecos", USUARIO_LOGADO_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))

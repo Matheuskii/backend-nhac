@@ -130,6 +130,7 @@ class PedidoControllerTest {
                 }
                \s""";
 
+        //noinspection deprecation
         mockMvc.perform(post("/api/v1/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonEstragado))
