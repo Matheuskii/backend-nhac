@@ -29,7 +29,8 @@ public record ProdutoResumoDTO(
         @Schema(description = "Categoria para as abas do Flutter", example = "Sushi")
         String categoriaMenu,
 
-        @Schema(description = "URL da imagem", example = "https://firebasestorage...")
+        @Schema(description = "URL da imagem", example = """
+                https://firebasestorage...""")
         String imagemUrl,
 
         @Schema(description = "peso do produto em g ou em kg", example = "23g")

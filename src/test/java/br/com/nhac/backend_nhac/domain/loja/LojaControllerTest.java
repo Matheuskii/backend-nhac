@@ -4,6 +4,7 @@ import br.com.nhac.backend_nhac.domain.loja.dto.LojaDetalhesDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaResumoDTO;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
 import br.com.nhac.backend_nhac.services.LojaService;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,12 +62,7 @@ class LojaControllerTest {
     void deveRetornarDetalhesDaLojaComSucesso() throws Exception {
         LojaDetalhesDTO.DadosOperacionaisDTO dadosOp =
                 new LojaDetalhesDTO.DadosOperacionaisDTO(4.8f, new BigDecimal("5.99"), 30, 45, 150);
-        LojaDetalhesDTO.EnderecoDTO endereco =
-                new LojaDetalhesDTO.EnderecoDTO("Rua das Flores", "123", "São Paulo", "SP", "01000-000");
-        LojaDetalhesDTO.HorariosDTO horarios = new LojaDetalhesDTO.HorariosDTO(
-                "18:00-23:00", "Fechado", "11:00-23:00", "11:00-23:00", "11:00-23:00", "11:00-23:59", "11:00-23:59");
-        LojaDetalhesDTO detalhes = new LojaDetalhesDTO(
-                "loja_1", "Sushi Ken", "Descrição completa", "Japonesa", "url", dadosOp, endereco, horarios);
+        LojaDetalhesDTO detalhes = getLojaDetalhesDTO(dadosOp);
 
         when(lojaService.obterLojaId("loja_1")).thenReturn(detalhes);
 
@@ -74,6 +70,16 @@ class LojaControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("loja_1"))
                 .andExpect(jsonPath("$.endereco.rua").value("Rua das Flores"));
+    }
+
+    private static @NonNull LojaDetalhesDTO getLojaDetalhesDTO(LojaDetalhesDTO.DadosOperacionaisDTO dadosOp) {
+        LojaDetalhesDTO.EnderecoDTO endereco =
+                new LojaDetalhesDTO.EnderecoDTO("Rua das Flores", "123", "São Paulo", "SP", "01000-000");
+        LojaDetalhesDTO.HorariosDTO horarios = new LojaDetalhesDTO.HorariosDTO(
+                "18:00-23:00", "Fechado", "11:00-23:00", "11:00-23:00", "11:00-23:00", "11:00-23:59", "11:00-23:59");
+        LojaDetalhesDTO detalhes = new LojaDetalhesDTO(
+                "loja_1", "Sushi Ken", "Descrição completa", "Japonesa", "url", dadosOp, endereco, horarios);
+        return detalhes;
     }
 
     @Test
