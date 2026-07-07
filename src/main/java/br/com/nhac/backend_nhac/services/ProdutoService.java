@@ -10,6 +10,7 @@ import br.com.nhac.backend_nhac.repositories.ProdutoRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
@@ -36,6 +37,7 @@ public class ProdutoService {
         return produtoRepository.save(novoProduto);
     }
 
+    @Transactional(readOnly = true)
     public ProdutoResumoDTO buscarProdutoPorId(String produtoId) {
         Produto produto = produtoRepository.findByIdAndIsAtivoTrue(produtoId)
                 .orElseThrow(() -> new IdNaoEncontradoException(
@@ -44,25 +46,23 @@ public class ProdutoService {
         return new ProdutoResumoDTO(produto);
     }
 
+    @Transactional(readOnly = true)
     public Page<ProdutoResumoDTO> listarProdutos(String lojaId, BigDecimal precoMaximo, String categoriaMenu, String nome, Pageable pageable) {
         Page<Produto> produtos;
 
-
-        if (nome != null && !nome.isBlank()) {
+        // Prioridade: filtro por categoriaMenu primeiro (se fornecido)
+        if (categoriaMenu != null && !categoriaMenu.isBlank()) {
+            produtos = produtoRepository.findByCategoriaMenuIgnoreCaseAndIsAtivoTrue(categoriaMenu, pageable);
+        } else if (nome != null && !nome.isBlank()) {
             produtos = produtoRepository.findByNomeContainingIgnoreCaseAndIsAtivoTrue(nome, pageable);
-
         } else if (precoMaximo != null) {
             produtos = produtoRepository.findByPrecoLessThanEqualAndIsAtivoTrue(precoMaximo, pageable);
-
-        } else if (categoriaMenu != null && !categoriaMenu.isBlank()) {
-            produtos = produtoRepository.findByCategoriaMenuIgnoreCaseAndIsAtivoTrue(categoriaMenu, pageable);
-
         } else if (lojaId != null && !lojaId.isBlank()) {
             produtos = produtoRepository.findByLojaIdAndIsAtivoTrue(lojaId, pageable);
-
         } else {
             produtos = produtoRepository.findByIsAtivoTrue(pageable);
         }
 
         return produtos.map(ProdutoResumoDTO::new);
-}}
+    }
+}

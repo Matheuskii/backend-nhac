@@ -42,8 +42,8 @@ public record ProdutoResumoDTO(
     public ProdutoResumoDTO(Produto produto) {
         this(
                 produto.getId(),
-                produto.getLoja().getId(),
-                produto.getLoja().getNome(),
+                produto.getLoja() != null ? produto.getLoja().getId() : null,
+                produto.getLoja() != null ? produto.getLoja().getNome() : null,
                 produto.getNome(),
                 produto.getDescricao(),
                 produto.getPreco(),
