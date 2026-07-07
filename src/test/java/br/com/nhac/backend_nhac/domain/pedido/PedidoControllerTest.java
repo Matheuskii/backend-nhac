@@ -84,14 +84,14 @@ class PedidoControllerTest {
                   "formaPagamento": "PIX",
                   "enderecoEntrega": {
                     "rua": "Rua A", "numero": "123", "bairro": "Centro",
-                    "cidade": "SP", "estado": "SP",\s
-                    "cep": "123"\s
+                    "cidade": "SP", "estado": "SP",
+                    "cep": "123"
                   },
                   "itens": [
                     { "produtoId": "p1", "nome": "Sushi", "quantidade": 1 }
                   ]
                 }
-               \s""";
+                """;
 
         //noinspection deprecation
         mockMvc.perform(post("/api/v1/pedidos")
@@ -117,7 +117,7 @@ class PedidoControllerTest {
                     { "produtoId": "p1", "nome": "Sushi", "quantidade": 0 }
                   ]
                 }
-               \s""";
+                """;
 
         //noinspection deprecation
         mockMvc.perform(post("/api/v1/pedidos")

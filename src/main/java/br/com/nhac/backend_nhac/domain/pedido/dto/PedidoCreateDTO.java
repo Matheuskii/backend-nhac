@@ -45,7 +45,10 @@ public record PedidoCreateDTO(
     EnderecoEntregaDTO enderecoEntrega,
 
     @Schema(description = "Lista de produtos comprados")
-    @JsonProperty(required = false)
+    @NotNull(message = "O carrinho de compras não pode ser nulo.")
+    @NotEmpty(message = "O carrinho de compras não pode estar vazio. Adicione pelo menos um item.")
+    @Size(min = 1, message = "O carrinho deve ter pelo menos um item.")
+    @Valid
     List<ItemPedidoDTO> itens
 ) {
 
