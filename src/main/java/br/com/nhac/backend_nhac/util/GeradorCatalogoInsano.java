@@ -12,7 +12,7 @@ import java.util.Locale;
 
 public class GeradorCatalogoInsano {
 
-    private static final Faker faker = new Faker(Locale.of("pt", "BR"));
+    private static final Faker faker = new Faker(new Locale("pt", "BR"));
 
     private static final int QUANTIDADE_LOJAS = 1000;
     private static final int PRODUTOS_POR_LOJA = 10;

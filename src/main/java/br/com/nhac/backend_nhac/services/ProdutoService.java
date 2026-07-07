@@ -5,6 +5,7 @@ import br.com.nhac.backend_nhac.domain.produto.Produto;
 import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoCreateDTO;
 import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoResumoDTO;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
+import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 import br.com.nhac.backend_nhac.repositories.LojaRepository;
 import br.com.nhac.backend_nhac.repositories.ProdutoRepository;
 import org.springframework.data.domain.Page;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
 
 @Service
@@ -26,14 +28,16 @@ public class ProdutoService {
         this.lojaRepository = lojaRepository;
     }
 
+    @Transactional
     public Produto cadastrarProduto(ProdutoCreateDTO dto) {
+        Loja lojaDoProduto = lojaRepository.findById(dto.lojaId())
+                .orElseThrow(() -> new IdNaoEncontradoException("A loja com o id: " + dto.lojaId() + " não foi encontrada."));
 
+        if (!lojaDoProduto.isAberto()) {
+            throw new RegraDeNegocioException("Não é possível cadastrar produtos em uma loja fechada.");
+        }
 
-        Loja lojaDoProduto = lojaRepository.findById(dto.lojaId()).orElseThrow(() -> new IdNaoEncontradoException("A loja com o id: " + dto.lojaId() + " não foi encontrada."));
-
-
-        Produto novoProduto = dto.toEntity(lojaDoProduto);
-
+        Produto novoProduto = dto.toEntity(lojaDoProduto, produtoRepository);
         return produtoRepository.save(novoProduto);
     }
 
@@ -48,21 +52,7 @@ public class ProdutoService {
 
     @Transactional(readOnly = true)
     public Page<ProdutoResumoDTO> listarProdutos(String lojaId, BigDecimal precoMaximo, String categoriaMenu, String nome, Pageable pageable) {
-        Page<Produto> produtos;
-
-        // Prioridade: filtro por categoriaMenu primeiro (se fornecido)
-        if (categoriaMenu != null && !categoriaMenu.isBlank()) {
-            produtos = produtoRepository.findByCategoriaMenuIgnoreCaseAndIsAtivoTrue(categoriaMenu, pageable);
-        } else if (nome != null && !nome.isBlank()) {
-            produtos = produtoRepository.findByNomeContainingIgnoreCaseAndIsAtivoTrue(nome, pageable);
-        } else if (precoMaximo != null) {
-            produtos = produtoRepository.findByPrecoLessThanEqualAndIsAtivoTrue(precoMaximo, pageable);
-        } else if (lojaId != null && !lojaId.isBlank()) {
-            produtos = produtoRepository.findByLojaIdAndIsAtivoTrue(lojaId, pageable);
-        } else {
-            produtos = produtoRepository.findByIsAtivoTrue(pageable);
-        }
-
+        Page<Produto> produtos = produtoRepository.findAllWithFilters(lojaId, categoriaMenu, nome, precoMaximo, pageable);
         return produtos.map(ProdutoResumoDTO::new);
     }
 }

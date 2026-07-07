@@ -62,16 +62,18 @@ public record PedidoCreateDTO(
                 pedido.setStatus(StatusPedido.PENDENTE);
                 pedido.setCriadoEm(Instant.now());
 
-                EnderecoEntrega endereco = new EnderecoEntrega(
-                        this.enderecoEntrega().rua(),
-                        this.enderecoEntrega().numero(),
-                        this.enderecoEntrega().bairro(),
-                        this.enderecoEntrega().cidade(),
-                        this.enderecoEntrega().estado(),
-                        this.enderecoEntrega().cep(),
-                        this.enderecoEntrega().complemento()
-                );
-                pedido.setEnderecoEntrega(endereco);
+                if (this.enderecoEntrega() != null) {
+                        EnderecoEntrega endereco = new EnderecoEntrega(
+                                this.enderecoEntrega().rua(),
+                                this.enderecoEntrega().numero(),
+                                this.enderecoEntrega().bairro(),
+                                this.enderecoEntrega().cidade(),
+                                this.enderecoEntrega().estado(),
+                                this.enderecoEntrega().cep(),
+                                this.enderecoEntrega().complemento()
+                        );
+                        pedido.setEnderecoEntrega(endereco);
+                }
 
                 return pedido;
         }

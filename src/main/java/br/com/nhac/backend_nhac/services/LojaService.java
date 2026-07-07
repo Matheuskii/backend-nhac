@@ -45,8 +45,16 @@ public class LojaService {
     }
     @Transactional
     public String criarLoja(LojaCreateDTO dto) {
+        long totalLojas = contarLojasCadastradas();
+        String novoId = String.format("loja_%04d", totalLojas + 1);
+        
         Loja novaLoja = dto.toEntity();
+        novaLoja.setId(novoId);
         lojaRepository.save(novaLoja);
-        return novaLoja.getId();
+        return novoId;
+    }
+
+    public long contarLojasCadastradas() {
+        return lojaRepository.count();
     }
 }
