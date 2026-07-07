@@ -14,6 +14,9 @@ public record ProdutoResumoDTO(
         @Schema(description = "ID da Loja", example = "loja-123")
         String lojaId,
 
+        @Schema(description = "Nome da loja. Sempre presente, independente da loja estar aberta ou fechada no momento — usado para exibir 'Vendido por' na tela do produto sem depender de GET /lojas/{id}, que só retorna lojas abertas.", example = "Sushi Ken")
+        String lojaNome,
+
         @Schema(description = "Nome do produto", example = "Hossomaki de Salmão")
         String nome,
 
@@ -39,6 +42,7 @@ public record ProdutoResumoDTO(
         this(
                 produto.getId(),
                 produto.getLoja().getId(),
+                produto.getLoja().getNome(),
                 produto.getNome(),
                 produto.getDescricao(),
                 produto.getPreco(),

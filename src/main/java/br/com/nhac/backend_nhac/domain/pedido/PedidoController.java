@@ -2,6 +2,7 @@ package br.com.nhac.backend_nhac.domain.pedido;
 
 
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCreateDTO;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.exceptions.ErroPadraoDTO;
 import br.com.nhac.backend_nhac.services.PedidoService;
@@ -46,13 +47,13 @@ public class PedidoController {
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class)))
     })
     @PostMapping
-    public ResponseEntity<String> criarPedido(
+    public ResponseEntity<PedidoCriadoDTO> criarPedido(
             @RequestBody @Valid PedidoCreateDTO dto,
             @AuthenticationPrincipal Usuario usuarioLogado) {
 
-        String pedidoId = pedidoService.finalizarPedido(dto, usuarioLogado.getId());
+       String pedidoId = pedidoService.finalizarPedido(dto, usuarioLogado.getId());
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(pedidoId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(new PedidoCriadoDTO(pedidoId));
     }
 
 }

@@ -158,7 +158,6 @@ class PedidoControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonValido))
                 .andExpect(status().isCreated())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
-                        .string("pedido_gerado_001"));
+                .andExpect(jsonPath("$.pedidoId").value("pedido_gerado_001"));
     }
 }

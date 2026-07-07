@@ -23,8 +23,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -158,8 +156,8 @@ class ProdutoServiceTest {
         Page<ProdutoResumoDTO> resultado = produtoService.listarProdutos("loja_1", null, null, null, pageable);
 
         assertEquals(1, resultado.getTotalElements());
-        assertEquals("loja_1", resultado.getContent().get(0).lojaId());
-        assertEquals("Hossomaki", resultado.getContent().get(0).nome());
+        assertEquals("loja_1", resultado.getContent().getFirst().lojaId());
+        assertEquals("Hossomaki", resultado.getContent().getFirst().nome());
         verify(produtoRepository, times(1)).findByLojaIdAndIsAtivoTrue(eq("loja_1"), any(Pageable.class));
     }
 

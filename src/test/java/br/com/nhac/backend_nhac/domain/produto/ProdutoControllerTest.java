@@ -109,7 +109,7 @@ class ProdutoControllerTest {
     @DisplayName("Deve retornar 200 ao listar produtos sem filtros")
     void deveListarProdutosComSucesso() throws Exception {
         ProdutoResumoDTO produto = new ProdutoResumoDTO(
-                "produto_1", "loja_123", "Hossomaki", "Hossomakinho", new BigDecimal("25.50"), "Sushi", "url", "23g",0
+                "produto_1", "loja_123", "Loja Teste", "Hossomaki", "Hossomakinho", new BigDecimal("25.50"), "Sushi", "url", "23g", 0
         );
         Page<ProdutoResumoDTO> pagina = new PageImpl<>(List.of(produto), PageRequest.of(0, 10), 1);
 
@@ -124,7 +124,7 @@ class ProdutoControllerTest {
     @DisplayName("Deve retornar 200 com os dados do produto ao buscar por ID")
     void deveBuscarProdutoPorIdComSucesso() throws Exception {
         ProdutoResumoDTO produto = new ProdutoResumoDTO(
-                "produto_1", "loja_123", "Hossomaki", "Hossomakinho", new BigDecimal("25.50"), "Sushi", "url", "23g", 0
+                "produto_1", "loja_123", "Loja Teste", "Hossomaki", "Hossomakinho", new BigDecimal("25.50"), "Sushi", "url", "23g", 0
         );
 
         when(produtoService.buscarProdutoPorId("produto_1")).thenReturn(produto);
