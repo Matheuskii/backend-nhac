@@ -43,6 +43,7 @@ class ProdutoServiceTest {
         String lojaId = "loja_123";
         Loja lojaFalsa = new Loja();
         lojaFalsa.setId(lojaId);
+        lojaFalsa.setAberto(true);
 
         ProdutoCreateDTO dto = new ProdutoCreateDTO(
                 lojaId, "Hossomaki", "Descrição", new BigDecimal("25.50"),

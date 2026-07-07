@@ -8,31 +8,29 @@
 *.a
 *.pyc
 __pycache__/
+*.pyo
+*.pyd
 
 # Dependencies
 node_modules/
 venv/
 .venv/
-.mypy_cache/
-.pytest_cache/
+.env
+.env.local
+*.env.*
+
+# Build directories
 target/
-.gradle/
 build/
 dist/
+out/
 
-# Editors/IDEs
+# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
 *.tmp
-
-# System files
-.DS_Store
-Thumbs.db
-.env
-.env.local
-*.env.*
 
 # Logs
 *.log
@@ -42,26 +40,14 @@ coverage/
 htmlcov/
 .coverage
 
-# Archives
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
+# Gradle
+.gradle/
+
+# Python cache
+.mypy_cache/
+.pytest_cache/
+__pycache__/
+
+# System files
+.DS_Store
+Thumbs.db
