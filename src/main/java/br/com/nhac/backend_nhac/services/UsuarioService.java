@@ -56,6 +56,7 @@ public class UsuarioService {
         if (dados.containsKey("nome")) usuario.setNome((String) dados.get("nome"));
         if (dados.containsKey("telefone")) usuario.setTelefone((String) dados.get("telefone"));
         if (dados.containsKey("imagemUrl")) usuario.setImagemUrl((String) dados.get("imagemUrl"));
+        if (dados.containsKey("fcmToken")) usuario.setFcmToken((String) dados.get("fcmToken"));
 
         usuarioRepository.save(usuario);
     }
@@ -68,6 +69,22 @@ public class UsuarioService {
                 )).collect(Collectors.toList());
     }
 
+    // BUG CORRIGIDO: nada impedia que dois endereços do mesmo usuário
+    // ficassem marcados como padrão ao mesmo tempo (cada PUT/POST só
+    // escrevia o próprio isPadrao, sem olhar para os outros). Isso deixava
+    // qual endereço seria usado no checkout dependente da ordem devolvida
+    // pelo banco. Antes de marcar um endereço como padrão, desmarcamos
+    // todos os outros do mesmo usuário na mesma transação.
+    private void garantirUnicoEnderecoPadrao(String usuarioId, String enderecoIdApreservar) {
+        List<EnderecoUsuario> enderecos = enderecoRepository.findByUsuarioId(usuarioId);
+        for (EnderecoUsuario e : enderecos) {
+            if (!e.getId().equals(enderecoIdApreservar) && e.isPadrao()) {
+                e.setPadrao(false);
+                enderecoRepository.save(e);
+            }
+        }
+    }
+
     @Transactional
     public void adicionarEndereco(String usuarioId, EnderecoUsuarioDTO dto) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
@@ -75,7 +92,7 @@ public class UsuarioService {
         EnderecoUsuario endereco = dto.toEntity(usuario);
 
         if (endereco.isPadrao()) {
-            desmarcarOutrosEnderecosComoPadrao(usuarioId, null);
+            garantirUnicoEnderecoPadrao(usuarioId, endereco.getId());
         }
 
         enderecoRepository.save(endereco);
@@ -99,22 +116,11 @@ public class UsuarioService {
         endereco.setComplemento(dto.complemento());
         endereco.setPadrao(dto.isPadrao());
 
-     if (endereco.isPadrao()) {
-            desmarcarOutrosEnderecosComoPadrao(usuarioId, enderecoId);
+        if (endereco.isPadrao()) {
+            garantirUnicoEnderecoPadrao(usuarioId, enderecoId);
         }
 
         enderecoRepository.save(endereco);
-    }
-
-    private void desmarcarOutrosEnderecosComoPadrao(String usuarioId, String enderecoIdAtual) {
-        List<EnderecoUsuario> enderecos = enderecoRepository.findByUsuarioId(usuarioId);
-        for (EnderecoUsuario outro : enderecos) {
-            boolean ehOOutroEndereco = enderecoIdAtual == null || !outro.getId().equals(enderecoIdAtual);
-            if (ehOOutroEndereco && outro.isPadrao()) {
-                outro.setPadrao(false);
-                enderecoRepository.save(outro);
-            }
-        }
     }
 
     @Transactional

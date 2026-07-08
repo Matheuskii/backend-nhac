@@ -52,6 +52,16 @@ public class Produto {
     @Column(name = "percentual_desconto")
     private Integer percentualDesconto;
 
-    public Produto(ProdutoCreateDTO dto) {
+    public Produto(ProdutoCreateDTO dto, Loja loja) {
+        this.loja = loja;
+        this.nome = dto.nome();
+        this.descricao = dto.descricao();
+        this.preco = dto.preco();
+        this.categoriaMenu = dto.categoriaMenu();
+        this.imagemUrl = dto.imagemUrl();
+        this.peso = dto.peso();
+        this.percentualDesconto = dto.percentualDesconto();
+        this.isAtivo = true;
+        this.criadoEm = Instant.now();
     }
 }

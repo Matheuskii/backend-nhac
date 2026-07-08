@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -55,6 +54,22 @@ public class ProdutoController {
         return ResponseEntity.status(HttpStatus.CREATED).body("O produto chegou no Controller com sucesso!");
     }
 
+    @Operation(summary = "Buscar produto por ID", description = "Retorna os dados completos de um único produto ativo.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Produto encontrado com sucesso."),
+
+            @ApiResponse(responseCode = "404", description = "Produto não encontrado ou inativo.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class))),
+
+            @ApiResponse(responseCode = "500", description = "Erro interno no servidor.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @GetMapping("/{produtoId}")
+    public ResponseEntity<ProdutoResumoDTO> buscarProdutoPorId(@PathVariable String produtoId) {
+        ProdutoResumoDTO produto = produtoService.buscarProdutoPorId(produtoId);
+        return ResponseEntity.ok(produto);
+    }
+
     @Operation(summary = "Listar produtos com filtros dinâmicos", description = "            description = \"Aceita filtros opcionais de loja, preço máximo, categoria ou nome. Retorna paginação.\")\n")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Listagem de produtos retornada com sucesso."),
@@ -75,10 +90,5 @@ public class ProdutoController {
 
         Page<ProdutoResumoDTO> page = produtoService.listarProdutos(lojaId, precoMaximo, categoriaMenu, nome, pageable);
         return ResponseEntity.ok(page);
-}
-
-@GetMapping("/{produtoId}")
-    public ResponseEntity<ProdutoResumoDTO> listarProdutoPorId(@PathVariable("produtoId") String produtoid){
-        return ResponseEntity.ok(produtoService.listarProdutoPorId(produtoid));
 }
 }

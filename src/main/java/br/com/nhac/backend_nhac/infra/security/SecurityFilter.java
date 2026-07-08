@@ -26,6 +26,12 @@ public class SecurityFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
+        // Ignorar requisições OPTIONS (CORS preflight)
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String token = recuperarToken(request);
 
         if(token != null){
@@ -33,10 +39,8 @@ public class SecurityFilter extends OncePerRequestFilter {
 
             if(email != null){
 
-                Usuario usuario = usuarioRepository.findAll()
-                        .stream()
-                        .filter(u -> u.getEmail().equalsIgnoreCase(email))
-                        .findFirst().orElse(null);
+
+                Usuario usuario = usuarioRepository.findByEmailIgnoreCase(email).orElse(null);
 
                 if(usuario != null){
                     var authentication = new UsernamePasswordAuthenticationToken(usuario, null, Collections.emptyList());

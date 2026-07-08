@@ -14,6 +14,9 @@ public record ProdutoResumoDTO(
         @Schema(description = "ID da Loja", example = "loja-123")
         String lojaId,
 
+        @Schema(description = "Nome da loja. Sempre presente, independente da loja estar aberta ou fechada no momento — usado para exibir 'Vendido por' na tela do produto sem depender de GET /lojas/{id}, que só retorna lojas abertas.", example = "Sushi Ken")
+        String lojaNome,
+
         @Schema(description = "Nome do produto", example = "Hossomaki de Salmão")
         String nome,
 
@@ -26,7 +29,8 @@ public record ProdutoResumoDTO(
         @Schema(description = "Categoria para as abas do Flutter", example = "Sushi")
         String categoriaMenu,
 
-        @Schema(description = "URL da imagem", example = "https://firebasestorage...")
+        @Schema(description = "URL da imagem", example = """
+                https://firebasestorage...""")
         String imagemUrl,
 
         @Schema(description = "peso do produto em g ou em kg", example = "23g")
@@ -38,7 +42,8 @@ public record ProdutoResumoDTO(
     public ProdutoResumoDTO(Produto produto) {
         this(
                 produto.getId(),
-                produto.getLoja().getId(),
+                produto.getLoja() != null ? produto.getLoja().getId() : null,
+                produto.getLoja() != null ? produto.getLoja().getNome() : null,
                 produto.getNome(),
                 produto.getDescricao(),
                 produto.getPreco(),

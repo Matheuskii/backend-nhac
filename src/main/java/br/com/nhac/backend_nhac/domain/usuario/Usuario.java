@@ -37,5 +37,9 @@ public class Usuario {
 
     @Column(length = 255)
     private String senha;
+
+
+    @Column(name = "fcm_token", length = 255)
+    private String fcmToken;
 }
 

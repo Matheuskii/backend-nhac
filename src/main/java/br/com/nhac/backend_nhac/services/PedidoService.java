@@ -69,8 +69,6 @@ public class PedidoService {
         pedido.setTaxaFrete(taxaFrete);
         pedido.setValorTotal(valorTotalItens.add(taxaFrete));
 
-        pedido.setTrocoPara(dto.trocoPara());
-
         Pedido pedidoSalvo = pedidoRepository.save(pedido);
 
         return pedidoSalvo.getId();

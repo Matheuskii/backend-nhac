@@ -65,13 +65,13 @@ class ResourceExceptionHandlerTest {
     }
 
     @Test
-    @DisplayName("Deve tratar MethodArgumentNotValidException devolvendo 422 com mensagens concatenadas")
+    @DisplayName("Deve tratar MethodArgumentNotValidException devolvendo 400 com mensagens concatenadas")
     void deveTratarMethodArgumentNotValidException() {
         MethodArgumentNotValidException excecao = mockErroDeValidacao();
 
         ResponseEntity<ErroPadraoDTO> resposta = handler.validacaoDeCampos(excecao, request);
 
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, resposta.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, resposta.getStatusCode());
         assertEquals("nome: não pode ser vazio", resposta.getBody().message());
     }
 

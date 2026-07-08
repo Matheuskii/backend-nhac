@@ -70,24 +70,26 @@ class ProdutoControllerTest {
                 "loja_123", "", "Desc", new BigDecimal("10.00"), "Cat", null, "12", null
         );
 
+        //noinspection deprecation
         mockMvc.perform(post("/api/v1/produtos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dtoInvalido)))
-                .andExpect(status().isUnprocessableEntity())
+                .andExpect(status().isBadRequest())
                 .andExpect((ResultMatcher) jsonPath("$.message").exists());
     }
 
     @Test
-    @DisplayName("Deve retornar Erro 422 quando criar produto com preço negativo")
+    @DisplayName("Deve retornar Erro 400 quando criar produto com preço negativo")
     void deveDevolverErro400QuandoPrecoNegativo() throws Exception {
         ProdutoCreateDTO dtoInvalido = new ProdutoCreateDTO(
                 "loja_123", "Hambúrguer", "Desc", new BigDecimal("-5.00"), "Cat", "url", "23", 0
         );
 
+        //noinspection deprecation
         mockMvc.perform(post("/api/v1/produtos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dtoInvalido)))
-                .andExpect(status().isUnprocessableEntity())
+                .andExpect(status().isBadRequest())
                 .andExpect((ResultMatcher) jsonPath("$.message").exists());
     }
 
@@ -109,7 +111,7 @@ class ProdutoControllerTest {
     @DisplayName("Deve retornar 200 ao listar produtos sem filtros")
     void deveListarProdutosComSucesso() throws Exception {
         ProdutoResumoDTO produto = new ProdutoResumoDTO(
-                "produto_1", "loja_123", "Hossomaki", "Hossomakinho", new BigDecimal("25.50"), "Sushi", "url", "23g",0
+                "produto_1", "loja_123", "Loja Teste", "Hossomaki", "Hossomakinho", new BigDecimal("25.50"), "Sushi", "url", "23g", 0
         );
         Page<ProdutoResumoDTO> pagina = new PageImpl<>(List.of(produto), PageRequest.of(0, 10), 1);
 
@@ -118,5 +120,32 @@ class ProdutoControllerTest {
         mockMvc.perform(get("/api/v1/produtos"))
                 .andExpect(status().isOk())
                 .andExpect((ResultMatcher) jsonPath("$.content[0].id").value("produto_1"));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 200 com os dados do produto ao buscar por ID")
+    void deveBuscarProdutoPorIdComSucesso() throws Exception {
+        ProdutoResumoDTO produto = new ProdutoResumoDTO(
+                "produto_1", "loja_123", "Loja Teste", "Hossomaki", "Hossomakinho", new BigDecimal("25.50"), "Sushi", "url", "23g", 0
+        );
+
+        when(produtoService.buscarProdutoPorId("produto_1")).thenReturn(produto);
+
+        mockMvc.perform(get("/api/v1/produtos/{produtoId}", "produto_1"))
+                .andExpect(status().isOk())
+                .andExpect((ResultMatcher) jsonPath("$.id").value("produto_1"))
+                .andExpect((ResultMatcher) jsonPath("$.nome").value("Hossomaki"));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 404 ao buscar um produto que não existe ou está inativo")
+    void deveRetornar404AoBuscarProdutoInexistente() throws Exception {
+        when(produtoService.buscarProdutoPorId("produto_fantasma"))
+                .thenThrow(new br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException(
+                        "O produto com o id: produto_fantasma não foi encontrado."));
+
+        mockMvc.perform(get("/api/v1/produtos/{produtoId}", "produto_fantasma"))
+                .andExpect(status().isNotFound())
+                .andExpect((ResultMatcher) jsonPath("$.message").value("O produto com o id: produto_fantasma não foi encontrado."));
     }
 }

@@ -23,8 +23,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,6 +43,7 @@ class ProdutoServiceTest {
         String lojaId = "loja_123";
         Loja lojaFalsa = new Loja();
         lojaFalsa.setId(lojaId);
+        lojaFalsa.setAberto(true);
 
         ProdutoCreateDTO dto = new ProdutoCreateDTO(
                 lojaId, "Hossomaki", "Descrição", new BigDecimal("25.50"),
@@ -78,9 +77,7 @@ class ProdutoServiceTest {
 
         when(lojaRepository.findById(lojaFantasmaId)).thenReturn(Optional.empty());
 
-        Exception excecao = assertThrows(IdNaoEncontradoException.class, () -> {
-            produtoService.cadastrarProduto(dto);
-        });
+        Exception excecao = assertThrows(IdNaoEncontradoException.class, () -> produtoService.cadastrarProduto(dto));
 
         assertEquals("A loja com o id: " + lojaFantasmaId + " não foi encontrada.", excecao.getMessage());
         verify(produtoRepository, never()).save(any(Produto.class));
@@ -109,13 +106,12 @@ class ProdutoServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Produto> pagina = new PageImpl<>(List.of(produtoDeTeste()), pageable, 1);
 
-        when(produtoRepository.findByNomeContainingIgnoreCase(eq("hosso"), any(Pageable.class))).thenReturn(pagina);
+        when(produtoRepository.findAllWithFilters(null, null, "hosso", null, pageable)).thenReturn(pagina);
 
         Page<ProdutoResumoDTO> resultado = produtoService.listarProdutos(null, null, null, "hosso", pageable);
 
         assertEquals(1, resultado.getTotalElements());
-        verify(produtoRepository, times(1)).findByNomeContainingIgnoreCase(eq("hosso"), any(Pageable.class));
-        verify(produtoRepository, never()).findAll(any(Pageable.class));
+        verify(produtoRepository, times(1)).findAllWithFilters(null, null, "hosso", null, pageable);
     }
 
     @Test
@@ -125,12 +121,12 @@ class ProdutoServiceTest {
         Page<Produto> pagina = new PageImpl<>(List.of(produtoDeTeste()), pageable, 1);
         BigDecimal precoMaximo = new BigDecimal("30.00");
 
-        when(produtoRepository.findByPrecoLessThanEqual(eq(precoMaximo), any(Pageable.class))).thenReturn(pagina);
+        when(produtoRepository.findAllWithFilters(null, null, null, precoMaximo, pageable)).thenReturn(pagina);
 
         Page<ProdutoResumoDTO> resultado = produtoService.listarProdutos(null, precoMaximo, null, null, pageable);
 
         assertEquals(1, resultado.getTotalElements());
-        verify(produtoRepository, times(1)).findByPrecoLessThanEqual(eq(precoMaximo), any(Pageable.class));
+        verify(produtoRepository, times(1)).findAllWithFilters(null, null, null, precoMaximo, pageable);
     }
 
     @Test
@@ -139,12 +135,12 @@ class ProdutoServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Produto> pagina = new PageImpl<>(List.of(produtoDeTeste()), pageable, 1);
 
-        when(produtoRepository.findByCategoriaMenuIgnoreCase(eq("Sushi"), any(Pageable.class))).thenReturn(pagina);
+        when(produtoRepository.findAllWithFilters(null, "Sushi", null, null, pageable)).thenReturn(pagina);
 
         Page<ProdutoResumoDTO> resultado = produtoService.listarProdutos(null, null, "Sushi", null, pageable);
 
         assertEquals(1, resultado.getTotalElements());
-        verify(produtoRepository, times(1)).findByCategoriaMenuIgnoreCase(eq("Sushi"), any(Pageable.class));
+        verify(produtoRepository, times(1)).findAllWithFilters(null, "Sushi", null, null, pageable);
     }
 
     @Test
@@ -153,14 +149,14 @@ class ProdutoServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Produto> pagina = new PageImpl<>(List.of(produtoDeTeste()), pageable, 1);
 
-        when(produtoRepository.findByLojaId(eq("loja_1"), any(Pageable.class))).thenReturn(pagina);
+        when(produtoRepository.findAllWithFilters("loja_1", null, null, null, pageable)).thenReturn(pagina);
 
         Page<ProdutoResumoDTO> resultado = produtoService.listarProdutos("loja_1", null, null, null, pageable);
 
         assertEquals(1, resultado.getTotalElements());
         assertEquals("loja_1", resultado.getContent().get(0).lojaId());
         assertEquals("Hossomaki", resultado.getContent().get(0).nome());
-        verify(produtoRepository, times(1)).findByLojaId(eq("loja_1"), any(Pageable.class));
+        verify(produtoRepository, times(1)).findAllWithFilters("loja_1", null, null, null, pageable);
     }
 
     @Test
@@ -169,11 +165,34 @@ class ProdutoServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Produto> pagina = new PageImpl<>(List.of(produtoDeTeste()), pageable, 1);
 
-        when(produtoRepository.findAll(any(Pageable.class))).thenReturn(pagina);
+        when(produtoRepository.findAllWithFilters(null, null, null, null, pageable)).thenReturn(pagina);
 
         Page<ProdutoResumoDTO> resultado = produtoService.listarProdutos(null, null, null, null, pageable);
 
         assertEquals(1, resultado.getTotalElements());
-        verify(produtoRepository, times(1)).findAll(any(Pageable.class));
+        verify(produtoRepository, times(1)).findAllWithFilters(null, null, null, null, pageable);
+    }
+
+    @Test
+    @DisplayName("Deve retornar os dados do produto quando ele existir e estiver ativo")
+    void deveBuscarProdutoPorIdComSucesso() {
+        when(produtoRepository.findByIdAndIsAtivoTrue("produto_1")).thenReturn(Optional.of(produtoDeTeste()));
+
+        ProdutoResumoDTO resultado = produtoService.buscarProdutoPorId("produto_1");
+
+        assertEquals("produto_1", resultado.id());
+        assertEquals("Hossomaki", resultado.nome());
+        assertEquals("loja_1", resultado.lojaId());
+    }
+
+    @Test
+    @DisplayName("Deve lançar IdNaoEncontradoException quando o produto não existir ou estiver inativo")
+    void deveLancarExcecaoAoBuscarProdutoInexistenteOuInativo() {
+        when(produtoRepository.findByIdAndIsAtivoTrue("produto_fantasma")).thenReturn(Optional.empty());
+
+        Exception excecao = assertThrows(IdNaoEncontradoException.class,
+                () -> produtoService.buscarProdutoPorId("produto_fantasma"));
+
+        assertEquals("O produto com o id: produto_fantasma não foi encontrado.", excecao.getMessage());
     }
 }

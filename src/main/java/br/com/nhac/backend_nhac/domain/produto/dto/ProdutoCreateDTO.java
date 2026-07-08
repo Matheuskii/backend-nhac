@@ -2,6 +2,7 @@ package br.com.nhac.backend_nhac.domain.produto.dto;
 
 import br.com.nhac.backend_nhac.domain.loja.Loja;
 import br.com.nhac.backend_nhac.domain.produto.Produto;
+import br.com.nhac.backend_nhac.repositories.ProdutoRepository;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 
@@ -41,22 +42,12 @@ public record ProdutoCreateDTO(
         Integer percentualDesconto
 ) {
 
-        public Produto toEntity(Loja lojaDaBaseDeDados) {
-                Produto produto = new Produto();
+        public Produto toEntity(Loja lojaDaBaseDeDados, ProdutoRepository produtoRepository) {
+                long totalProdutos = produtoRepository.countByLojaId(lojaDaBaseDeDados.getId());
+                String novoId = String.format("prod_%04d", totalProdutos + 1);
 
-                produto.setId(java.util.UUID.randomUUID().toString());
-
-                produto.setLoja(lojaDaBaseDeDados);
-
-                produto.setNome(this.nome());
-                produto.setDescricao(this.descricao());
-                produto.setPreco(this.preco());
-                produto.setCategoriaMenu(this.categoriaMenu());
-                produto.setImagemUrl(this.imagemUrl());
-                produto.setPeso(this.peso());
-                produto.setPercentualDesconto(this.percentualDesconto());
-
-                produto.setCriadoEm(java.time.Instant.now());
+                Produto produto = new Produto(this, lojaDaBaseDeDados);
+                produto.setId(novoId);
 
                 return produto;
         }
