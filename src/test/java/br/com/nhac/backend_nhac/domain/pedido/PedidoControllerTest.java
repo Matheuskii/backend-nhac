@@ -56,10 +56,7 @@ class PedidoControllerTest {
 
         String jsonEstragado = """
                 {
-                  "usuarioId": "firebase_uid_123",
                   "lojaId": "loja-001",
-                  "valorTotal": 31.00,
-                  "taxaFrete": 5.50,
                   "formaPagamento": "PIX",
                   "enderecoEntrega": {
                     "rua": "Rua A", "numero": "123", "bairro": "Centro",
@@ -73,7 +70,7 @@ class PedidoControllerTest {
         mockMvc.perform(post("/api/v1/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonEstragado))
-                .andExpect(status().isUnprocessableEntity())
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").exists());
     }
 
@@ -83,27 +80,24 @@ class PedidoControllerTest {
 
         String jsonEstragado = """
                 {
-                  "usuarioId": "firebase_uid_123",
                   "lojaId": "loja-001",
-                  "valorTotal": 31.00,
-                  "taxaFrete": 5.50,
                   "formaPagamento": "PIX",
                   "enderecoEntrega": {
                     "rua": "Rua A", "numero": "123", "bairro": "Centro",
-                    "cidade": "SP", "estado": "SP",\s
-                    "cep": "123"\s
+                    "cidade": "SP", "estado": "SP",
+                    "cep": "123"
                   },
                   "itens": [
-                    { "produtoId": "p1", "nome": "Sushi", "precoHistorico": 20.00, "quantidade": 1 }
+                    { "produtoId": "p1", "nome": "Sushi", "quantidade": 1 }
                   ]
                 }
-               \s""";
+                """;
 
         //noinspection deprecation
         mockMvc.perform(post("/api/v1/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonEstragado))
-                .andExpect(status().isUnprocessableEntity())
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").exists());
     }
 
@@ -113,28 +107,23 @@ class PedidoControllerTest {
 
         String jsonEstragado = """
                 {
-                  "usuarioId": "firebase_uid_123",
                   "lojaId": "loja-001",
-                  "valorTotal": 31.00,
-                  "taxaFrete": 5.50,
                   "formaPagamento": "PIX",
                   "enderecoEntrega": {
                     "rua": "Rua A", "numero": "123", "bairro": "Centro",
                     "cidade": "SP", "estado": "SP", "cep": "01000-000"
                   },
                   "itens": [
-                    { "produtoId": "p1", "nome": "Sushi", "precoHistorico": 20.00,\s
-                      "quantidade": 0\s
-                    }
+                    { "produtoId": "p1", "nome": "Sushi", "quantidade": 0 }
                   ]
                 }
-               \s""";
+                """;
 
         //noinspection deprecation
         mockMvc.perform(post("/api/v1/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonEstragado))
-                .andExpect(status().isUnprocessableEntity())
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").exists());
     }
 

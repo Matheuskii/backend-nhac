@@ -43,6 +43,7 @@ class ProdutoServiceTest {
         String lojaId = "loja_123";
         Loja lojaFalsa = new Loja();
         lojaFalsa.setId(lojaId);
+        lojaFalsa.setAberto(true);
 
         ProdutoCreateDTO dto = new ProdutoCreateDTO(
                 lojaId, "Hossomaki", "Descrição", new BigDecimal("25.50"),
@@ -105,13 +106,12 @@ class ProdutoServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Produto> pagina = new PageImpl<>(List.of(produtoDeTeste()), pageable, 1);
 
-        when(produtoRepository.findByNomeContainingIgnoreCaseAndIsAtivoTrue(eq("hosso"), any(Pageable.class))).thenReturn(pagina);
+        when(produtoRepository.findAllWithFilters(null, null, "hosso", null, pageable)).thenReturn(pagina);
 
         Page<ProdutoResumoDTO> resultado = produtoService.listarProdutos(null, null, null, "hosso", pageable);
 
         assertEquals(1, resultado.getTotalElements());
-        verify(produtoRepository, times(1)).findByNomeContainingIgnoreCaseAndIsAtivoTrue(eq("hosso"), any(Pageable.class));
-        verify(produtoRepository, never()).findByIsAtivoTrue(any(Pageable.class));
+        verify(produtoRepository, times(1)).findAllWithFilters(null, null, "hosso", null, pageable);
     }
 
     @Test
@@ -121,12 +121,12 @@ class ProdutoServiceTest {
         Page<Produto> pagina = new PageImpl<>(List.of(produtoDeTeste()), pageable, 1);
         BigDecimal precoMaximo = new BigDecimal("30.00");
 
-        when(produtoRepository.findByPrecoLessThanEqualAndIsAtivoTrue(eq(precoMaximo), any(Pageable.class))).thenReturn(pagina);
+        when(produtoRepository.findAllWithFilters(null, null, null, precoMaximo, pageable)).thenReturn(pagina);
 
         Page<ProdutoResumoDTO> resultado = produtoService.listarProdutos(null, precoMaximo, null, null, pageable);
 
         assertEquals(1, resultado.getTotalElements());
-        verify(produtoRepository, times(1)).findByPrecoLessThanEqualAndIsAtivoTrue(eq(precoMaximo), any(Pageable.class));
+        verify(produtoRepository, times(1)).findAllWithFilters(null, null, null, precoMaximo, pageable);
     }
 
     @Test
@@ -135,12 +135,12 @@ class ProdutoServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Produto> pagina = new PageImpl<>(List.of(produtoDeTeste()), pageable, 1);
 
-        when(produtoRepository.findByCategoriaMenuIgnoreCaseAndIsAtivoTrue(eq("Sushi"), any(Pageable.class))).thenReturn(pagina);
+        when(produtoRepository.findAllWithFilters(null, "Sushi", null, null, pageable)).thenReturn(pagina);
 
         Page<ProdutoResumoDTO> resultado = produtoService.listarProdutos(null, null, "Sushi", null, pageable);
 
         assertEquals(1, resultado.getTotalElements());
-        verify(produtoRepository, times(1)).findByCategoriaMenuIgnoreCaseAndIsAtivoTrue(eq("Sushi"), any(Pageable.class));
+        verify(produtoRepository, times(1)).findAllWithFilters(null, "Sushi", null, null, pageable);
     }
 
     @Test
@@ -149,14 +149,14 @@ class ProdutoServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Produto> pagina = new PageImpl<>(List.of(produtoDeTeste()), pageable, 1);
 
-        when(produtoRepository.findByLojaIdAndIsAtivoTrue(eq("loja_1"), any(Pageable.class))).thenReturn(pagina);
+        when(produtoRepository.findAllWithFilters("loja_1", null, null, null, pageable)).thenReturn(pagina);
 
         Page<ProdutoResumoDTO> resultado = produtoService.listarProdutos("loja_1", null, null, null, pageable);
 
         assertEquals(1, resultado.getTotalElements());
-        assertEquals("loja_1", resultado.getContent().getFirst().lojaId());
-        assertEquals("Hossomaki", resultado.getContent().getFirst().nome());
-        verify(produtoRepository, times(1)).findByLojaIdAndIsAtivoTrue(eq("loja_1"), any(Pageable.class));
+        assertEquals("loja_1", resultado.getContent().get(0).lojaId());
+        assertEquals("Hossomaki", resultado.getContent().get(0).nome());
+        verify(produtoRepository, times(1)).findAllWithFilters("loja_1", null, null, null, pageable);
     }
 
     @Test
@@ -165,12 +165,12 @@ class ProdutoServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Produto> pagina = new PageImpl<>(List.of(produtoDeTeste()), pageable, 1);
 
-        when(produtoRepository.findByIsAtivoTrue(any(Pageable.class))).thenReturn(pagina);
+        when(produtoRepository.findAllWithFilters(null, null, null, null, pageable)).thenReturn(pagina);
 
         Page<ProdutoResumoDTO> resultado = produtoService.listarProdutos(null, null, null, null, pageable);
 
         assertEquals(1, resultado.getTotalElements());
-        verify(produtoRepository, times(1)).findByIsAtivoTrue(any(Pageable.class));
+        verify(produtoRepository, times(1)).findAllWithFilters(null, null, null, null, pageable);
     }
 
     @Test

@@ -6,6 +6,9 @@ import br.com.nhac.backend_nhac.domain.pedido.ItemPedido;
 import br.com.nhac.backend_nhac.domain.pedido.Pedido;
 import br.com.nhac.backend_nhac.domain.pedido.StatusPedido;
 import br.com.nhac.backend_nhac.domain.produto.Produto;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -19,32 +22,35 @@ import java.util.UUID;
 public record PedidoCreateDTO(
 
 
+    @Schema(description = "ID da loja onde o pedido foi feito", example = "loja-001")
+    @JsonProperty(required = false)
+    String lojaId,
 
-        @Schema(description = "ID da loja onde o pedido foi feito", example = "loja-001")
-        @NotBlank(message = "O ID da loja é obrigatório.")
-        String lojaId,
 
+    @Schema(description = "Forma de pagamento escolhida (ex: PIX, CARTAO_CREDITO)", example = "PIX")
+    @JsonProperty(required = false)
+    String formaPagamento,
 
-        @Schema(description = "Forma de pagamento escolhida (ex: PIX, CARTAO_CREDITO)", example = "PIX")
-        @NotBlank(message = "A forma de pagamento é obrigatória.")
-        String formaPagamento,
+    @Schema(description = "Observação ou instrução especial do cliente", example = "Tirar a cebola do lanche.")
+    @Size(max = 500, message = "A observação não pode ter mais de 500 caracteres.")
+    @JsonProperty(required = false)
+    String observacao,
 
-        @Schema(description = "Observação ou instrução especial do cliente", example = "Tirar a cebola do lanche.")
-        @Size(max = 500, message = "A observação não pode ter mais de 500 caracteres.")
-        String observacao,
+    @Schema(description = "Valor em dinheiro para calcular o troco (apenas quando formaPagamento = Dinheiro)", example = "50.00")
+    @JsonProperty(required = false)
+    BigDecimal trocoPara,
 
-        @Schema(description = "Valor em dinheiro para calcular o troco (apenas quando formaPagamento = Dinheiro)", example = "50.00")
-        BigDecimal trocoPara,
+    @Schema(description = "Endereço completo e exato para entrega")
+    @JsonProperty(required = false)
+    @Valid
+    EnderecoEntregaDTO enderecoEntrega,
 
-        @Schema(description = "Endereço completo e exato para entrega")
-        @NotNull(message = "O endereço de entrega é obrigatório.")
-        @Valid
-        EnderecoEntregaDTO enderecoEntrega,
-
-        @Schema(description = "Lista de produtos comprados")
-        @NotEmpty(message = "O pedido deve conter pelo menos um item. O carrinho não pode estar vazio.")
-        @Valid
-        List<ItemPedidoDTO> itens
+    @Schema(description = "Lista de produtos comprados")
+    @NotNull(message = "O carrinho de compras não pode ser nulo.")
+    @NotEmpty(message = "O carrinho de compras não pode estar vazio. Adicione pelo menos um item.")
+    @Size(min = 1, message = "O carrinho deve ter pelo menos um item.")
+    @Valid
+    List<ItemPedidoDTO> itens
 ) {
 
         public Pedido toEntity(Loja lojaDaBaseDeDados) {
@@ -60,16 +66,18 @@ public record PedidoCreateDTO(
                 pedido.setStatus(StatusPedido.PENDENTE);
                 pedido.setCriadoEm(Instant.now());
 
-                EnderecoEntrega endereco = new EnderecoEntrega(
-                        this.enderecoEntrega().rua(),
-                        this.enderecoEntrega().numero(),
-                        this.enderecoEntrega().bairro(),
-                        this.enderecoEntrega().cidade(),
-                        this.enderecoEntrega().estado(),
-                        this.enderecoEntrega().cep(),
-                        this.enderecoEntrega().complemento()
-                );
-                pedido.setEnderecoEntrega(endereco);
+                if (this.enderecoEntrega() != null) {
+                        EnderecoEntrega endereco = new EnderecoEntrega(
+                                this.enderecoEntrega().rua(),
+                                this.enderecoEntrega().numero(),
+                                this.enderecoEntrega().bairro(),
+                                this.enderecoEntrega().cidade(),
+                                this.enderecoEntrega().estado(),
+                                this.enderecoEntrega().cep(),
+                                this.enderecoEntrega().complemento()
+                        );
+                        pedido.setEnderecoEntrega(endereco);
+                }
 
                 return pedido;
         }

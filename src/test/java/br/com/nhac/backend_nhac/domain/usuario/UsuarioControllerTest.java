@@ -103,7 +103,7 @@ class UsuarioControllerTest {
         mockMvc.perform(post("/api/v1/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isBadRequest());
 
         verify(usuarioService, never()).salvarUsuario(any());
     }
@@ -148,7 +148,7 @@ class UsuarioControllerTest {
     }
 
     @Test
-    @DisplayName("Deve retornar 422 ao adicionar endereço com CEP em formato inválido")
+    @DisplayName("Deve retornar 400 ao adicionar endereço com CEP em formato inválido")
     void deveRetornar422AoAdicionarEnderecoComCepInvalido() throws Exception {
         EnderecoUsuarioDTO dto = new EnderecoUsuarioDTO(null, "Rua A", "123", "Centro",
                 "SP", "SP", "cep-invalido", null, true);
@@ -157,7 +157,7 @@ class UsuarioControllerTest {
         mockMvc.perform(post("/api/v1/usuarios/{usuarioId}/enderecos", USUARIO_LOGADO_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isBadRequest());
 
         verify(usuarioService, never()).adicionarEndereco(any(), any());
     }

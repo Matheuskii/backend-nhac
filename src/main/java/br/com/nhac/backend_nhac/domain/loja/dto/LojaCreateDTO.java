@@ -99,7 +99,6 @@ public record LojaCreateDTO(
 
     public Loja toEntity() {
         Loja loja = new Loja();
-        loja.setId(java.util.UUID.randomUUID().toString());
         loja.setNome(this.nome());
         loja.setDescricao(this.descricao());
         loja.setCategoria(this.categoria());
