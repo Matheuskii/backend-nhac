@@ -74,12 +74,12 @@ class ProdutoControllerTest {
         mockMvc.perform(post("/api/v1/produtos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dtoInvalido)))
-                .andExpect(status().isUnprocessableEntity())
+                .andExpect(status().isBadRequest())
                 .andExpect((ResultMatcher) jsonPath("$.message").exists());
     }
 
     @Test
-    @DisplayName("Deve retornar Erro 422 quando criar produto com preço negativo")
+    @DisplayName("Deve retornar Erro 400 quando criar produto com preço negativo")
     void deveDevolverErro400QuandoPrecoNegativo() throws Exception {
         ProdutoCreateDTO dtoInvalido = new ProdutoCreateDTO(
                 "loja_123", "Hambúrguer", "Desc", new BigDecimal("-5.00"), "Cat", "url", "23", 0
@@ -89,7 +89,7 @@ class ProdutoControllerTest {
         mockMvc.perform(post("/api/v1/produtos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dtoInvalido)))
-                .andExpect(status().isUnprocessableEntity())
+                .andExpect(status().isBadRequest())
                 .andExpect((ResultMatcher) jsonPath("$.message").exists());
     }
 

@@ -42,6 +42,7 @@ public record PedidoCreateDTO(
 
     @Schema(description = "Endereço completo e exato para entrega")
     @JsonProperty(required = false)
+    @Valid
     EnderecoEntregaDTO enderecoEntrega,
 
     @Schema(description = "Lista de produtos comprados")
