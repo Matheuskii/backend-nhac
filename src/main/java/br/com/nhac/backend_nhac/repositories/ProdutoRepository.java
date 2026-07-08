@@ -20,9 +20,18 @@ public interface ProdutoRepository extends JpaRepository<Produto, String> {
 
     long countByLojaId(String lojaId);
 
-    @Query("""
-        SELECT p FROM Produto p 
+    @Query(value = """
+        SELECT p FROM Produto p
         JOIN FETCH p.loja 
+        WHERE p.isAtivo = true
+        AND (:lojaId IS NULL OR p.loja.id = :lojaId)
+        AND (:categoriaMenu IS NULL OR LOWER(p.categoriaMenu) = LOWER(:categoriaMenu))
+        AND (:nome IS NULL OR LOWER(p.nome) LIKE LOWER(CONCAT('%', :nome, '%')))
+        AND (:precoMaximo IS NULL OR p.preco <= :precoMaximo)
+    """,
+            countQuery = """
+        SELECT COUNT(p) FROM Produto p
+        JOIN p.loja
         WHERE p.isAtivo = true
         AND (:lojaId IS NULL OR p.loja.id = :lojaId)
         AND (:categoriaMenu IS NULL OR LOWER(p.categoriaMenu) = LOWER(:categoriaMenu))
@@ -30,13 +39,12 @@ public interface ProdutoRepository extends JpaRepository<Produto, String> {
         AND (:precoMaximo IS NULL OR p.preco <= :precoMaximo)
     """)
     Page<Produto> findAllWithFilters(
-        @Param("lojaId") String lojaId,
-        @Param("categoriaMenu") String categoriaMenu,
-        @Param("nome") String nome,
-        @Param("precoMaximo") BigDecimal precoMaximo,
-        Pageable pageable
+            @Param("lojaId") String lojaId,
+            @Param("categoriaMenu") String categoriaMenu,
+            @Param("nome") String nome,
+            @Param("precoMaximo") BigDecimal precoMaximo,
+            Pageable pageable
     );
-
     Page<Produto> findByLojaIdAndIsAtivoTrue(String lojaId, Pageable pageable);
 
     Page<Produto> findByPrecoLessThanEqualAndIsAtivoTrue(BigDecimal precoMaximo, Pageable pageable);
