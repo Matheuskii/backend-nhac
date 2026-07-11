@@ -92,7 +92,7 @@ jobs:
 
       - name: 📦 Upload relatório JaCoCo (HTML)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: jacoco-report
           path: target/site/jacoco/
@@ -100,7 +100,7 @@ jobs:
 
       - name: 📦 Upload relatório de testes (Surefire)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: surefire-reports
           path: target/surefire-reports/
@@ -108,7 +108,7 @@ jobs:
 
       - name: 📦 Upload JAR
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-jar
           path: target/*.jar
