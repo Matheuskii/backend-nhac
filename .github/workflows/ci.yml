@@ -81,7 +81,7 @@ jobs:
 
       - name: 💬 Comentar cobertura JaCoCo no PR
         if: github.event_name == 'pull_request'
-        uses: madrapps/jacoco-report@v1.7.1
+        uses: madrapps/jacoco-report@v1.8.0
         with:
           paths: target/site/jacoco/jacoco.xml
           token: ${{ secrets.GITHUB_TOKEN }}
