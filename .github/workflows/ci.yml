@@ -213,10 +213,15 @@ jobs:
       contents: read
       security-events: write
     steps:
+      # Usamos o DIGEST (imutável) exportado pelo job "docker", em vez de
+      # remontar a tag "sha-<github.sha>" manualmente. O metadata-action
+      # gera a tag como "sha-<7 chars>" (short SHA), mas github.sha é o
+      # SHA completo (40 chars) — por isso a referência antiga não existia
+      # no registry e o Trivy falhava com "could not parse reference".
       - name: 🔍 Trivy — scan da imagem publicada
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+          image-ref: ${{ env.IMAGE_NAME }}@${{ needs.docker.outputs.image-digest }}
           format: sarif
           output: trivy-image-results.sarif
           severity: CRITICAL,HIGH
