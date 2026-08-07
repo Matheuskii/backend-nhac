@@ -3,11 +3,14 @@ package br.com.nhac.backend_nhac.domain.auth;
 import br.com.nhac.backend_nhac.domain.auth.dto.LoginRequestDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.LoginResponseDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.RegistroRequestDTO;
+import br.com.nhac.backend_nhac.domain.auth.dto.SocialLoginRequestDTO;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.exceptions.CredenciaisInvalidasException;
 import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 import br.com.nhac.backend_nhac.infra.security.TokenService;
 import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
+import br.com.nhac.backend_nhac.services.GoogleAuthService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,24 +18,49 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 
 @ExtendWith(MockitoExtension.class)
 class AuthControllerTest {
 
-    @Mock private UsuarioRepository usuarioRepository;
-    @Mock private PasswordEncoder passwordEncoder;
-    @Mock private TokenService tokenService;
+    @Mock
+    private UsuarioRepository usuarioRepository;
 
-    @InjectMocks private AuthController authController;
+    private MockMvc mockMvc;
+
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
+    @Mock
+    private TokenService tokenService;
+    @Mock
+    private GoogleAuthService googleAuthService;
+
+    @InjectMocks
+    private AuthController authController;
+
+    @BeforeEach
+    void setUp() {
+        this.mockMvc = MockMvcBuilders.standaloneSetup(authController).build();
+    }
 
     @Test
     @DisplayName("Deve lançar CredenciaisInvalidasException (Erro 401) quando a senha estiver incorreta")
@@ -122,5 +150,22 @@ class AuthControllerTest {
 
         verify(usuarioRepository, never()).save(any());
         verify(tokenService, never()).gerarToken(any());
+    }
+
+    @Test
+    @DisplayName("Deve retornar 200 e o token JWT ao receber um ID Token válido do Google")
+    void deveAutenticarComGoogleComSucesso() throws Exception {
+        SocialLoginRequestDTO requisicao = new SocialLoginRequestDTO("token_google_falso_mas_mockado");
+
+        LoginResponseDTO respostaEsperada = new LoginResponseDTO("jwt_gerado_pelo_backend", "user_1", "Usuário Nhac");
+
+        when(googleAuthService.autenticarComGoogle("token_google_falso_mas_mockado")).thenReturn(respostaEsperada);
+
+        mockMvc.perform(post("/api/v1/auth/social")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requisicao)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("jwt_gerado_pelo_backend"))
+                .andExpect(jsonPath("$.usuarioId").value("user_1"));
     }
 }

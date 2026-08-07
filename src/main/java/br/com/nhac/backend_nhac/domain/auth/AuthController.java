@@ -3,11 +3,13 @@ package br.com.nhac.backend_nhac.domain.auth;
 import br.com.nhac.backend_nhac.domain.auth.dto.LoginRequestDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.LoginResponseDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.RegistroRequestDTO;
+import br.com.nhac.backend_nhac.domain.auth.dto.SocialLoginRequestDTO;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.exceptions.CredenciaisInvalidasException;
 import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 import br.com.nhac.backend_nhac.infra.security.TokenService;
 import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
+import br.com.nhac.backend_nhac.services.GoogleAuthService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -25,11 +27,14 @@ public class AuthController {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
+    private final GoogleAuthService googleAuthService;
 
-    public AuthController(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, TokenService tokenService) {
+    public AuthController(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, TokenService tokenService, GoogleAuthService googleAuthService) {
+
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
+        this.googleAuthService = googleAuthService;
     }
 
     @PostMapping("/login")
@@ -64,5 +69,11 @@ public class AuthController {
 
         String token = tokenService.gerarToken(novoUsuario);
         return ResponseEntity.status(HttpStatus.CREATED).body(new LoginResponseDTO(token, novoUsuario.getId(), novoUsuario.getNome()));
+    }
+
+    @PostMapping("/social")
+    public ResponseEntity<LoginResponseDTO> loginSocial(@RequestBody @Valid SocialLoginRequestDTO dto){
+        LoginResponseDTO response = googleAuthService.autenticarComGoogle(dto.idToken());
+        return ResponseEntity.ok(response);
     }
 }
