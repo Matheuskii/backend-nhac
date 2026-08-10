@@ -16,9 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class GoogleAuthService {
@@ -26,20 +24,23 @@ public class GoogleAuthService {
     private final UsuarioRepository usuarioRepository;
     private final TokenService tokenService;
 
-    @Value("${google.client.id}")
-    private String googleClientId;
+
 
     public GoogleAuthService(UsuarioRepository usuarioRepository, TokenService tokenService) {
         this.usuarioRepository = usuarioRepository;
         this.tokenService = tokenService;
     }
+    @Value("${google.client.id}")
+    private String googleClientIds;
 
     @Transactional
     public LoginResponseDTO autenticarComGoogle(String idTokenString) {
         try {
+            List<String> clientIds = Arrays.asList(googleClientIds.split(","));
+
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
                     new NetHttpTransport(), new GsonFactory())
-                    .setAudience(Collections.singletonList(googleClientId))
+                    .setAudience(clientIds)
                     .build();
 
             GoogleIdToken idToken = verifier.verify(idTokenString);
