@@ -1,6 +1,7 @@
 package br.com.nhac.backend_nhac.domain.usuario;
 
 import br.com.nhac.backend_nhac.domain.usuario.dto.EnderecoUsuarioDTO;
+import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioAtualizarDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioCreateDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioResponseDTO;
 import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException; // 🔴 NOVO IMPORT
@@ -45,10 +46,10 @@ public class UsuarioController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @PatchMapping("/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<Void> atualizarDadosUsuario(
             @PathVariable String id,
-            @RequestBody Map<String, Object> dados,
+            @RequestBody @Valid UsuarioAtualizarDTO dados,
             @AuthenticationPrincipal Usuario usuarioLogado) {
 
         validarPropriedade(id, usuarioLogado);
@@ -57,46 +58,4 @@ public class UsuarioController {
     }
 
 
-    @GetMapping("/{usuarioId}/enderecos")
-    public ResponseEntity<List<EnderecoUsuarioDTO>> buscarEnderecos(
-            @PathVariable String usuarioId,
-            @AuthenticationPrincipal Usuario usuarioLogado) {
-
-        validarPropriedade(usuarioId, usuarioLogado);
-        return ResponseEntity.ok(usuarioService.listarEnderecos(usuarioId));
-    }
-
-    @PostMapping("/{usuarioId}/enderecos")
-    public ResponseEntity<Void> adicionarEndereco(
-            @PathVariable String usuarioId,
-            @RequestBody @Valid EnderecoUsuarioDTO dto,
-            @AuthenticationPrincipal Usuario usuarioLogado) {
-
-        validarPropriedade(usuarioId, usuarioLogado);
-        usuarioService.adicionarEndereco(usuarioId, dto);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
-    }
-
-    @PutMapping("/{usuarioId}/enderecos/{enderecoId}")
-    public ResponseEntity<Void> atualizarEndereco(
-            @PathVariable String usuarioId,
-            @PathVariable String enderecoId,
-            @RequestBody @Valid EnderecoUsuarioDTO dto,
-            @AuthenticationPrincipal Usuario usuarioLogado) {
-
-        validarPropriedade(usuarioId, usuarioLogado);
-        usuarioService.atualizarEndereco(usuarioId, enderecoId, dto);
-        return ResponseEntity.noContent().build();
-    }
-
-    @DeleteMapping("/{usuarioId}/enderecos/{enderecoId}")
-    public ResponseEntity<Void> removerEndereco(
-            @PathVariable String usuarioId,
-            @PathVariable String enderecoId,
-            @AuthenticationPrincipal Usuario usuarioLogado) {
-
-        validarPropriedade(usuarioId, usuarioLogado);
-        usuarioService.removerEndereco(usuarioId, enderecoId);
-        return ResponseEntity.noContent().build();
-    }
 }

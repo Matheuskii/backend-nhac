@@ -3,8 +3,10 @@ package br.com.nhac.backend_nhac.services;
 import br.com.nhac.backend_nhac.domain.usuario.EnderecoUsuario;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.domain.usuario.dto.EnderecoUsuarioDTO;
+import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioAtualizarDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioCreateDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioResponseDTO;
+import br.com.nhac.backend_nhac.exceptions.CredenciaisInvalidasException;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
 import br.com.nhac.backend_nhac.repositories.EnderecoUsuarioRepository;
 import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
@@ -99,12 +101,12 @@ class UsuarioServiceTest {
     // ---------- atualizarUsuarioParcial ----------
 
     @Test
-    @DisplayName("Deve atualizar apenas os campos informados no mapa de dados")
+    @DisplayName("Deve atualizar apenas os campos informados no DTO")
     void deveAtualizarUsuarioParcialmente() {
         Usuario usuario = usuarioPadrao("user_1");
         when(usuarioRepository.findById("user_1")).thenReturn(Optional.of(usuario));
 
-        Map<String, Object> dados = Map.of("nome", "Novo Nome", "telefone", "11888887777");
+        UsuarioAtualizarDTO dados = new UsuarioAtualizarDTO("Novo Nome", null, "11888887777", null, null);
 
         usuarioService.atualizarUsuarioParcial("user_1", dados);
 
@@ -118,10 +120,11 @@ class UsuarioServiceTest {
     void deveLancarExcecaoAoAtualizarUsuarioInexistente() {
         when(usuarioRepository.findById("fantasma")).thenReturn(Optional.empty());
 
-        assertThrows(IdNaoEncontradoException.class,
-                () -> usuarioService.atualizarUsuarioParcial("fantasma", Map.of("nome", "X")));
-    }
+        UsuarioAtualizarDTO dados = new UsuarioAtualizarDTO("X", null, null, null, null);
 
+        assertThrows(IdNaoEncontradoException.class,
+                () -> usuarioService.atualizarUsuarioParcial("fantasma", dados));
+    }
     // ---------- listarEnderecos ----------
 
     @Test
@@ -214,7 +217,7 @@ class UsuarioServiceTest {
         EnderecoUsuarioDTO dto = new EnderecoUsuarioDTO("end_1", "Rua Nova", "2", "Bairro Novo",
                 "Campinas", "SP", "13000-000", null, true);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(CredenciaisInvalidasException.class,
                 () -> usuarioService.atualizarEndereco("invasor_id", "end_1", dto));
 
         verify(enderecoRepository, never()).save(any());
