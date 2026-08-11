@@ -3,8 +3,11 @@ package br.com.nhac.backend_nhac.services;
 import br.com.nhac.backend_nhac.domain.usuario.EnderecoUsuario;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.domain.usuario.dto.EnderecoUsuarioDTO;
+import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioAtualizarDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioCreateDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioResponseDTO;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
+import br.com.nhac.backend_nhac.exceptions.CredenciaisInvalidasException;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
 import br.com.nhac.backend_nhac.repositories.EnderecoUsuarioRepository;
 import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
@@ -49,15 +52,18 @@ public class UsuarioService {
     }
 
     @Transactional
-    public void atualizarUsuarioParcial(String id, Map<String, Object> dados) {
+    public void atualizarUsuarioParcial(String id, UsuarioAtualizarDTO dados) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new IdNaoEncontradoException("Usuário não encontrado."));
 
-        if (dados.containsKey("nome")) usuario.setNome((String) dados.get("nome"));
-        if (dados.containsKey("telefone")) usuario.setTelefone((String) dados.get("telefone"));
-        if (dados.containsKey("imagemUrl")) usuario.setImagemUrl((String) dados.get("imagemUrl"));
-        if (dados.containsKey("fcmToken")) usuario.setFcmToken((String) dados.get("fcmToken"));
-
+        if(dados.nome() != null)
+            usuario.setNome(dados.nome());
+        if(dados.email() != null)
+            usuario.setEmail(dados.email());
+        if(dados.telefone() != null)
+            usuario.setTelefone(dados.telefone());
+        if(dados.imagemUrl() != null)
+            usuario.setImagemUrl(dados.imagemUrl());
         usuarioRepository.save(usuario);
     }
 
@@ -69,12 +75,7 @@ public class UsuarioService {
                 )).collect(Collectors.toList());
     }
 
-    // BUG CORRIGIDO: nada impedia que dois endereços do mesmo usuário
-    // ficassem marcados como padrão ao mesmo tempo (cada PUT/POST só
-    // escrevia o próprio isPadrao, sem olhar para os outros). Isso deixava
-    // qual endereço seria usado no checkout dependente da ordem devolvida
-    // pelo banco. Antes de marcar um endereço como padrão, desmarcamos
-    // todos os outros do mesmo usuário na mesma transação.
+
     private void garantirUnicoEnderecoPadrao(String usuarioId, String enderecoIdApreservar) {
         List<EnderecoUsuario> enderecos = enderecoRepository.findByUsuarioId(usuarioId);
         for (EnderecoUsuario e : enderecos) {
@@ -104,7 +105,7 @@ public class UsuarioService {
                 .orElseThrow(() -> new IdNaoEncontradoException("Endereço não encontrado."));
 
         if (!endereco.getUsuario().getId().equals(usuarioId)) {
-            throw new IllegalArgumentException("Acesso negado a este endereço.");
+            throw new CredenciaisInvalidasException("Acesso negado a este endereço.");
         }
 
         endereco.setRua(dto.rua());
@@ -133,5 +134,13 @@ public class UsuarioService {
         }
 
         enderecoRepository.delete(endereco);
+    }
+
+
+
+    public void validarPropriedade(String idNaUrl, Usuario usuarioLogado) {
+        if (!idNaUrl.equals(usuarioLogado.getId())) {
+            throw new AcessoNegadoException("Acesso negado: não tem permissão para aceder ou modificar os dados de outro utilizador.");
+        }
     }
 }
