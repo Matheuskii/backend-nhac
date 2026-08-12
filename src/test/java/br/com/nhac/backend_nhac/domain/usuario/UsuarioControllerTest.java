@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -110,15 +111,23 @@ class UsuarioControllerTest {
     }
 
     @Test
-    @DisplayName("Deve retornar 204 ao atualizar dados parciais do próprio usuário")
+    @DisplayName("Deve retornar 200 e o novo token ao atualizar dados parciais do próprio usuário")
     void deveAtualizarDadosDoProprioUsuario() throws Exception {
-
         UsuarioAtualizarDTO dados = new UsuarioAtualizarDTO("Nome Atualizado", null, null, null, null);
+
+        Usuario usuarioMock = new Usuario();
+        usuarioMock.setId(USUARIO_LOGADO_ID);
+        usuarioMock.setNome("Nome Atualizado");
+
+        when(usuarioRepository.findById(USUARIO_LOGADO_ID)).thenReturn(Optional.of(usuarioMock));
+        when(tokenService.gerarToken(any(Usuario.class))).thenReturn("novo_token_jwt_super_seguro");
 
         mockMvc.perform(put("/api/v1/usuarios/{id}", USUARIO_LOGADO_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dados)))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("novo_token_jwt_super_seguro"))
+                .andExpect(jsonPath("$.nome").value("Nome Atualizado"));
 
         verify(usuarioService, times(1)).atualizarUsuarioParcial(eq(USUARIO_LOGADO_ID), any(UsuarioAtualizarDTO.class));
     }
