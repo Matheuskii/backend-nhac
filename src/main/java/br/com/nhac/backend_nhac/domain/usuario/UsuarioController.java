@@ -1,10 +1,13 @@
 package br.com.nhac.backend_nhac.domain.usuario;
 
+import br.com.nhac.backend_nhac.domain.auth.dto.LoginResponseDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.EnderecoUsuarioDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioAtualizarDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioCreateDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioResponseDTO;
 import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException; // 🔴 NOVO IMPORT
+import br.com.nhac.backend_nhac.infra.security.TokenService;
+import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
 import br.com.nhac.backend_nhac.services.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -21,8 +24,14 @@ public class UsuarioController {
 
     private final UsuarioService usuarioService;
 
-    public UsuarioController(UsuarioService usuarioService) {
+    private final UsuarioRepository usuarioRepository;
+
+    private final TokenService tokenService;
+
+    public UsuarioController(UsuarioService usuarioService, UsuarioRepository usuarioRepository, TokenService tokenService) {
         this.usuarioService = usuarioService;
+        this.usuarioRepository= usuarioRepository;
+        this.tokenService = tokenService;
     }
 
     private void validarPropriedade(String idNaUrl, Usuario usuarioLogado) {
@@ -47,14 +56,20 @@ public class UsuarioController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Void> atualizarDadosUsuario(
+    public ResponseEntity<LoginResponseDTO> atualizarDadosUsuario(
             @PathVariable String id,
             @RequestBody @Valid UsuarioAtualizarDTO dados,
             @AuthenticationPrincipal Usuario usuarioLogado) {
 
         validarPropriedade(id, usuarioLogado);
+
         usuarioService.atualizarUsuarioParcial(id, dados);
-        return ResponseEntity.noContent().build();
+
+        Usuario usuarioAtualizado = usuarioRepository.findById(id).get();
+
+        String novoToken = tokenService.gerarToken(usuarioAtualizado);
+
+        return ResponseEntity.ok(new LoginResponseDTO(novoToken, usuarioAtualizado.getId(), usuarioAtualizado.getNome()));
     }
 
 

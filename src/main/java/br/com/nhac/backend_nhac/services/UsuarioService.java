@@ -64,6 +64,7 @@ public class UsuarioService {
             usuario.setTelefone(dados.telefone());
         if(dados.imagemUrl() != null)
             usuario.setImagemUrl(dados.imagemUrl());
+
         usuarioRepository.save(usuario);
     }
 
