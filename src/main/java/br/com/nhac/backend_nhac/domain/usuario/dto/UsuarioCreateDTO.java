@@ -40,7 +40,8 @@ public record UsuarioCreateDTO(
                 this.imagemUrl(),
                 new ArrayList<>(),
                 this.senha(),
-                null
+                null,
+                false
         );
     }
 }

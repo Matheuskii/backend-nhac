@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface UsuarioRepository extends JpaRepository<Usuario, String> {
 
     Optional<Usuario> findByEmailIgnoreCase(String email);
+
+    Optional<Usuario> findByTelefone(String telefone);
 }

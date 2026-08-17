@@ -41,5 +41,8 @@ public class Usuario {
 
     @Column(name = "fcm_token", length = 255)
     private String fcmToken;
+
+    @Column(name = "telefone_verificado", nullable = false)
+    private boolean telefoneVerificado = false;
 }
 
