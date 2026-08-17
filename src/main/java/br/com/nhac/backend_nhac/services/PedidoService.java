@@ -20,15 +20,17 @@ public class PedidoService {
     private final PedidoRepository pedidoRepository;
     private final LojaRepository lojaRepository;
     private final ProdutoRepository produtoRepository;
+    private final StripePaymentService stripePaymentService;
 
-    public PedidoService(PedidoRepository pedidoRepository, LojaRepository lojaRepository, ProdutoRepository produtoRepository) {
+    public PedidoService(PedidoRepository pedidoRepository, LojaRepository lojaRepository, ProdutoRepository produtoRepository, StripePaymentService stripePaymentService) {
         this.pedidoRepository = pedidoRepository;
         this.lojaRepository = lojaRepository;
         this.produtoRepository = produtoRepository;
+        this.stripePaymentService = stripePaymentService;
     }
 
     @Transactional
-    public String finalizarPedido(PedidoCreateDTO dto, String usuarioIdLogado) {
+    public br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO finalizarPedido(PedidoCreateDTO dto, String usuarioIdLogado) {
 
         Loja loja = lojaRepository.findByIdAndIsAbertoTrue(dto.lojaId())
                 .orElseThrow(() -> new IdNaoEncontradoException("A loja informada não existe ou está fechada."));
@@ -71,6 +73,23 @@ public class PedidoService {
 
         Pedido pedidoSalvo = pedidoRepository.save(pedido);
 
-        return pedidoSalvo.getId();
+        // Se for PIX, já cria o PaymentIntent no Stripe
+        if ("PIX".equalsIgnoreCase(pedido.getFormaPagamento())) {
+            // Isso também salva o intent_id na entidade
+            // E retorna o DTO pronto com o CopiaECola
+            return stripePaymentService.criarPaymentIntentPix(pedidoSalvo);
+        }
+
+        // Caso seja outra forma que não exija integração, só retorna o ID
+        return new br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO(pedidoSalvo.getId(), null, null, null);
+    }
+
+    @Transactional
+    public void marcarComoPagoPorPaymentIntentId(String paymentIntentId) {
+        Pedido pedido = pedidoRepository.findByStripePaymentIntentId(paymentIntentId)
+                .orElseThrow(() -> new IdNaoEncontradoException("Pedido com PaymentIntent " + paymentIntentId + " não encontrado."));
+        
+        pedido.setStatus(br.com.nhac.backend_nhac.domain.pedido.StatusPedido.PAGO);
+        pedidoRepository.save(pedido);
     }
 }
