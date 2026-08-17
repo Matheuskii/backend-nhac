@@ -56,6 +56,9 @@ public class Pedido {
     @Column(name = "criado_em")
     private Instant criadoEm;
 
+    @Column(name = "stripe_payment_intent_id")
+    private String stripePaymentIntentId;
+
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ItemPedido> itens = new ArrayList<>();
 
