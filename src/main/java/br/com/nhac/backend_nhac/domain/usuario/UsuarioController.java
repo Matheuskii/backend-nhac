@@ -69,7 +69,7 @@ public class UsuarioController {
 
         String novoToken = tokenService.gerarToken(usuarioAtualizado);
 
-        return ResponseEntity.ok(new LoginResponseDTO(novoToken, usuarioAtualizado.getId(), usuarioAtualizado.getNome()));
+        return ResponseEntity.ok(new LoginResponseDTO(novoToken, usuarioAtualizado.getId(), usuarioAtualizado.getNome(), false));
     }
 
 

@@ -1,0 +1,59 @@
+package br.com.nhac.backend_nhac.services;
+
+import br.com.nhac.backend_nhac.domain.auth.dto.LoginResponseDTO;
+import br.com.nhac.backend_nhac.domain.auth.dto.ValidarCodigoSmsDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.infra.security.TokenService;
+import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.Optional;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class SmsAuthService {
+
+    private final VerificacaoTelefoneService verificacaoTelefoneService;
+    private final UsuarioRepository usuarioRepository;
+    private final TokenService tokenService;
+
+    @Transactional
+    public LoginResponseDTO autenticarComSms(ValidarCodigoSmsDTO dto) {
+        // Valida o código SMS. Lança exceção se for inválido, expirado ou com limite excedido.
+        verificacaoTelefoneService.validarCodigo(dto);
+
+        Optional<Usuario> usuarioExistente = usuarioRepository.findByTelefone(dto.telefone());
+
+        Usuario usuario;
+        boolean isNovoUsuario = false;
+
+        if (usuarioExistente.isPresent()) {
+            usuario = usuarioExistente.get();
+        } else {
+            usuario = registrarNovoUsuarioSms(dto.telefone());
+            isNovoUsuario = true;
+        }
+
+        String tokenJwt = tokenService.gerarToken(usuario);
+
+        return new LoginResponseDTO(tokenJwt, usuario.getId(), usuario.getNome(), isNovoUsuario);
+    }
+
+    private Usuario registrarNovoUsuarioSms(String telefone) {
+        Usuario novoUsuario = new Usuario();
+        novoUsuario.setId(UUID.randomUUID().toString());
+        // E-mail fictício obrigatório para não quebrar a constraint de not null / regras do banco
+        novoUsuario.setEmail(telefone.replace("+", "") + "@telefone.nhac.com");
+        novoUsuario.setNome("Novo Usuário");
+        novoUsuario.setTelefone(telefone);
+        novoUsuario.setTelefoneVerificado(true);
+        novoUsuario.setEnderecos(new ArrayList<>());
+        novoUsuario.setSenha(null);
+
+        return usuarioRepository.save(novoUsuario);
+    }
+}
