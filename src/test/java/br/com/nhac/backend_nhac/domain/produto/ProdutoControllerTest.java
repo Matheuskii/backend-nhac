@@ -101,6 +101,18 @@ class ProdutoControllerTest {
                 "Sushi", "url", "200g", 10
         );
 
+        br.com.nhac.backend_nhac.domain.produto.Produto produtoSalvo = new br.com.nhac.backend_nhac.domain.produto.Produto();
+        produtoSalvo.setId("produto_1");
+        produtoSalvo.setNome("Hossomaki");
+        produtoSalvo.setDescricao("Descrição");
+        produtoSalvo.setPreco(new BigDecimal("25.50"));
+        produtoSalvo.setCategoriaMenu("Sushi");
+        br.com.nhac.backend_nhac.domain.loja.Loja lojaMock = new br.com.nhac.backend_nhac.domain.loja.Loja();
+        lojaMock.setId("loja_123");
+        produtoSalvo.setLoja(lojaMock);
+
+        when(produtoService.cadastrarProduto(any())).thenReturn(produtoSalvo);
+
         mockMvc.perform(post("/api/v1/produtos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dtoValido)))

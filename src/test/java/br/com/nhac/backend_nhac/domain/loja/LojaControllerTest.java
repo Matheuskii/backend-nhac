@@ -49,7 +49,7 @@ class LojaControllerTest {
         LojaResumoDTO resumo = new LojaResumoDTO("loja_1", "Sushi Ken", "Descrição", "Japonesa", "url", dadosOp);
         Page<LojaResumoDTO> pagina = new PageImpl<>(List.of(resumo), PageRequest.of(0, 10), 1);
 
-        when(lojaService.obterLojasPaginadas(anyInt(), anyInt())).thenReturn(pagina);
+        when(lojaService.obterLojasPaginadas(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), anyInt(), anyInt())).thenReturn(pagina);
 
         mockMvc.perform(get("/api/v1/lojas").param("page", "0").param("size", "10"))
                 .andExpect(status().isOk())

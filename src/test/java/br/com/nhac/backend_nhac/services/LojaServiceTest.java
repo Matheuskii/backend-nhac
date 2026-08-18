@@ -62,7 +62,7 @@ class LojaServiceTest {
 
         when(lojaRepository.findByIsAbertoTrue(any(Pageable.class))).thenReturn(paginaDeLojas);
 
-        Page<LojaResumoDTO> resultado = lojaService.obterLojasPaginadas(0, 10);
+        Page<LojaResumoDTO> resultado = lojaService.obterLojasPaginadas(null, null, null, null, 0, 10);
 
         assertEquals(1, resultado.getTotalElements());
         assertEquals("loja_1", resultado.getContent().get(0).id());
@@ -78,7 +78,7 @@ class LojaServiceTest {
 
         when(lojaRepository.findByIsAbertoTrue(any(Pageable.class))).thenReturn(paginaVazia);
 
-        Page<LojaResumoDTO> resultado = lojaService.obterLojasPaginadas(0, 10);
+        Page<LojaResumoDTO> resultado = lojaService.obterLojasPaginadas(null, null, null, null, 0, 10);
 
         assertTrue(resultado.getContent().isEmpty());
     }

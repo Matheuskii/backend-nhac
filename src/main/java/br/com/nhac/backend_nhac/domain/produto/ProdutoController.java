@@ -47,11 +47,12 @@ public class ProdutoController {
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class)))
     })
     @PostMapping
-    public ResponseEntity<String> cadastrarProduto(@Valid @RequestBody ProdutoCreateDTO dto) {
+    public ResponseEntity<ProdutoResumoDTO> cadastrarProduto(@Valid @RequestBody ProdutoCreateDTO dto) {
 
-        produtoService.cadastrarProduto(dto);
+        br.com.nhac.backend_nhac.domain.produto.Produto produtoSalvo = produtoService.cadastrarProduto(dto);
+        ProdutoResumoDTO resumoDTO = new ProdutoResumoDTO(produtoSalvo);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body("O produto chegou no Controller com sucesso!");
+        return ResponseEntity.status(HttpStatus.CREATED).body(resumoDTO);
     }
 
     @Operation(summary = "Buscar produto por ID", description = "Retorna os dados completos de um único produto ativo.")
