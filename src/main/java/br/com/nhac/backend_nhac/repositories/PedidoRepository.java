@@ -15,4 +15,6 @@ public interface PedidoRepository extends JpaRepository<Pedido, String> {
 
     @EntityGraph(attributePaths = {"loja"})
     Page<Pedido> findByUsuarioId(String usuarioId, Pageable pageable);
+
+    Optional<Pedido> findByStripePaymentIntentId(String stripePaymentIntentId);
 }

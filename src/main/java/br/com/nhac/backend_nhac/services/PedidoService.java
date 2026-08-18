@@ -80,14 +80,10 @@ public class PedidoService {
 
         Pedido pedidoSalvo = pedidoRepository.save(pedido);
 
-        // Se for PIX, já cria o PaymentIntent no Stripe
         if ("PIX".equalsIgnoreCase(pedido.getFormaPagamento())) {
-            // Isso também salva o intent_id na entidade
-            // E retorna o DTO pronto com o CopiaECola
             return stripePaymentService.criarPaymentIntentPix(pedidoSalvo);
         }
 
-        // Caso seja outra forma que não exija integração, só retorna o ID
         return new br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO(pedidoSalvo.getId(), null, null, null);
     }
 
@@ -136,9 +132,9 @@ public class PedidoService {
 
         boolean transicaoValida = switch (atual) {
             case PENDENTE -> novoStatus == StatusPedido.PREPARANDO;
+            case PAGO, ENTREGUE, CANCELADO -> false;
             case PREPARANDO -> novoStatus == StatusPedido.SAIU_ENTREGA;
             case SAIU_ENTREGA -> novoStatus == StatusPedido.ENTREGUE;
-            case ENTREGUE, CANCELADO -> false; // Estados finais
         };
 
         if (!transicaoValida) {
