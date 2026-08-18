@@ -18,6 +18,11 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
+import org.mockito.Mockito;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import br.com.nhac.backend_nhac.services.StripePaymentService;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -36,20 +41,20 @@ public class PedidoFlowIT extends AbstractIntegrationTest {
     @Autowired
     private TokenService tokenService;
 
-    private Usuario usuario;
     private Loja loja;
     private Produto produto;
     private String token;
 
+    @MockitoBean
+    private StripePaymentService stripePaymentService;
+
     @BeforeEach
     public void prepareData() {
-        // Limpar dados anteriores
         produtoRepository.deleteAll();
         lojaRepository.deleteAll();
         usuarioRepository.deleteAll();
 
-        // 1. Criar Usuario
-        usuario = new Usuario();
+        Usuario usuario = new Usuario();
         usuario.setId(UUID.randomUUID().toString());
         usuario.setNome("Comprador Teste");
         usuario.setEmail("comprador@teste.com");
@@ -57,10 +62,8 @@ public class PedidoFlowIT extends AbstractIntegrationTest {
         usuario.setTelefone("11999999999");
         usuarioRepository.save(usuario);
 
-        // 2. Gerar Token Real
         token = tokenService.gerarToken(usuario);
 
-        // 3. Criar Loja
         loja = new Loja();
         loja.setId("loja-123");
         loja.setNome("Pizzaria Nhac");
@@ -76,6 +79,12 @@ public class PedidoFlowIT extends AbstractIntegrationTest {
         produto.setCategoriaMenu("Pizzas");
         produto.setLoja(loja);
         produtoRepository.save(produto);
+
+        // Mock StripePaymentService
+        Mockito.when(stripePaymentService.criarPaymentIntentPix(Mockito.any(Pedido.class))).thenAnswer(invocation -> {
+            Pedido pedidoSalvo = invocation.getArgument(0);
+            return new PedidoCriadoDTO(pedidoSalvo.getId(), "mock-secret", "mock-pix", "mock-url");
+        });
     }
 
     @Test

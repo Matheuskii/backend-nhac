@@ -37,16 +37,13 @@ class TwilioSmsServiceTest {
 
     @Test
     void enviarSms_EmMockMode_ApenasLoga() {
-        // Asserting that it doesn't throw any Twilio exception
         assertDoesNotThrow(() -> twilioSmsService.enviarSms("+5511999999999", "Teste de mensagem mock"));
     }
 
     @Test
     void enviarSms_Real_DeveLancarExcecaoSemInternetOuCredenciaisInvalidas() {
-        // Setting to real mode
         ReflectionTestUtils.setField(twilioSmsService, "mockMode", false);
         
-        // Since Twilio is not mocked, it should try to create a real Message and fail (network or invalid creds)
         assertThrows(RuntimeException.class, () -> {
             twilioSmsService.enviarSms("+5511999999999", "Teste de mensagem real");
         });
