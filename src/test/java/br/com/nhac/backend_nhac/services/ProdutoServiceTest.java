@@ -86,6 +86,7 @@ class ProdutoServiceTest {
     private Produto produtoDeTeste() {
         Loja loja = new Loja();
         loja.setId("loja_1");
+        loja.setAberto(true);
 
         Produto produto = new Produto();
         produto.setId("produto_1");
@@ -194,5 +195,107 @@ class ProdutoServiceTest {
                 () -> produtoService.buscarProdutoPorId("produto_fantasma"));
 
         assertEquals("O produto com o id: produto_fantasma não foi encontrado.", excecao.getMessage());
+    }
+
+    @Test
+    @DisplayName("Deve atualizar produto com sucesso quando ele for encontrado")
+    void deveAtualizarProdutoComSucesso() {
+        Produto produtoOriginal = produtoDeTeste();
+        br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
+                "Hossomaki Editado", "Descrição editada", new BigDecimal("29.90"),
+                "Sushi", "nova-url", "300g", 15, false
+        );
+
+        when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
+        when(produtoRepository.save(any(Produto.class))).thenReturn(produtoOriginal);
+
+        ProdutoResumoDTO resultado = produtoService.atualizarProduto("produto_1", dto);
+
+        assertEquals("Hossomaki Editado", resultado.nome());
+        assertEquals(new BigDecimal("29.90"), resultado.preco());
+
+        verify(produtoRepository, times(1)).findById("produto_1");
+        verify(produtoRepository, times(1)).save(any(Produto.class));
+    }
+
+    @Test
+    @DisplayName("Deve lançar IdNaoEncontradoException ao tentar atualizar produto inexistente")
+    void deveLancarExcecaoAoAtualizarProdutoInexistente() {
+        br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
+                "Hossomaki Editado", "Descrição editada", new BigDecimal("29.90"),
+                "Sushi", "nova-url", "300g", 15, false
+        );
+
+        when(produtoRepository.findById("produto_fantasma")).thenReturn(Optional.empty());
+
+        Exception excecao = assertThrows(IdNaoEncontradoException.class,
+                () -> produtoService.atualizarProduto("produto_fantasma", dto));
+
+        assertEquals("O produto com o id: produto_fantasma não foi encontrado.", excecao.getMessage());
+        verify(produtoRepository, never()).save(any(Produto.class));
+    }
+
+    @Test
+    @DisplayName("Deve lançar RegraDeNegocioException ao tentar atualizar produto de loja fechada")
+    void deveLancarExcecaoAoAtualizarProdutoDeLojaFechada() {
+        Produto produtoOriginal = produtoDeTeste();
+        produtoOriginal.getLoja().setAberto(false);
+
+        br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
+                "Hossomaki Editado", "Descrição editada", new BigDecimal("29.90"),
+                "Sushi", "nova-url", "300g", 15, false
+        );
+
+        when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
+
+        Exception excecao = assertThrows(br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException.class,
+                () -> produtoService.atualizarProduto("produto_1", dto));
+
+        assertEquals("Não é possível editar produtos de uma loja fechada.", excecao.getMessage());
+        verify(produtoRepository, never()).save(any(Produto.class));
+    }
+
+    @Test
+    @DisplayName("Deve desativar produto com sucesso quando ele for encontrado")
+    void deveDesativarProdutoComSucesso() {
+        Produto produtoOriginal = produtoDeTeste();
+        produtoOriginal.setAtivo(true);
+
+        when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
+        when(produtoRepository.save(any(Produto.class))).thenReturn(produtoOriginal);
+
+        produtoService.desativarProduto("produto_1");
+
+        assertFalse(produtoOriginal.isAtivo());
+
+        verify(produtoRepository, times(1)).findById("produto_1");
+        verify(produtoRepository, times(1)).save(produtoOriginal);
+    }
+
+    @Test
+    @DisplayName("Deve lançar IdNaoEncontradoException ao tentar desativar produto inexistente")
+    void deveLancarExcecaoAoDesativarProdutoInexistente() {
+        when(produtoRepository.findById("produto_fantasma")).thenReturn(Optional.empty());
+
+        Exception excecao = assertThrows(IdNaoEncontradoException.class,
+                () -> produtoService.desativarProduto("produto_fantasma"));
+
+        assertEquals("O produto com o id: produto_fantasma não foi encontrado.", excecao.getMessage());
+        verify(produtoRepository, never()).save(any(Produto.class));
+    }
+
+    @Test
+    @DisplayName("Deve lançar RegraDeNegocioException ao tentar desativar produto de loja fechada")
+    void deveLancarExcecaoAoDesativarProdutoDeLojaFechada() {
+        Produto produtoOriginal = produtoDeTeste();
+        produtoOriginal.getLoja().setAberto(false);
+
+        when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
+
+        Exception excecao = assertThrows(br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException.class,
+                () -> produtoService.desativarProduto("produto_1"));
+
+        assertEquals("Não é possível desativar produtos de uma loja fechada.", excecao.getMessage());
+        verify(produtoRepository, never()).save(any(Produto.class));
     }
 }

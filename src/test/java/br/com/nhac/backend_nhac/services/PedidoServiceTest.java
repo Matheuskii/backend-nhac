@@ -20,6 +20,14 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
+import br.com.nhac.backend_nhac.domain.pedido.StatusPedido;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -54,7 +62,7 @@ class PedidoServiceTest {
         );
 
         PedidoCreateDTO dto = new PedidoCreateDTO(
-                "loja_1", "PIX", "Sem cebola", null, enderecoMock, List.of(itemFraudulento)
+                "loja_1", "DINHEIRO", "Sem cebola", null, enderecoMock, List.of(itemFraudulento)
         );
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
@@ -87,7 +95,7 @@ class PedidoServiceTest {
         PedidoCreateDTO.ItemPedidoDTO item = new PedidoCreateDTO.ItemPedidoDTO(
                 "prod_1", "Hambúrguer", "http://imagem.com/burger.jpg", 1
         );
-        PedidoCreateDTO dto = new PedidoCreateDTO("loja_fechada", "PIX", null, null, enderecoMock, List.of(item));
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_fechada", "DINHEIRO", null, null, enderecoMock, List.of(item));
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_fechada")).thenReturn(Optional.empty());
 
@@ -111,7 +119,7 @@ class PedidoServiceTest {
         PedidoCreateDTO.ItemPedidoDTO itemFantasma = new PedidoCreateDTO.ItemPedidoDTO(
                 "prod_fantasma", "Produto Inexistente", null, 1
         );
-        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "PIX", null, null, enderecoMock, List.of(itemFantasma));
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "DINHEIRO", null, null, enderecoMock, List.of(itemFantasma));
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
         when(produtoRepository.findById("prod_fantasma")).thenReturn(Optional.empty());
@@ -145,7 +153,7 @@ class PedidoServiceTest {
         PedidoCreateDTO.ItemPedidoDTO item = new PedidoCreateDTO.ItemPedidoDTO(
                 "prod_1", "Hambúrguer", null, 1
         );
-        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "PIX", null, null, enderecoMock, List.of(item));
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "DINHEIRO", null, null, enderecoMock, List.of(item));
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaSelecionada));
         when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(produtoDeOutraLoja));
@@ -180,7 +188,7 @@ class PedidoServiceTest {
         PedidoCreateDTO.ItemPedidoDTO item1 = new PedidoCreateDTO.ItemPedidoDTO("prod_1", "Item 1", null, 2);
         PedidoCreateDTO.ItemPedidoDTO item2 = new PedidoCreateDTO.ItemPedidoDTO("prod_2", "Item 2", null, 1);
 
-        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "PIX", null, null, enderecoMock, List.of(item1, item2));
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "DINHEIRO", null, null, enderecoMock, List.of(item1, item2));
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
         when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(produto1));
@@ -220,7 +228,7 @@ class PedidoServiceTest {
         produto.setPreco(new BigDecimal("10.00"));
 
         PedidoCreateDTO.ItemPedidoDTO item = new PedidoCreateDTO.ItemPedidoDTO("prod_1", "Item 1", null, 1);
-        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "PIX", null, null, enderecoMock, List.of(item));
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "DINHEIRO", null, null, enderecoMock, List.of(item));
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
         when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(produto));
@@ -232,5 +240,196 @@ class PedidoServiceTest {
                 pedido.getTaxaFrete().compareTo(new BigDecimal("7.50")) == 0
                         && pedido.getValorTotal().compareTo(new BigDecimal("17.50")) == 0
         ));
+    }
+
+    @Test
+    @DisplayName("Deve buscar pedido com sucesso quando existir e o usuário for dono")
+    void deveBuscarPedidoQuandoExistirEUsuarioForDono() {
+        Loja lojaMock = new Loja();
+        lojaMock.setId("loja_001");
+        lojaMock.setNome("Loja Teste");
+
+        Pedido pedidoMock = new Pedido();
+        pedidoMock.setId("pedido_123");
+        pedidoMock.setUsuarioId("user_123");
+        pedidoMock.setLoja(lojaMock);
+        pedidoMock.setValorTotal(new BigDecimal("100.00"));
+        pedidoMock.setTaxaFrete(new BigDecimal("5.00"));
+
+        when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
+
+        var dto = pedidoService.buscarPedido("pedido_123", "user_123");
+
+        assertNotNull(dto);
+        assertEquals("pedido_123", dto.id());
+        assertEquals("loja_001", dto.lojaId());
+        assertEquals("user_123", dto.usuarioId());
+    }
+
+    @Test
+    @DisplayName("Deve lançar AcessoNegadoException quando usuário não for dono do pedido")
+    void deveLancarAcessoNegadoQuandoUsuarioNaoForDono() {
+        Pedido pedidoMock = new Pedido();
+        pedidoMock.setId("pedido_123");
+        pedidoMock.setUsuarioId("user_dono");
+
+        when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
+
+        Exception excecao = assertThrows(br.com.nhac.backend_nhac.exceptions.AcessoNegadoException.class,
+                () -> pedidoService.buscarPedido("pedido_123", "user_intruso"));
+
+        assertEquals("Acesso negado: você não tem permissão para visualizar este pedido.", excecao.getMessage());
+    }
+
+    @Test
+    @DisplayName("Deve lançar IdNaoEncontradoException quando pedido não existir")
+    void deveLancarIdNaoEncontradoQuandoPedidoNaoExistir() {
+        when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.empty());
+
+        Exception excecao = assertThrows(IdNaoEncontradoException.class,
+                () -> pedidoService.buscarPedido("pedido_123", "user_123"));
+
+        assertEquals("Pedido não encontrado.", excecao.getMessage());
+    }
+
+    @Test
+    @DisplayName("Deve retornar Page de PedidoResumoDTO quando listar pedidos do usuário")
+    void deveRetornarPageDePedidoResumoDTOQuandoListarPedidosDoUsuario() {
+        Pedido pedidoMock = new Pedido();
+        pedidoMock.setId("pedido_123");
+        pedidoMock.setUsuarioId("user_123");
+        pedidoMock.setValorTotal(new BigDecimal("100.00"));
+
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Pedido> pageMock = new PageImpl<>(List.of(pedidoMock));
+
+        when(pedidoRepository.findByUsuarioId("user_123", pageable)).thenReturn(pageMock);
+
+        var resultado = pedidoService.listarMeusPedidos("user_123", pageable);
+
+        assertNotNull(resultado);
+        assertEquals(1, resultado.getContent().size());
+        assertEquals("pedido_123", resultado.getContent().get(0).id());
+    }
+
+    @Test
+    @DisplayName("Deve atualizar status com sucesso quando a transição for válida")
+    void deveAtualizarStatusQuandoTransicaoForValida() {
+        Pedido pedidoMock = new Pedido();
+        pedidoMock.setId("pedido_123");
+        pedidoMock.setStatus(StatusPedido.PENDENTE);
+
+        when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
+
+        pedidoService.atualizarStatus("pedido_123", StatusPedido.PREPARANDO);
+
+        verify(pedidoRepository, times(1)).save(pedidoMock);
+        assertEquals(StatusPedido.PREPARANDO, pedidoMock.getStatus());
+    }
+
+    @Test
+    @DisplayName("Deve lançar exceção quando a transição for inválida")
+    void deveLancarExcecaoQuandoTransicaoForInvalida() {
+        Pedido pedidoMock = new Pedido();
+        pedidoMock.setId("pedido_123");
+        pedidoMock.setStatus(StatusPedido.ENTREGUE);
+
+        when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
+
+        RegraDeNegocioException excecao = assertThrows(RegraDeNegocioException.class, () -> {
+            pedidoService.atualizarStatus("pedido_123", StatusPedido.PREPARANDO);
+        });
+
+        assertTrue(excecao.getMessage().contains("Transição de status inválida"));
+    }
+
+    @Test
+    @DisplayName("Deve lançar exceção quando status atual for igual ao novo")
+    void deveLancarExcecaoQuandoStatusAtualIgualNovo() {
+        Pedido pedidoMock = new Pedido();
+        pedidoMock.setId("pedido_123");
+        pedidoMock.setStatus(StatusPedido.PREPARANDO);
+
+        when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
+
+        RegraDeNegocioException excecao = assertThrows(RegraDeNegocioException.class, () -> {
+            pedidoService.atualizarStatus("pedido_123", StatusPedido.PREPARANDO);
+        });
+
+        assertTrue(excecao.getMessage().contains("já está no status"));
+    }
+
+    @Test
+    @DisplayName("Deve cancelar pedido quando for o dono e o status for PENDENTE")
+    void deveCancelarPedidoQuandoForODonoEOStatusPermitir() {
+        Pedido pedidoMock = new Pedido();
+        pedidoMock.setId("pedido_123");
+        pedidoMock.setUsuarioId("user_123");
+        pedidoMock.setStatus(StatusPedido.PENDENTE);
+
+        when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
+
+        pedidoService.cancelarPedido("pedido_123", "user_123");
+
+        verify(pedidoRepository, times(1)).save(pedidoMock);
+        assertEquals(StatusPedido.CANCELADO, pedidoMock.getStatus());
+    }
+
+    @Test
+    @DisplayName("Deve lançar AcessoNegadoException ao tentar cancelar pedido de outro usuário")
+    void deveLancarAcessoNegadoAoTentarCancelarPedidoDeOutroUsuario() {
+        Pedido pedidoMock = new Pedido();
+        pedidoMock.setId("pedido_123");
+        pedidoMock.setUsuarioId("user_diferente");
+
+        when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
+
+        assertThrows(AcessoNegadoException.class, () -> {
+            pedidoService.cancelarPedido("pedido_123", "user_123");
+        });
+    }
+
+    @Test
+    @DisplayName("Deve lançar RegraDeNegocioException ao tentar cancelar pedido que já saiu para entrega")
+    void deveLancarRegraDeNegocioAoTentarCancelarPedidoQueJaSaiuParaEntrega() {
+        Pedido pedidoMock = new Pedido();
+        pedidoMock.setId("pedido_123");
+        pedidoMock.setUsuarioId("user_123");
+        pedidoMock.setStatus(StatusPedido.SAIU_ENTREGA);
+
+        when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
+
+        assertThrows(RegraDeNegocioException.class, () -> {
+            pedidoService.cancelarPedido("pedido_123", "user_123");
+        });
+    }
+
+    @Test
+    @DisplayName("Deve cancelar pedido por falha de pagamento quando o status permitir")
+    void deveCancelarPedidoPorFalhaDePagamento() {
+        Pedido pedidoMock = new Pedido();
+        pedidoMock.setId("pedido_123");
+        pedidoMock.setStatus(StatusPedido.PENDENTE);
+
+        when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
+
+        pedidoService.marcarComoCanceladoPorFalhaDePagamento("pedido_123");
+
+        verify(pedidoRepository, times(1)).save(pedidoMock);
+        assertEquals(StatusPedido.CANCELADO, pedidoMock.getStatus());
+    }
+
+    @Test
+    @DisplayName("Deve lançar RegraDeNegocioException ao tentar cancelar pedido por falha de pagamento que já saiu para entrega")
+    void deveLancarRegraAoCancelarPorFalhaPagamentoPedidoQueJaSaiu() {
+        Pedido pedidoMock = new Pedido();
+        pedidoMock.setId("pedido_123");
+        pedidoMock.setStatus(StatusPedido.SAIU_ENTREGA);
+
+        when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
+
+        assertThrows(RegraDeNegocioException.class, () -> {
+            pedidoService.marcarComoCanceladoPorFalhaDePagamento("pedido_123");
+        });
     }
 }

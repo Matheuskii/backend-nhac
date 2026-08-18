@@ -1,5 +1,7 @@
 package br.com.nhac.backend_nhac.domain.auth;
 
+import br.com.nhac.backend_nhac.domain.auth.dto.ChecarEmailRequestDTO;
+import br.com.nhac.backend_nhac.domain.auth.dto.ChecarEmailResponseDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.LoginRequestDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.LoginResponseDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.RegistroRequestDTO;
@@ -10,6 +12,7 @@ import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 import br.com.nhac.backend_nhac.infra.security.TokenService;
 import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
 import br.com.nhac.backend_nhac.services.GoogleAuthService;
+import br.com.nhac.backend_nhac.services.SmsAuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -54,12 +57,33 @@ class AuthControllerTest {
     @Mock
     private GoogleAuthService googleAuthService;
 
+    @Mock
+    private SmsAuthService smsAuthService;
+
     @InjectMocks
     private AuthController authController;
 
     @BeforeEach
     void setUp() {
         this.mockMvc = MockMvcBuilders.standaloneSetup(authController).build();
+    }
+
+    @Test
+    @DisplayName("Deve retornar 200 e o token JWT ao realizar login por SMS com sucesso")
+    void deveAutenticarComSmsComSucesso() throws Exception {
+        br.com.nhac.backend_nhac.domain.auth.dto.ValidarCodigoSmsDTO requisicao = new br.com.nhac.backend_nhac.domain.auth.dto.ValidarCodigoSmsDTO("+5511999999999", "123456");
+
+        LoginResponseDTO respostaEsperada = new LoginResponseDTO("jwt_gerado_pelo_backend_sms", "user_novo", "Novo Usuário", true);
+
+        when(smsAuthService.autenticarComSms(requisicao)).thenReturn(respostaEsperada);
+
+        mockMvc.perform(post("/api/v1/auth/login-sms")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requisicao)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("jwt_gerado_pelo_backend_sms"))
+                .andExpect(jsonPath("$.usuarioId").value("user_novo"))
+                .andExpect(jsonPath("$.isNovoUsuario").value(true));
     }
 
     @Test
@@ -157,7 +181,7 @@ class AuthControllerTest {
     void deveAutenticarComGoogleComSucesso() throws Exception {
         SocialLoginRequestDTO requisicao = new SocialLoginRequestDTO("token_google_falso_mas_mockado");
 
-        LoginResponseDTO respostaEsperada = new LoginResponseDTO("jwt_gerado_pelo_backend", "user_1", "Usuário Nhac");
+        LoginResponseDTO respostaEsperada = new LoginResponseDTO("jwt_gerado_pelo_backend", "user_1", "Usuário Nhac", false);
 
         when(googleAuthService.autenticarComGoogle("token_google_falso_mas_mockado")).thenReturn(respostaEsperada);
 
@@ -167,5 +191,31 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").value("jwt_gerado_pelo_backend"))
                 .andExpect(jsonPath("$.usuarioId").value("user_1"));
+    }
+
+    @Test
+    @DisplayName("Deve retornar existe true quando o e-mail já estiver cadastrado")
+    void deveRetornarExisteTrueQuandoEmailCadastrado() {
+        ChecarEmailRequestDTO requisicao = new ChecarEmailRequestDTO("existente@nhac.com");
+
+        when(usuarioRepository.findByEmailIgnoreCase("existente@nhac.com")).thenReturn(Optional.of(new Usuario()));
+
+        ResponseEntity<ChecarEmailResponseDTO> resposta = authController.checarEmail(requisicao);
+
+        assertEquals(HttpStatus.OK, resposta.getStatusCode());
+        assertTrue(resposta.getBody().existe());
+    }
+
+    @Test
+    @DisplayName("Deve retornar existe false quando o e-mail não estiver cadastrado")
+    void deveRetornarExisteFalseQuandoEmailNaoCadastrado() {
+        ChecarEmailRequestDTO requisicao = new ChecarEmailRequestDTO("novo@nhac.com");
+
+        when(usuarioRepository.findByEmailIgnoreCase("novo@nhac.com")).thenReturn(Optional.empty());
+
+        ResponseEntity<ChecarEmailResponseDTO> resposta = authController.checarEmail(requisicao);
+
+        assertEquals(HttpStatus.OK, resposta.getStatusCode());
+        assertFalse(resposta.getBody().existe());
     }
 }

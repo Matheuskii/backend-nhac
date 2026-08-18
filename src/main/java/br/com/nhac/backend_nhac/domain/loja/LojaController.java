@@ -34,10 +34,14 @@ public class LojaController {
     })
     @GetMapping
     public ResponseEntity<Page<LojaResumoDTO>> listarLojas(
+            @RequestParam(required = false) String nome,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lng,
+            @RequestParam(required = false) Double raio,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        return ResponseEntity.ok(lojaService.obterLojasPaginadas(page, size));
+        return ResponseEntity.ok(lojaService.obterLojasPaginadas(nome, lat, lng, raio, page, size));
     }
 
     @Operation(summary = "Detalhes de uma loja", description = "Busca todos os dados aninhados de uma loja específica através do seu ID, incluindo horários e endereço completo.")
@@ -58,8 +62,8 @@ public class LojaController {
             @ApiResponse(responseCode = "201", description = "Loja criada com sucesso")
     })
     @PostMapping
-    public ResponseEntity<String> criarLoja(@RequestBody @Valid LojaCreateDTO dto) {
-        String lojaId = lojaService.criarLoja(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(lojaId);
+    public ResponseEntity<LojaResumoDTO> criarLoja(@RequestBody @Valid LojaCreateDTO dto) {
+        LojaResumoDTO resumoDTO = lojaService.criarLoja(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(resumoDTO);
     }
 }

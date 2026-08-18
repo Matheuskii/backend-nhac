@@ -15,12 +15,28 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoDTO;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoUpdateStatusDTO;
+import java.time.Instant;
+import java.util.List;
+
+import java.math.BigDecimal;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResponseDTO;
+import br.com.nhac.backend_nhac.domain.pedido.StatusPedido;
 
 @org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest(PedidoController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -144,12 +160,98 @@ class PedidoControllerTest {
                 }
                 """;
 
-        when(pedidoService.finalizarPedido(any(), anyString())).thenReturn("pedido_gerado_001");
+        br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO dto = new br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO("pedido_gerado_001", null, null, null);
+        when(pedidoService.finalizarPedido(any(), anyString())).thenReturn(dto);
 
         mockMvc.perform(post("/api/v1/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonValido))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.pedidoId").value("pedido_gerado_001"));
+    }
+
+    @Test
+    @DisplayName("Deve devolver 200 e o PedidoResponseDTO quando o usuário logado for dono do pedido")
+    void deveRetornarPedidoComStatus200QuandoExistirEDonoEstiverLogado() throws Exception {
+        PedidoResponseDTO mockResponse = new PedidoResponseDTO(
+                "pedido_123", "user_123", "loja_001", "Loja Teste", new BigDecimal("100.00"), new BigDecimal("5.00"),
+                "PIX", null, null, StatusPedido.PENDENTE, null, null, Collections.emptyList()
+        );
+
+        when(pedidoService.buscarPedido("pedido_123", "user_123")).thenReturn(mockResponse);
+
+        mockMvc.perform(get("/api/v1/pedidos/pedido_123"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("pedido_123"))
+                .andExpect(jsonPath("$.lojaId").value("loja_001"));
+    }
+
+    @Test
+    @DisplayName("Deve devolver 403 quando o usuário logado não for o dono do pedido")
+    void deveRetornar403QuandoUsuarioLogadoNaoForDonoDoPedido() throws Exception {
+        when(pedidoService.buscarPedido("pedido_123", "user_123"))
+                .thenThrow(new br.com.nhac.backend_nhac.exceptions.AcessoNegadoException("Acesso negado"));
+
+        mockMvc.perform(get("/api/v1/pedidos/pedido_123"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Deve devolver 404 quando o pedido não for encontrado")
+    void deveRetornar404QuandoPedidoNaoForEncontrado() throws Exception {
+        when(pedidoService.buscarPedido("pedido_inexistente", "user_123"))
+                .thenThrow(new br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException("Pedido não encontrado"));
+
+        mockMvc.perform(get("/api/v1/pedidos/pedido_inexistente"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Deve devolver 200 e a página de pedidos do usuário logado")
+    void deveRetornarStatus200EListaPaginadaDePedidosDoUsuarioLogado() throws Exception {
+        PedidoResumoDTO pedidoMock = new PedidoResumoDTO(
+                "pedido_123", "loja_001", "Loja Teste", new BigDecimal("100.00"), StatusPedido.PENDENTE, Instant.now()
+        );
+        Page<PedidoResumoDTO> pageMock = new PageImpl<>(List.of(pedidoMock));
+
+        when(pedidoService.listarMeusPedidos(anyString(), any())).thenReturn(pageMock);
+
+        mockMvc.perform(get("/api/v1/pedidos?page=0&size=10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value("pedido_123"))
+                .andExpect(jsonPath("$.content[0].lojaId").value("loja_001"));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 204 ao atualizar status com sucesso")
+    void deveRetornar204AoAtualizarStatusComSucesso() throws Exception {
+        String jsonBody = "{\"status\": \"PREPARANDO\"}";
+
+        doNothing().when(pedidoService).atualizarStatus(anyString(), any(StatusPedido.class));
+
+        mockMvc.perform(patch("/api/v1/pedidos/pedido_123/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonBody))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("Deve retornar 400 ao enviar status nulo")
+    void deveRetornar400AoEnviarStatusNulo() throws Exception {
+        String jsonBody = "{\"status\": null}";
+
+        mockMvc.perform(patch("/api/v1/pedidos/pedido_123/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonBody))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Deve retornar 204 ao cancelar pedido com sucesso")
+    void deveRetornar204AoCancelarPedidoComSucesso() throws Exception {
+        doNothing().when(pedidoService).cancelarPedido(anyString(), anyString());
+
+        mockMvc.perform(patch("/api/v1/pedidos/pedido_123/cancelar"))
+                .andExpect(status().isNoContent());
     }
 }

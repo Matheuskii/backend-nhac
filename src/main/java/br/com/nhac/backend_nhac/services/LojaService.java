@@ -25,11 +25,15 @@ public class LojaService {
     }
 
 
-    public Page<LojaResumoDTO> obterLojasPaginadas(int page, int size){
+    public Page<LojaResumoDTO> obterLojasPaginadas(String nome, Double lat, Double lng, Double raio, int page, int size){
         Pageable paginacao = PageRequest.of(page, size);
 
-
-        Page<Loja> lojas = lojaRepository.findByIsAbertoTrue(paginacao);
+        Page<Loja> lojas;
+        if (nome == null && lat == null && lng == null) {
+            lojas = lojaRepository.findByIsAbertoTrue(paginacao);
+        } else {
+            lojas = lojaRepository.buscarLojasComFiltros(nome, lat, lng, raio, paginacao);
+        }
 
         return lojas.map(LojaResumoDTO::new);
     }
@@ -44,14 +48,14 @@ public class LojaService {
 
     }
     @Transactional
-    public String criarLoja(LojaCreateDTO dto) {
+    public LojaResumoDTO criarLoja(LojaCreateDTO dto) {
         long totalLojas = contarLojasCadastradas();
         String novoId = String.format("loja_%04d", totalLojas + 1);
         
         Loja novaLoja = dto.toEntity();
         novaLoja.setId(novoId);
-        lojaRepository.save(novaLoja);
-        return novoId;
+        Loja lojaSalva = lojaRepository.save(novaLoja);
+        return new LojaResumoDTO(lojaSalva);
     }
 
     public long contarLojasCadastradas() {
