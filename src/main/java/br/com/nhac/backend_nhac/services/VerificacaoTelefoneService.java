@@ -76,4 +76,52 @@ public class VerificacaoTelefoneService {
             usuarioRepository.save(usuario);
         });
     }
+
+    @Transactional
+    public void enviarCodigoReset(String telefone) {
+        telefone = telefone.trim();
+
+        LocalDateTime agora = LocalDateTime.now();
+        codigoRepository.inativarCodigosAtivosPorTelefone(telefone);
+
+        String codigo = String.format("%06d", new SecureRandom().nextInt(1_000_000));
+
+        CodigoVerificacao novoCodigo = CodigoVerificacao.builder()
+                .telefone(telefone)
+                .codigo(codigo)
+                .dataExpiracao(agora.plusMinutes(TEMPO_EXPIRACAO_MINUTOS))
+                .tentativas(0)
+                .utilizado(false)
+                .build();
+
+        codigoRepository.save(novoCodigo);
+
+        String mensagem = String.format("Nhac Delivery: Seu codigo para redefinir a senha e %s. Nao compartilhe. Valido por %d min.", codigo, TEMPO_EXPIRACAO_MINUTOS);
+        smsService.enviarSms(telefone, mensagem);
+    }
+
+    @Transactional(noRollbackFor = RegraDeNegocioException.class)
+    public void verificarCodigoValido(String telefone, String codigoDigitado) {
+        telefone = telefone.trim();
+        LocalDateTime agora = LocalDateTime.now();
+
+        CodigoVerificacao registro = codigoRepository
+                .findTopByTelefoneAndUtilizadoFalseAndDataExpiracaoAfterOrderByCriadoEmDesc(telefone, agora)
+                .orElseThrow(() -> new RegraDeNegocioException("Código expirado ou não encontrado. Solicite um novo código."));
+
+        if (registro.getTentativas() >= MAX_TENTATIVAS) {
+            registro.setUtilizado(true);
+            codigoRepository.save(registro);
+            throw new RegraDeNegocioException("Limite de tentativas excedido para este código. Solicite um novo.");
+        }
+
+        if (!registro.getCodigo().equals(codigoDigitado.trim())) {
+            registro.setTentativas(registro.getTentativas() + 1);
+            codigoRepository.save(registro);
+            throw new RegraDeNegocioException("Código de verificação inválido.");
+        }
+
+        registro.setUtilizado(true);
+        codigoRepository.save(registro);
+    }
 }

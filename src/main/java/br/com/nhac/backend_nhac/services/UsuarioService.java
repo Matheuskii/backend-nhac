@@ -9,6 +9,7 @@ import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioResponseDTO;
 import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
 import br.com.nhac.backend_nhac.exceptions.CredenciaisInvalidasException;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
+import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 import br.com.nhac.backend_nhac.repositories.EnderecoUsuarioRepository;
 import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
 import org.springframework.security.crypto.password.PasswordEncoder; // 🔴 NOVO IMPORT
@@ -143,5 +144,31 @@ public class UsuarioService {
         if (!idNaUrl.equals(usuarioLogado.getId())) {
             throw new AcessoNegadoException("Acesso negado: não tem permissão para aceder ou modificar os dados de outro utilizador.");
         }
+    }
+
+    @Transactional
+    public void desativarUsuario(String idNaUrl, Usuario usuarioLogado) {
+        if (!usuarioLogado.getPapel().equals(br.com.nhac.backend_nhac.domain.usuario.Papel.ADMIN) && !idNaUrl.equals(usuarioLogado.getId())) {
+            throw new AcessoNegadoException("Acesso negado: apenas administradores ou o próprio usuário podem desativar a conta.");
+        }
+
+        Usuario usuario = usuarioRepository.findById(idNaUrl)
+                .orElseThrow(() -> new IdNaoEncontradoException("Usuário não encontrado."));
+
+        usuario.setAtivo(false);
+        usuarioRepository.save(usuario);
+    }
+
+    @Transactional
+    public void atualizarSenha(String telefone, String novaSenha) {
+        Usuario usuario = usuarioRepository.findByTelefone(telefone)
+                .orElseThrow(() -> new IdNaoEncontradoException("Nenhum usuário cadastrado com esse telefone."));
+
+        if (!usuario.isAtivo()) {
+            throw new RegraDeNegocioException("Usuário inativo. Não é possível alterar a senha.");
+        }
+
+        usuario.setSenha(passwordEncoder.encode(novaSenha));
+        usuarioRepository.save(usuario);
     }
 }

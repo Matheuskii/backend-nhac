@@ -19,7 +19,6 @@ public class AuthFlowIT extends AbstractIntegrationTest {
         String email = "teste.integracao@nhac.com.br";
         String senha = "senhaForte123";
 
-        // 1. Registrar um novo usuário
         RegistroRequestDTO registroReq = new RegistroRequestDTO(
                 UUID.randomUUID().toString(),
                 "Usuario Teste",
@@ -35,7 +34,6 @@ public class AuthFlowIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.token").exists())
                 .andExpect(jsonPath("$.nome").value("Usuario Teste"));
 
-        // 2. Realizar login com as mesmas credenciais
         LoginRequestDTO loginReq = new LoginRequestDTO(email, senha);
 
         mockMvc.perform(post("/api/v1/auth/login")
