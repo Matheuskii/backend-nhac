@@ -13,6 +13,7 @@ import br.com.nhac.backend_nhac.infra.security.TokenService;
 import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
 import br.com.nhac.backend_nhac.services.GoogleAuthService;
 import br.com.nhac.backend_nhac.services.SmsAuthService;
+import br.com.nhac.backend_nhac.services.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -101,5 +102,34 @@ public class AuthController {
     public ResponseEntity<ChecarEmailResponseDTO> checarEmail(@RequestBody @Valid ChecarEmailRequestDTO body) {
         boolean existe = usuarioRepository.findByEmailIgnoreCase(body.email()).isPresent();
         return ResponseEntity.ok(new ChecarEmailResponseDTO(existe));
+    }
+
+    @Operation(summary = "Solicitar redefinição de senha", description = "Envia um SMS com código para redefinição caso o telefone exista.")
+    @PostMapping("/esqueci-senha")
+    public ResponseEntity<Void> esqueciSenha(
+            @RequestBody @Valid br.com.nhac.backend_nhac.domain.auth.dto.EsqueciSenhaDTO dto,
+            @org.springframework.beans.factory.annotation.Autowired br.com.nhac.backend_nhac.services.VerificacaoTelefoneService verificacaoTelefoneService) {
+        
+        Usuario usuario = usuarioRepository.findByTelefone(dto.telefone().trim())
+                .orElseThrow(() -> new br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException("Nenhum usuário encontrado com este telefone."));
+
+        if (!usuario.isAtivo()) {
+            throw new RegraDeNegocioException("Usuário inativo.");
+        }
+
+        verificacaoTelefoneService.enviarCodigoReset(dto.telefone());
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Concluir redefinição de senha", description = "Valida o código SMS e atualiza a senha do usuário.")
+    @PostMapping("/redefinir-senha")
+    public ResponseEntity<Void> redefinirSenha(
+            @RequestBody @Valid br.com.nhac.backend_nhac.domain.auth.dto.RedefinirSenhaDTO dto,
+            @org.springframework.beans.factory.annotation.Autowired br.com.nhac.backend_nhac.services.VerificacaoTelefoneService verificacaoTelefoneService,
+            @org.springframework.beans.factory.annotation.Autowired UsuarioService usuarioService) {
+
+        verificacaoTelefoneService.verificarCodigoValido(dto.telefone(), dto.codigo());
+        usuarioService.atualizarSenha(dto.telefone(), dto.novaSenha());
+        return ResponseEntity.ok().build();
     }
 }

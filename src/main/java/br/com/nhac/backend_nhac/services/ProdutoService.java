@@ -55,4 +55,40 @@ public class ProdutoService {
         Page<Produto> produtos = produtoRepository.findAllWithFilters(lojaId, categoriaMenu, nome, precoMaximo, pageable);
         return produtos.map(ProdutoResumoDTO::new);
     }
+
+    @Transactional
+    public ProdutoResumoDTO atualizarProduto(String id, br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto) {
+        Produto produto = produtoRepository.findById(id)
+                .orElseThrow(() -> new IdNaoEncontradoException("O produto com o id: " + id + " não foi encontrado."));
+
+        if (!produto.getLoja().isAberto()) {
+            throw new RegraDeNegocioException("Não é possível editar produtos de uma loja fechada.");
+        }
+
+        produto.setNome(dto.nome());
+        produto.setDescricao(dto.descricao());
+        produto.setPreco(dto.preco());
+        produto.setCategoriaMenu(dto.categoriaMenu());
+        produto.setImagemUrl(dto.imagemUrl());
+        produto.setPeso(dto.peso());
+        produto.setPercentualDesconto(dto.percentualDesconto());
+        produto.setAtivo(dto.isAtivo());
+
+        produtoRepository.save(produto);
+
+        return new ProdutoResumoDTO(produto);
+    }
+
+    @Transactional
+    public void desativarProduto(String id) {
+        Produto produto = produtoRepository.findById(id)
+                .orElseThrow(() -> new IdNaoEncontradoException("O produto com o id: " + id + " não foi encontrado."));
+
+        if (!produto.getLoja().isAberto()) {
+            throw new RegraDeNegocioException("Não é possível desativar produtos de uma loja fechada.");
+        }
+
+        produto.setAtivo(false);
+        produtoRepository.save(produto);
+    }
 }

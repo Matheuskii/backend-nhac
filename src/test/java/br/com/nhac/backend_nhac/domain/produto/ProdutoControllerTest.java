@@ -148,4 +148,76 @@ class ProdutoControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect((ResultMatcher) jsonPath("$.message").value("O produto com o id: produto_fantasma não foi encontrado."));
     }
+
+    @Test
+    @DisplayName("Deve retornar 200 ao atualizar um produto com dados válidos")
+    void deveAtualizarProdutoComSucesso() throws Exception {
+        br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dtoValido = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
+                "Hossomaki Editado", "Nova descrição", new BigDecimal("30.00"),
+                "Sushi", "nova-url", "250g", 0, false
+        );
+
+        ProdutoResumoDTO produtoAtualizado = new ProdutoResumoDTO(
+                "produto_1", "loja_123", "Loja Teste", "Hossomaki Editado", "Nova descrição", new BigDecimal("30.00"), "Sushi", "nova-url", "250g", 0
+        );
+
+        when(produtoService.atualizarProduto(any(), any())).thenReturn(produtoAtualizado);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/v1/produtos/{produtoId}", "produto_1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dtoValido)))
+                .andExpect(status().isOk())
+                .andExpect((ResultMatcher) jsonPath("$.nome").value("Hossomaki Editado"));
+    }
+
+    @Test
+    @DisplayName("Deve retornar Erro 400 ao tentar atualizar produto com nome vazio")
+    void deveRetornarErro400AoAtualizarComNomeVazio() throws Exception {
+        br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dtoInvalido = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
+                "", "Nova descrição", new BigDecimal("30.00"),
+                "Sushi", "nova-url", "250g", 0, false
+        );
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/v1/produtos/{produtoId}", "produto_1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dtoInvalido)))
+                .andExpect(status().isBadRequest())
+                .andExpect((ResultMatcher) jsonPath("$.message").exists());
+    }
+
+    @Test
+    @DisplayName("Deve retornar Erro 404 ao tentar atualizar um produto que não existe")
+    void deveRetornarErro404AoAtualizarProdutoInexistente() throws Exception {
+        br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dtoValido = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
+                "Hossomaki Editado", "Nova descrição", new BigDecimal("30.00"),
+                "Sushi", "nova-url", "250g", 0, false
+        );
+
+        when(produtoService.atualizarProduto(any(), any()))
+                .thenThrow(new br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException("O produto com o id: produto_fantasma não foi encontrado."));
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/v1/produtos/{produtoId}", "produto_fantasma")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dtoValido)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Deve retornar 204 ao desativar um produto existente")
+    void deveRetornar204AoDesativarProduto() throws Exception {
+        org.mockito.Mockito.doNothing().when(produtoService).desativarProduto("produto_1");
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/produtos/{produtoId}", "produto_1"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("Deve retornar Erro 404 ao tentar desativar produto que não existe")
+    void deveRetornar404AoDesativarProdutoInexistente() throws Exception {
+        org.mockito.Mockito.doThrow(new br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException("O produto com o id: produto_fantasma não foi encontrado."))
+                .when(produtoService).desativarProduto("produto_fantasma");
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/produtos/{produtoId}", "produto_fantasma"))
+                .andExpect(status().isNotFound());
+    }
 }

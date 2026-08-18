@@ -138,6 +138,13 @@
 			<version>2.13.2</version>
 			<scope>compile</scope>
 		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/com.stripe/stripe-java -->
+		<dependency>
+			<groupId>com.stripe</groupId>
+			<artifactId>stripe-java</artifactId>
+			<version>24.22.0</version>
+			<scope>compile</scope>
+		</dependency>
 
 	</dependencies>
 

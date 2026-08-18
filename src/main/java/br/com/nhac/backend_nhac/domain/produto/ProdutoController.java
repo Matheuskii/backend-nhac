@@ -90,5 +90,43 @@ public class ProdutoController {
 
         Page<ProdutoResumoDTO> page = produtoService.listarProdutos(lojaId, precoMaximo, categoriaMenu, nome, pageable);
         return ResponseEntity.ok(page);
-}
+    }
+
+    @Operation(summary = "Editar um produto existente", description = "Atualiza os dados de um produto dado o seu ID. É necessário passar todos os campos obrigatórios.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Produto atualizado com sucesso."),
+
+            @ApiResponse(responseCode = "400", description = "Erro de validação nos dados enviados.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class))),
+
+            @ApiResponse(responseCode = "404", description = "Produto não encontrado.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class))),
+
+            @ApiResponse(responseCode = "500", description = "Erro interno no servidor.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @PutMapping("/{produtoId}")
+    public ResponseEntity<ProdutoResumoDTO> atualizarProduto(
+            @PathVariable String produtoId,
+            @Valid @RequestBody br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto) {
+
+        ProdutoResumoDTO produtoAtualizado = produtoService.atualizarProduto(produtoId, dto);
+        return ResponseEntity.ok(produtoAtualizado);
+    }
+
+    @Operation(summary = "Desativar um produto (Soft Delete)", description = "Marca o produto como inativo para que deixe de aparecer para venda. Mantém o histórico no banco de dados.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Produto desativado com sucesso."),
+
+            @ApiResponse(responseCode = "404", description = "Produto não encontrado.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class))),
+
+            @ApiResponse(responseCode = "500", description = "Erro interno no servidor.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @DeleteMapping("/{produtoId}")
+    public ResponseEntity<Void> desativarProduto(@PathVariable String produtoId) {
+        produtoService.desativarProduto(produtoId);
+        return ResponseEntity.noContent().build();
+    }
 }
