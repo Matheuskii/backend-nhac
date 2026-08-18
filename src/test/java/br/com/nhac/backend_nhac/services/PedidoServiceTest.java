@@ -54,7 +54,7 @@ class PedidoServiceTest {
         );
 
         PedidoCreateDTO dto = new PedidoCreateDTO(
-                "loja_1", "PIX", "Sem cebola", null, enderecoMock, List.of(itemFraudulento)
+                "loja_1", "DINHEIRO", "Sem cebola", null, enderecoMock, List.of(itemFraudulento)
         );
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
@@ -87,7 +87,7 @@ class PedidoServiceTest {
         PedidoCreateDTO.ItemPedidoDTO item = new PedidoCreateDTO.ItemPedidoDTO(
                 "prod_1", "Hambúrguer", "http://imagem.com/burger.jpg", 1
         );
-        PedidoCreateDTO dto = new PedidoCreateDTO("loja_fechada", "PIX", null, null, enderecoMock, List.of(item));
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_fechada", "DINHEIRO", null, null, enderecoMock, List.of(item));
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_fechada")).thenReturn(Optional.empty());
 
@@ -111,7 +111,7 @@ class PedidoServiceTest {
         PedidoCreateDTO.ItemPedidoDTO itemFantasma = new PedidoCreateDTO.ItemPedidoDTO(
                 "prod_fantasma", "Produto Inexistente", null, 1
         );
-        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "PIX", null, null, enderecoMock, List.of(itemFantasma));
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "DINHEIRO", null, null, enderecoMock, List.of(itemFantasma));
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
         when(produtoRepository.findById("prod_fantasma")).thenReturn(Optional.empty());
@@ -145,7 +145,7 @@ class PedidoServiceTest {
         PedidoCreateDTO.ItemPedidoDTO item = new PedidoCreateDTO.ItemPedidoDTO(
                 "prod_1", "Hambúrguer", null, 1
         );
-        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "PIX", null, null, enderecoMock, List.of(item));
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "DINHEIRO", null, null, enderecoMock, List.of(item));
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaSelecionada));
         when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(produtoDeOutraLoja));
@@ -180,7 +180,7 @@ class PedidoServiceTest {
         PedidoCreateDTO.ItemPedidoDTO item1 = new PedidoCreateDTO.ItemPedidoDTO("prod_1", "Item 1", null, 2);
         PedidoCreateDTO.ItemPedidoDTO item2 = new PedidoCreateDTO.ItemPedidoDTO("prod_2", "Item 2", null, 1);
 
-        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "PIX", null, null, enderecoMock, List.of(item1, item2));
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "DINHEIRO", null, null, enderecoMock, List.of(item1, item2));
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
         when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(produto1));
@@ -220,7 +220,7 @@ class PedidoServiceTest {
         produto.setPreco(new BigDecimal("10.00"));
 
         PedidoCreateDTO.ItemPedidoDTO item = new PedidoCreateDTO.ItemPedidoDTO("prod_1", "Item 1", null, 1);
-        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "PIX", null, null, enderecoMock, List.of(item));
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "DINHEIRO", null, null, enderecoMock, List.of(item));
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
         when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(produto));
