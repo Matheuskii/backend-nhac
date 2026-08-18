@@ -18,6 +18,7 @@ class TwilioSmsServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Defaults to mock mode for safety
         ReflectionTestUtils.setField(twilioSmsService, "mockMode", true);
         ReflectionTestUtils.setField(twilioSmsService, "accountSid", "mockSid");
         ReflectionTestUtils.setField(twilioSmsService, "authToken", "mockToken");

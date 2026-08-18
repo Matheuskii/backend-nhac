@@ -6,6 +6,7 @@ import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
 import com.stripe.model.StripeObject;
 import com.stripe.net.Webhook;
+import java.util.Map;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,7 +32,11 @@ public class StripeWebhookController {
     @PostMapping
     public ResponseEntity<String> handleStripeEvent(
             @RequestBody String payload,
-            @RequestHeader("Stripe-Signature") String sigHeader) {
+            @RequestHeader(value = "Stripe-Signature", required = false) String sigHeader) {
+
+        if (sigHeader == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Faltando header Stripe-Signature");
+        }
 
         Event event = null;
 
@@ -55,7 +60,18 @@ public class StripeWebhookController {
                 }
                 break;
             case "payment_intent.payment_failed":
-                // Poderíamos marcar como FALHA_PAGAMENTO aqui se quisermos no futuro
+                PaymentIntent failedIntent = (PaymentIntent) event.getDataObjectDeserializer().getObject().orElse(null);
+                if (failedIntent != null) {
+                    Map<String, String> metadata = failedIntent.getMetadata();
+                    if (metadata != null && metadata.containsKey("pedidoId")) {
+                        String pedidoId = metadata.get("pedidoId");
+                        try {
+                            pedidoService.marcarComoCanceladoPorFalhaDePagamento(pedidoId);
+                        } catch (Exception e) {
+                            System.err.println("Erro ao cancelar pedido via webhook: " + e.getMessage());
+                        }
+                    }
+                }
                 break;
             default:
                 // Evento não tratado, retornamos 200 pro Stripe não tentar reenviar

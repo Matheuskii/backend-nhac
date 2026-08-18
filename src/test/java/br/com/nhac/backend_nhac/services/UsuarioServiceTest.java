@@ -116,6 +116,48 @@ class UsuarioServiceTest {
     }
 
     @Test
+    @DisplayName("Deve desativar o proprio usuario com sucesso")
+    void deveDesativarProprioUsuarioComSucesso() {
+        Usuario usuarioMock = usuarioPadrao("user_1");
+        when(usuarioRepository.findById("user_1")).thenReturn(Optional.of(usuarioMock));
+
+        usuarioService.desativarUsuario("user_1", usuarioMock);
+
+        assertFalse(usuarioMock.isAtivo());
+        verify(usuarioRepository, times(1)).save(usuarioMock);
+    }
+
+    @Test
+    @DisplayName("Deve desativar outro usuario se for ADMIN")
+    void deveDesativarOutroUsuarioSeAdmin() {
+        Usuario usuarioMock = usuarioPadrao("user_1");
+        Usuario adminLogado = new Usuario();
+        adminLogado.setId("admin_123");
+        adminLogado.setPapel(br.com.nhac.backend_nhac.domain.usuario.Papel.ADMIN);
+
+        when(usuarioRepository.findById("user_1")).thenReturn(Optional.of(usuarioMock));
+
+        usuarioService.desativarUsuario("user_1", adminLogado);
+
+        assertFalse(usuarioMock.isAtivo());
+        verify(usuarioRepository, times(1)).save(usuarioMock);
+    }
+
+    @Test
+    @DisplayName("Nao deve desativar outro usuario se for CLIENTE")
+    void naoDeveDesativarOutroUsuarioSeCliente() {
+        Usuario clienteLogado = new Usuario();
+        clienteLogado.setId("cliente_123");
+        clienteLogado.setPapel(br.com.nhac.backend_nhac.domain.usuario.Papel.CLIENTE);
+
+        assertThrows(br.com.nhac.backend_nhac.exceptions.AcessoNegadoException.class, () -> {
+            usuarioService.desativarUsuario("user_1", clienteLogado);
+        });
+
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("Deve lançar IdNaoEncontradoException ao atualizar usuário inexistente")
     void deveLancarExcecaoAoAtualizarUsuarioInexistente() {
         when(usuarioRepository.findById("fantasma")).thenReturn(Optional.empty());

@@ -62,9 +62,10 @@ class UsuarioControllerTest {
     @Test
     @DisplayName("Deve retornar 200 ao buscar os próprios dados")
     void deveBuscarProprioUsuarioComSucesso() throws Exception {
-        UsuarioResponseDTO dto = new UsuarioResponseDTO(USUARIO_LOGADO_ID, "Matheus Alves",
-                "matheus@nhac.com", "11999998888", null);
-        when(usuarioService.buscarUsuario(USUARIO_LOGADO_ID)).thenReturn(dto);
+        UsuarioResponseDTO mockResponse = new UsuarioResponseDTO(
+                USUARIO_LOGADO_ID, "Matheus Alves", "matheus@nhac.com", "11999998888", null, br.com.nhac.backend_nhac.domain.usuario.Papel.CLIENTE
+        );
+        when(usuarioService.buscarUsuario(USUARIO_LOGADO_ID)).thenReturn(mockResponse);
 
         mockMvc.perform(get("/api/v1/usuarios/{id}", USUARIO_LOGADO_ID))
                 .andExpect(status().isOk())
@@ -130,6 +131,15 @@ class UsuarioControllerTest {
                 .andExpect(jsonPath("$.nome").value("Nome Atualizado"));
 
         verify(usuarioService, times(1)).atualizarUsuarioParcial(eq(USUARIO_LOGADO_ID), any(UsuarioAtualizarDTO.class));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 204 ao desativar conta de usuário")
+    void deveDesativarUsuarioComSucesso() throws Exception {
+        mockMvc.perform(delete("/api/v1/usuarios/{id}", USUARIO_LOGADO_ID))
+                .andExpect(status().isNoContent());
+
+        verify(usuarioService, times(1)).desativarUsuario(eq(USUARIO_LOGADO_ID), any(Usuario.class));
     }
 
 }
