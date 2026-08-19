@@ -23,7 +23,7 @@ public class StripePaymentService {
         Stripe.apiKey = stripeApiKey;
     }
 
-    public PedidoCriadoDTO criarPaymentIntentPix(Pedido pedido) {
+    public PedidoCriadoDTO criarPaymentIntentCartao(Pedido pedido) {
         try {
             // Stripe espera o valor em centavos (ex: R$ 50.00 -> 5000)
             long valorEmCentavos = pedido.getValorTotal().multiply(new BigDecimal("100")).longValue();
@@ -32,7 +32,12 @@ public class StripePaymentService {
                     PaymentIntentCreateParams.builder()
                             .setAmount(valorEmCentavos)
                             .setCurrency("brl")
-                            .addPaymentMethodType("pix")
+                            // Habilita métodos de pagamento automáticos (cartão e Google Pay)
+                            .setAutomaticPaymentMethods(
+                                    PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
+                                            .setEnabled(true)
+                                            .build()
+                            )
                             .putMetadata("pedidoId", pedido.getId())
                             .putMetadata("usuarioId", pedido.getUsuarioId())
                             .build();
@@ -42,20 +47,14 @@ public class StripePaymentService {
             // Vincula o ID gerado pelo Stripe ao Pedido
             pedido.setStripePaymentIntentId(paymentIntent.getId());
 
-            // Acesso aos dados do PIX
+            // Para cartão/Google Pay, não há QR Code PIX
+            // Os campos pixCopiaECola e qrCodeUrl serão null
             String clientSecret = paymentIntent.getClientSecret();
-            String pixCopiaECola = null;
-            String qrCodeUrl = null;
 
-            if (paymentIntent.getNextAction() != null && paymentIntent.getNextAction().getPixDisplayQrCode() != null) {
-                pixCopiaECola = paymentIntent.getNextAction().getPixDisplayQrCode().getData();
-                qrCodeUrl = paymentIntent.getNextAction().getPixDisplayQrCode().getHostedInstructionsUrl();
-            }
-
-            return new PedidoCriadoDTO(pedido.getId(), clientSecret, pixCopiaECola, qrCodeUrl);
+            return new PedidoCriadoDTO(pedido.getId(), clientSecret, null, null);
 
         } catch (StripeException e) {
-            throw new RuntimeException("Falha ao comunicar com Stripe para criar PIX: " + e.getMessage(), e);
+            throw new RuntimeException("Falha ao comunicar com Stripe para criar PaymentIntent: " + e.getMessage(), e);
         }
     }
 }
