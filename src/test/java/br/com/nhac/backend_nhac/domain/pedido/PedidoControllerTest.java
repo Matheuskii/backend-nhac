@@ -160,7 +160,8 @@ class PedidoControllerTest {
                 }
                 """;
 
-        when(pedidoService.finalizarPedido(any(), anyString())).thenReturn("pedido_gerado_001");
+        br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO dto = new br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO("pedido_gerado_001", null, null, null);
+        when(pedidoService.finalizarPedido(any(), anyString())).thenReturn(dto);
 
         mockMvc.perform(post("/api/v1/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)

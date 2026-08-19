@@ -27,15 +27,17 @@ public class PedidoService {
     private final PedidoRepository pedidoRepository;
     private final LojaRepository lojaRepository;
     private final ProdutoRepository produtoRepository;
+    private final StripePaymentService stripePaymentService;
 
-    public PedidoService(PedidoRepository pedidoRepository, LojaRepository lojaRepository, ProdutoRepository produtoRepository) {
+    public PedidoService(PedidoRepository pedidoRepository, LojaRepository lojaRepository, ProdutoRepository produtoRepository, StripePaymentService stripePaymentService) {
         this.pedidoRepository = pedidoRepository;
         this.lojaRepository = lojaRepository;
         this.produtoRepository = produtoRepository;
+        this.stripePaymentService = stripePaymentService;
     }
 
     @Transactional
-    public String finalizarPedido(PedidoCreateDTO dto, String usuarioIdLogado) {
+    public br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO finalizarPedido(PedidoCreateDTO dto, String usuarioIdLogado) {
 
         Loja loja = lojaRepository.findByIdAndIsAbertoTrue(dto.lojaId())
                 .orElseThrow(() -> new IdNaoEncontradoException("A loja informada não existe ou está fechada."));
@@ -78,7 +80,20 @@ public class PedidoService {
 
         Pedido pedidoSalvo = pedidoRepository.save(pedido);
 
-        return pedidoSalvo.getId();
+        if ("PIX".equalsIgnoreCase(pedido.getFormaPagamento())) {
+            return stripePaymentService.criarPaymentIntentPix(pedidoSalvo);
+        }
+
+        return new br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO(pedidoSalvo.getId(), null, null, null);
+    }
+
+    @Transactional
+    public void marcarComoPagoPorPaymentIntentId(String paymentIntentId) {
+        Pedido pedido = pedidoRepository.findByStripePaymentIntentId(paymentIntentId)
+                .orElseThrow(() -> new IdNaoEncontradoException("Pedido com PaymentIntent " + paymentIntentId + " não encontrado."));
+        
+        pedido.setStatus(br.com.nhac.backend_nhac.domain.pedido.StatusPedido.PAGO);
+        pedidoRepository.save(pedido);
     }
 
     @Transactional(readOnly = true)
@@ -117,9 +132,9 @@ public class PedidoService {
 
         boolean transicaoValida = switch (atual) {
             case PENDENTE -> novoStatus == StatusPedido.PREPARANDO;
+            case PAGO, ENTREGUE, CANCELADO -> false;
             case PREPARANDO -> novoStatus == StatusPedido.SAIU_ENTREGA;
             case SAIU_ENTREGA -> novoStatus == StatusPedido.ENTREGUE;
-            case ENTREGUE, CANCELADO -> false; // Estados finais
         };
 
         if (!transicaoValida) {
