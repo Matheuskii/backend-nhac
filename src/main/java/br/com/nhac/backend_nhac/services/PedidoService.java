@@ -28,12 +28,14 @@ public class PedidoService {
     private final LojaRepository lojaRepository;
     private final ProdutoRepository produtoRepository;
     private final StripePaymentService stripePaymentService;
+    private final AsaasPaymentService asaasPaymentService;
 
-    public PedidoService(PedidoRepository pedidoRepository, LojaRepository lojaRepository, ProdutoRepository produtoRepository, StripePaymentService stripePaymentService) {
+    public PedidoService(PedidoRepository pedidoRepository, LojaRepository lojaRepository, ProdutoRepository produtoRepository, StripePaymentService stripePaymentService, AsaasPaymentService asaasPaymentService) {
         this.pedidoRepository = pedidoRepository;
         this.lojaRepository = lojaRepository;
         this.produtoRepository = produtoRepository;
         this.stripePaymentService = stripePaymentService;
+        this.asaasPaymentService = asaasPaymentService;
     }
 
     @Transactional
@@ -80,8 +82,15 @@ public class PedidoService {
 
         Pedido pedidoSalvo = pedidoRepository.save(pedido);
 
+        // Verifica a forma de pagamento e chama o serviço apropriado
         if ("PIX".equalsIgnoreCase(pedido.getFormaPagamento())) {
-            return stripePaymentService.criarPaymentIntentPix(pedidoSalvo);
+            // Para PIX, usa o Asaas
+            return asaasPaymentService.criarCobrancaPix(pedidoSalvo);
+        } else if ("CARTAO".equalsIgnoreCase(pedido.getFormaPagamento()) || 
+                   "GOOGLE_PAY".equalsIgnoreCase(pedido.getFormaPagamento()) ||
+                   "STRIPE".equalsIgnoreCase(pedido.getFormaPagamento())) {
+            // Para cartão/Google Pay, usa o Stripe
+            return stripePaymentService.criarPaymentIntentCartao(pedidoSalvo);
         }
 
         return new br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO(pedidoSalvo.getId(), null, null, null);
@@ -93,6 +102,28 @@ public class PedidoService {
                 .orElseThrow(() -> new IdNaoEncontradoException("Pedido com PaymentIntent " + paymentIntentId + " não encontrado."));
         
         pedido.setStatus(br.com.nhac.backend_nhac.domain.pedido.StatusPedido.PAGO);
+        pedidoRepository.save(pedido);
+    }
+
+    @Transactional
+    public void marcarComoPagoPorAsaasPaymentId(String asaasPaymentId) {
+        Pedido pedido = pedidoRepository.findByAsaasPaymentId(asaasPaymentId)
+                .orElseThrow(() -> new IdNaoEncontradoException("Pedido com Asaas Payment ID " + asaasPaymentId + " não encontrado."));
+        
+        pedido.setStatus(br.com.nhac.backend_nhac.domain.pedido.StatusPedido.PAGO);
+        pedidoRepository.save(pedido);
+    }
+
+    @Transactional
+    public void cancelarPorFalhaPagamentoAsaas(String pedidoId) {
+        Pedido pedido = pedidoRepository.findById(pedidoId)
+                .orElseThrow(() -> new IdNaoEncontradoException("Pedido não encontrado para cancelamento por falha de pagamento Asaas."));
+
+        if (pedido.getStatus() != StatusPedido.PENDENTE && pedido.getStatus() != StatusPedido.PREPARANDO) {
+            throw new RegraDeNegocioException("Falha de pagamento recebida, mas o pedido não está em um estado que permite cancelamento.");
+        }
+
+        pedido.setStatus(StatusPedido.CANCELADO);
         pedidoRepository.save(pedido);
     }
 

@@ -9,6 +9,7 @@ import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
 import br.com.nhac.backend_nhac.repositories.LojaRepository;
 import br.com.nhac.backend_nhac.repositories.PedidoRepository;
 import br.com.nhac.backend_nhac.repositories.ProdutoRepository;
+import br.com.nhac.backend_nhac.services.StripePaymentService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +38,7 @@ class PedidoServiceTest {
     @Mock private PedidoRepository pedidoRepository;
     @Mock private ProdutoRepository produtoRepository;
     @Mock private LojaRepository lojaRepository;
+    @Mock private StripePaymentService stripePaymentService;
 
     @InjectMocks private PedidoService pedidoService;
 
