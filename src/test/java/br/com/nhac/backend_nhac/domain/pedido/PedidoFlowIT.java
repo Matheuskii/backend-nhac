@@ -102,6 +102,7 @@ public class PedidoFlowIT extends AbstractIntegrationTest {
                 "CARTAO",
                 "Sem cebola",
                 null,
+                null,
                 endereco,
                 List.of(item)
         );

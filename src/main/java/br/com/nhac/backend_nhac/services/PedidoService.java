@@ -7,6 +7,7 @@ import br.com.nhac.backend_nhac.domain.pedido.StatusPedido;
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCreateDTO;
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoDTO;
 import br.com.nhac.backend_nhac.domain.produto.Produto;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
 import br.com.nhac.backend_nhac.repositories.LojaRepository;
 import br.com.nhac.backend_nhac.repositories.PedidoRepository;
@@ -39,7 +40,7 @@ public class PedidoService {
     }
 
     @Transactional
-    public br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO finalizarPedido(PedidoCreateDTO dto, String usuarioIdLogado) {
+    public br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO finalizarPedido(PedidoCreateDTO dto, Usuario usuarioLogado) {
 
         Loja loja = lojaRepository.findByIdAndIsAbertoTrue(dto.lojaId())
                 .orElseThrow(() -> new IdNaoEncontradoException("A loja informada não existe ou está fechada."));
@@ -47,7 +48,7 @@ public class PedidoService {
         Pedido pedido = dto.toEntity(loja);
 
 
-        pedido.setUsuarioId(usuarioIdLogado);
+        pedido.setUsuarioId(usuarioLogado.getId());
 
         BigDecimal valorTotalItens = BigDecimal.ZERO;
 
@@ -82,14 +83,16 @@ public class PedidoService {
 
         Pedido pedidoSalvo = pedidoRepository.save(pedido);
 
-        // Verifica a forma de pagamento e chama o serviço apropriado
         if ("PIX".equalsIgnoreCase(pedido.getFormaPagamento())) {
-            // Para PIX, usa o Asaas
-            return asaasPaymentService.criarCobrancaPix(pedidoSalvo);
+            if (dto.cpfPagador() == null || dto.cpfPagador().isBlank()) {
+                throw new RegraDeNegocioException("O CPF do pagador é obrigatório para pagamento via PIX.");
+            }
+            return asaasPaymentService.criarCobrancaPix(
+                    pedidoSalvo, usuarioLogado.getNome(), usuarioLogado.getEmail(), dto.cpfPagador());
         } else if ("CARTAO".equalsIgnoreCase(pedido.getFormaPagamento()) || 
                    "GOOGLE_PAY".equalsIgnoreCase(pedido.getFormaPagamento()) ||
                    "STRIPE".equalsIgnoreCase(pedido.getFormaPagamento())) {
-            // Para cartão/Google Pay, usa o Stripe
+
             return stripePaymentService.criarPaymentIntentCartao(pedidoSalvo);
         }
 

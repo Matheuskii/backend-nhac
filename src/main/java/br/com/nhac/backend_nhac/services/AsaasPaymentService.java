@@ -27,7 +27,6 @@ public class AsaasPaymentService {
     private Gson gson;
 
     public AsaasPaymentService() {
-        // Construtor padrão para injeção de dependências
     }
 
     public AsaasPaymentService(RestTemplate restTemplate) {
@@ -43,64 +42,70 @@ public class AsaasPaymentService {
         this.gson = new Gson();
     }
 
+    
+    private String obterOuCriarCustomer(String nome, String email, String cpfCnpj) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("access_token", asaasApiKey);
+
+        JsonObject customerBody = new JsonObject();
+        customerBody.addProperty("name", nome);
+        customerBody.addProperty("email", email);
+        customerBody.addProperty("cpfCnpj", cpfCnpj.replaceAll("\\D", ""));
+
+        HttpEntity<String> entity = new HttpEntity<>(customerBody.toString(), headers);
+        String url = asaasApiUrl + "/customers";
+
+        ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
+
+        if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.CREATED) {
+            JsonObject responseBody = gson.fromJson(response.getBody(), JsonObject.class);
+            return responseBody.get("id").getAsString();
+        }
+
+        throw new RuntimeException("Falha ao criar cliente no Asaas: " + response.getStatusCode());
+    }
+
     /**
-     * Cria uma cobrança PIX no Asaas
-     * @param pedido Pedido a ser cobrado
-     * @return PedidoCriadoDTO com pixCopiaECola e qrCodeUrl preenchidos
+     * @param pedido 
+     * @param nomePagador 
+     * @param emailPagador 
+     * @param cpfPagador 
+     * @return 
      */
-    public PedidoCriadoDTO criarCobrancaPix(Pedido pedido) {
+    public PedidoCriadoDTO criarCobrancaPix(Pedido pedido, String nomePagador, String emailPagador, String cpfPagador) {
         try {
-            // Preparar headers da requisição
+            String customerId = obterOuCriarCustomer(nomePagador, emailPagador, cpfPagador);
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("asaas-api-key", asaasApiKey);
+            headers.set("access_token", asaasApiKey);
 
-            // Formatar data de vencimento (7 dias a partir de hoje)
             String dueDate = LocalDate.now().plusDays(7)
                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
-            // Criar payload da requisição
             JsonObject requestBody = new JsonObject();
+            requestBody.addProperty("customer", customerId);
             requestBody.addProperty("externalReference", pedido.getId());
             requestBody.addProperty("description", "Pedido #" + pedido.getId());
             requestBody.addProperty("billingType", "PIX");
             requestBody.addProperty("value", pedido.getValorTotal().doubleValue());
             requestBody.addProperty("dueDate", dueDate);
 
-            // Em um cenário real, é necessário criar um cliente no Asaas primeiro
-            // ou usar um cliente existente. Esta implementação usa dados simplificados.
-            // Pode ser necessário adaptar conforme a necessidade.
-            
-            // Opção 1: Se já tiver um customer ID do Asaas associado ao usuário
-            // requestBody.addProperty("customer", customerIdDoAsaas);
-            
-            // Opção 2: Criar cobrança sem customer (algumas configurações permitem)
-            // Adicionar informações do pagador diretamente
-            JsonObject payerInfo = new JsonObject();
-            payerInfo.addProperty("name", "Cliente do Pedido " + pedido.getId().substring(0, Math.min(8, pedido.getId().length())));
-            payerInfo.addProperty("email", "cliente@exemplo.com");
-            payerInfo.addProperty("cpfCnpj", "00000000000");
-            requestBody.add("payer", payerInfo);
-
             HttpEntity<String> entity = new HttpEntity<>(requestBody.toString(), headers);
 
-            // Fazer requisição para API do Asaas
             String url = asaasApiUrl + "/payments";
             ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
 
             if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.CREATED) {
                 JsonObject responseBody = gson.fromJson(response.getBody(), JsonObject.class);
                 
-                // Extrair dados do PIX da resposta
                 String paymentId = responseBody.get("id").getAsString();
                 String pixQrCode = responseBody.has("pixQrCode") ? responseBody.get("pixQrCode").getAsString() : null;
                 String pixCopyAndPaste = responseBody.has("pixCopyAndPaste") ? responseBody.get("pixCopyAndPaste").getAsString() : null;
 
-                // Armazenar ID do pagamento no pedido (opcional, para rastreio)
                 pedido.setAsaasPaymentId(paymentId);
 
-                // Retornar DTO com dados do PIX
-                // clientSecret será null pois não usamos Stripe para PIX
                 return new PedidoCriadoDTO(pedido.getId(), null, pixCopyAndPaste, pixQrCode);
             } else {
                 throw new RuntimeException("Falha ao criar cobrança no Asaas: " + response.getStatusCode());

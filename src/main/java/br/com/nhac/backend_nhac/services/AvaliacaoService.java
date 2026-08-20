@@ -58,7 +58,6 @@ public class AvaliacaoService {
         Avaliacao avaliacao = new Avaliacao(dto.nota(), dto.comentario(), usuario, loja, pedido);
         avaliacaoRepository.save(avaliacao);
 
-        // Recalcular a média da loja
         recalcularMediaLoja(loja, dto.nota());
 
         return new AvaliacaoResumoDTO(avaliacao);
@@ -79,7 +78,7 @@ public class AvaliacaoService {
         float novaMedia = ((mediaAtual * totalAvaliacoes) + novaNota) / (totalAvaliacoes + 1);
 
         dados.setTotalAvaliacoes(totalAvaliacoes + 1);
-        dados.setAvaliacaoMedia(Math.round(novaMedia * 10.0f) / 10.0f); // Arredonda para 1 casa decimal
+        dados.setAvaliacaoMedia(Math.round(novaMedia * 10.0f) / 10.0f); 
 
         lojaRepository.save(loja);
     }
