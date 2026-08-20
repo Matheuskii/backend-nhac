@@ -24,7 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(
     value = AsaasWebhookController.class,
-    properties = {"asaas.api.key=test_asaas_api_key"}
+    properties = {"asaas.webhook.token=test_webhook_token"}
 )
 @AutoConfigureMockMvc(addFilters = false)
 public class AsaasWebhookControllerTest {
@@ -59,7 +59,7 @@ public class AsaasWebhookControllerTest {
         String invalidApiKey = "invalid_api_key";
 
         mockMvc.perform(post("/api/v1/webhooks/asaas")
-                .header("asaas-api-key", invalidApiKey)
+                .header("asaas-access-token", invalidApiKey)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
                 .andExpect(status().isUnauthorized());
@@ -71,10 +71,10 @@ public class AsaasWebhookControllerTest {
     @DisplayName("Deve retornar 400 Bad Request quando notificação estiver ausente")
     void deveRetornar400SeNotificacaoAusente() throws Exception {
         String payload = "{}";
-        String validApiKey = "test_asaas_api_key";
+        String validToken = "test_webhook_token";
 
         mockMvc.perform(post("/api/v1/webhooks/asaas")
-                .header("asaas-api-key", validApiKey)
+                .header("asaas-access-token", validToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
                 .andExpect(status().isBadRequest());
@@ -89,10 +89,10 @@ public class AsaasWebhookControllerTest {
             "{\"notification\": \"PAYMENT_RECEIVED\", \"payment\": {\"id\": \"%s\", \"externalReference\": \"%s\"}}",
             asaasPaymentId, pedidoId
         );
-        String validApiKey = "test_asaas_api_key";
+        String validToken = "test_webhook_token";
 
         mockMvc.perform(post("/api/v1/webhooks/asaas")
-                .header("asaas-api-key", validApiKey)
+                .header("asaas-access-token", validToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
                 .andExpect(status().isOk());
@@ -109,10 +109,10 @@ public class AsaasWebhookControllerTest {
             "{\"notification\": \"PAYMENT_OVERDUE\", \"payment\": {\"externalReference\": \"%s\"}}",
             pedidoId
         );
-        String validApiKey = "test_asaas_api_key";
+        String validToken = "test_webhook_token";
 
         mockMvc.perform(post("/api/v1/webhooks/asaas")
-                .header("asaas-api-key", validApiKey)
+                .header("asaas-access-token", validToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
                 .andExpect(status().isOk());
@@ -129,10 +129,10 @@ public class AsaasWebhookControllerTest {
             "{\"notification\": \"PAYMENT_CANCELLED\", \"payment\": {\"externalReference\": \"%s\"}}",
             pedidoId
         );
-        String validApiKey = "test_asaas_api_key";
+        String validToken = "test_webhook_token";
 
         mockMvc.perform(post("/api/v1/webhooks/asaas")
-                .header("asaas-api-key", validApiKey)
+                .header("asaas-access-token", validToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
                 .andExpect(status().isOk());
@@ -145,10 +145,10 @@ public class AsaasWebhookControllerTest {
     @DisplayName("Deve ignorar eventos não tratados sem erro")
     void deveIgnorarEventosNaoTratados() throws Exception {
         String payload = "{\"notification\": \"UNKNOWN_EVENT\", \"payment\": {\"externalReference\": \"pedido-999\"}}";
-        String validApiKey = "test_asaas_api_key";
+        String validToken = "test_webhook_token";
 
         mockMvc.perform(post("/api/v1/webhooks/asaas")
-                .header("asaas-api-key", validApiKey)
+                .header("asaas-access-token", validToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
                 .andExpect(status().isOk());
@@ -166,10 +166,10 @@ public class AsaasWebhookControllerTest {
             "{\"notification\": \"PAYMENT_RECEIVED\", \"payment\": {\"id\": \"pay_999\", \"externalReference\": \"%s\"}}",
             externalReference
         );
-        String validApiKey = "test_asaas_api_key";
+        String validToken = "test_webhook_token";
 
         mockMvc.perform(post("/api/v1/webhooks/asaas")
-                .header("asaas-api-key", validApiKey)
+                .header("asaas-access-token", validToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
                 .andExpect(status().isOk());
@@ -186,10 +186,10 @@ public class AsaasWebhookControllerTest {
             "{\"event\": \"PAYMENT_RECEIVED\", \"payment\": {\"id\": \"pay_alt\", \"externalReference\": \"%s\"}}",
             pedidoId
         );
-        String validApiKey = "test_asaas_api_key";
+        String validToken = "test_webhook_token";
 
         mockMvc.perform(post("/api/v1/webhooks/asaas")
-                .header("asaas-api-key", validApiKey)
+                .header("asaas-access-token", validToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
                 .andExpect(status().isOk());
