@@ -17,4 +17,6 @@ public interface PedidoRepository extends JpaRepository<Pedido, String> {
     Page<Pedido> findByUsuarioId(String usuarioId, Pageable pageable);
 
     Optional<Pedido> findByStripePaymentIntentId(String stripePaymentIntentId);
+
+    Optional<Pedido> findByAsaasPaymentId(String asaasPaymentId);
 }

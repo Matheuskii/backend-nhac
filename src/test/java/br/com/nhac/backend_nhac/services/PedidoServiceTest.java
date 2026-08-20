@@ -5,10 +5,12 @@ import br.com.nhac.backend_nhac.domain.loja.Loja;
 import br.com.nhac.backend_nhac.domain.pedido.Pedido;
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCreateDTO;
 import br.com.nhac.backend_nhac.domain.produto.Produto;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
 import br.com.nhac.backend_nhac.repositories.LojaRepository;
 import br.com.nhac.backend_nhac.repositories.PedidoRepository;
 import br.com.nhac.backend_nhac.repositories.ProdutoRepository;
+import br.com.nhac.backend_nhac.services.StripePaymentService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,13 +39,24 @@ class PedidoServiceTest {
     @Mock private PedidoRepository pedidoRepository;
     @Mock private ProdutoRepository produtoRepository;
     @Mock private LojaRepository lojaRepository;
+    @Mock private StripePaymentService stripePaymentService;
+    @Mock private AsaasPaymentService asaasPaymentService;
 
     @InjectMocks private PedidoService pedidoService;
+
+    private Usuario usuarioPadrao() {
+        Usuario usuario = new Usuario();
+        usuario.setId("user_teste_123");
+        usuario.setNome("Teste");
+        usuario.setEmail("teste@nhac.com");
+        usuario.setTelefone("11999999999");
+        return usuario;
+    }
 
     @Test
     @DisplayName("Deve calcular o preço total usando o valor do Banco de Dados, prevenindo fraudes do Frontend")
     void deveCalcularPrecoRealDoBancoIgnorandoOCliente() {
-        String usuarioId = "user_teste_123";
+        Usuario usuario = usuarioPadrao();
 
         PedidoCreateDTO.EnderecoEntregaDTO enderecoMock = new PedidoCreateDTO.EnderecoEntregaDTO(
                 "Rua Teste", "123", "Bairro", "Cidade", "SP", "01000-000", null
@@ -62,7 +75,7 @@ class PedidoServiceTest {
         );
 
         PedidoCreateDTO dto = new PedidoCreateDTO(
-                "loja_1", "DINHEIRO", "Sem cebola", null, enderecoMock, List.of(itemFraudulento)
+                "loja_1", "DINHEIRO", "Sem cebola", null, null, enderecoMock, List.of(itemFraudulento)
         );
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
@@ -74,11 +87,11 @@ class PedidoServiceTest {
             return p;
         });
 
-        pedidoService.finalizarPedido(dto, usuarioId);
+        pedidoService.finalizarPedido(dto, usuario);
 
         verify(pedidoRepository).save(argThat(pedido -> {
             boolean totalCorreto = pedido.getValorTotal().compareTo(new BigDecimal("95.00")) == 0;
-            boolean donoCorreto = pedido.getUsuarioId().equals(usuarioId);
+            boolean donoCorreto = pedido.getUsuarioId().equals(usuario.getId());
 
             boolean enderecoNaoNulo = pedido.getEnderecoEntrega() != null;
 
@@ -89,18 +102,20 @@ class PedidoServiceTest {
     @Test
     @DisplayName("Deve lançar IdNaoEncontradoException quando a loja não existir ou estiver fechada")
     void deveLancarExcecaoQuandoLojaNaoExisteOuEstaFechada() {
+        Usuario usuario = usuarioPadrao();
+
         PedidoCreateDTO.EnderecoEntregaDTO enderecoMock = new PedidoCreateDTO.EnderecoEntregaDTO(
                 "Rua Teste", "123", "Bairro", "Cidade", "SP", "01000-000", null
         );
         PedidoCreateDTO.ItemPedidoDTO item = new PedidoCreateDTO.ItemPedidoDTO(
                 "prod_1", "Hambúrguer", "http://imagem.com/burger.jpg", 1
         );
-        PedidoCreateDTO dto = new PedidoCreateDTO("loja_fechada", "DINHEIRO", null, null, enderecoMock, List.of(item));
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_fechada", "DINHEIRO", null, null, null, enderecoMock, List.of(item));
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_fechada")).thenReturn(Optional.empty());
 
         Exception excecao = assertThrows(IdNaoEncontradoException.class,
-                () -> pedidoService.finalizarPedido(dto, "user_teste"));
+                () -> pedidoService.finalizarPedido(dto, usuario));
 
         assertEquals("A loja informada não existe ou está fechada.", excecao.getMessage());
         verify(pedidoRepository, never()).save(any(Pedido.class));
@@ -109,6 +124,8 @@ class PedidoServiceTest {
     @Test
     @DisplayName("Deve lançar IdNaoEncontradoException quando um produto do carrinho não existir")
     void deveLancarExcecaoQuandoProdutoNaoExiste() {
+        Usuario usuario = usuarioPadrao();
+
         PedidoCreateDTO.EnderecoEntregaDTO enderecoMock = new PedidoCreateDTO.EnderecoEntregaDTO(
                 "Rua Teste", "123", "Bairro", "Cidade", "SP", "01000-000", null
         );
@@ -119,13 +136,13 @@ class PedidoServiceTest {
         PedidoCreateDTO.ItemPedidoDTO itemFantasma = new PedidoCreateDTO.ItemPedidoDTO(
                 "prod_fantasma", "Produto Inexistente", null, 1
         );
-        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "DINHEIRO", null, null, enderecoMock, List.of(itemFantasma));
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "DINHEIRO", null, null, null, enderecoMock, List.of(itemFantasma));
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
         when(produtoRepository.findById("prod_fantasma")).thenReturn(Optional.empty());
 
         Exception excecao = assertThrows(IdNaoEncontradoException.class,
-                () -> pedidoService.finalizarPedido(dto, "user_teste"));
+                () -> pedidoService.finalizarPedido(dto, usuario));
 
         assertEquals("O produto com ID 'prod_fantasma' não existe no catálogo.", excecao.getMessage());
         verify(pedidoRepository, never()).save(any(Pedido.class));
@@ -134,6 +151,8 @@ class PedidoServiceTest {
     @Test
     @DisplayName("Deve lançar IllegalArgumentException quando o produto pertencer a outra loja")
     void deveLancarExcecaoQuandoProdutoPertenceAOutraLoja() {
+        Usuario usuario = usuarioPadrao();
+
         PedidoCreateDTO.EnderecoEntregaDTO enderecoMock = new PedidoCreateDTO.EnderecoEntregaDTO(
                 "Rua Teste", "123", "Bairro", "Cidade", "SP", "01000-000", null
         );
@@ -153,13 +172,13 @@ class PedidoServiceTest {
         PedidoCreateDTO.ItemPedidoDTO item = new PedidoCreateDTO.ItemPedidoDTO(
                 "prod_1", "Hambúrguer", null, 1
         );
-        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "DINHEIRO", null, null, enderecoMock, List.of(item));
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "DINHEIRO", null, null, null, enderecoMock, List.of(item));
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaSelecionada));
         when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(produtoDeOutraLoja));
 
         Exception excecao = assertThrows(IllegalArgumentException.class,
-                () -> pedidoService.finalizarPedido(dto, "user_teste"));
+                () -> pedidoService.finalizarPedido(dto, usuario));
 
         assertEquals("O produto 'Hambúrguer' não pertence à loja selecionada.", excecao.getMessage());
         verify(pedidoRepository, never()).save(any(Pedido.class));
@@ -168,6 +187,8 @@ class PedidoServiceTest {
     @Test
     @DisplayName("Deve somar corretamente o valor de múltiplos itens e aplicar a taxa fixa de frete")
     void deveSomarValoresDeMultiplosItensComTaxaDeFreteFixa() {
+        Usuario usuario = usuarioPadrao();
+
         PedidoCreateDTO.EnderecoEntregaDTO enderecoMock = new PedidoCreateDTO.EnderecoEntregaDTO(
                 "Rua Teste", "123", "Bairro", "Cidade", "SP", "01000-000", null
         );
@@ -188,7 +209,7 @@ class PedidoServiceTest {
         PedidoCreateDTO.ItemPedidoDTO item1 = new PedidoCreateDTO.ItemPedidoDTO("prod_1", "Item 1", null, 2);
         PedidoCreateDTO.ItemPedidoDTO item2 = new PedidoCreateDTO.ItemPedidoDTO("prod_2", "Item 2", null, 1);
 
-        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "DINHEIRO", null, null, enderecoMock, List.of(item1, item2));
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "DINHEIRO", null, null, null, enderecoMock, List.of(item1, item2));
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
         when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(produto1));
@@ -199,7 +220,7 @@ class PedidoServiceTest {
             return p;
         });
 
-        pedidoService.finalizarPedido(dto, "user_teste");
+        pedidoService.finalizarPedido(dto, usuario);
 
         // (10.00 * 2) + (20.00 * 1) = 40.00 + taxa fixa de 5.00 = 45.00
         verify(pedidoRepository).save(argThat(pedido ->
@@ -212,6 +233,8 @@ class PedidoServiceTest {
     @Test
     @DisplayName("Deve usar a taxa de entrega própria da loja quando configurada, em vez do valor fixo")
     void deveUsarTaxaDeEntregaDaLojaQuandoConfigurada() {
+        Usuario usuario = usuarioPadrao();
+
         PedidoCreateDTO.EnderecoEntregaDTO enderecoMock = new PedidoCreateDTO.EnderecoEntregaDTO(
                 "Rua Teste", "123", "Bairro", "Cidade", "SP", "01000-000", null
         );
@@ -228,13 +251,13 @@ class PedidoServiceTest {
         produto.setPreco(new BigDecimal("10.00"));
 
         PedidoCreateDTO.ItemPedidoDTO item = new PedidoCreateDTO.ItemPedidoDTO("prod_1", "Item 1", null, 1);
-        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "DINHEIRO", null, null, enderecoMock, List.of(item));
+        PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "DINHEIRO", null, null, null, enderecoMock, List.of(item));
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
         when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(produto));
         when(pedidoRepository.save(any(Pedido.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        pedidoService.finalizarPedido(dto, "user_teste");
+        pedidoService.finalizarPedido(dto, usuario);
 
         verify(pedidoRepository).save(argThat(pedido ->
                 pedido.getTaxaFrete().compareTo(new BigDecimal("7.50")) == 0

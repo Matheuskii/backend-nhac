@@ -1,0 +1,118 @@
+package br.com.nhac.backend_nhac.services;
+
+import br.com.nhac.backend_nhac.domain.pedido.Pedido;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+@Service
+public class AsaasPaymentService {
+
+    @Value("${asaas.api.key}")
+    private String asaasApiKey;
+
+    @Value("${asaas.api.url:https://sandbox.asaas.com/api/v3}")
+    private String asaasApiUrl;
+
+    private RestTemplate restTemplate;
+    private Gson gson;
+
+    public AsaasPaymentService() {
+    }
+
+    public AsaasPaymentService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+        this.gson = new Gson();
+    }
+
+    @PostConstruct
+    public void init() {
+        if (this.restTemplate == null) {
+            this.restTemplate = new RestTemplate();
+        }
+        this.gson = new Gson();
+    }
+
+    
+    private String obterOuCriarCustomer(String nome, String email, String cpfCnpj) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("access_token", asaasApiKey);
+
+        JsonObject customerBody = new JsonObject();
+        customerBody.addProperty("name", nome);
+        customerBody.addProperty("email", email);
+        customerBody.addProperty("cpfCnpj", cpfCnpj.replaceAll("\\D", ""));
+
+        HttpEntity<String> entity = new HttpEntity<>(customerBody.toString(), headers);
+        String url = asaasApiUrl + "/customers";
+
+        ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
+
+        if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.CREATED) {
+            JsonObject responseBody = gson.fromJson(response.getBody(), JsonObject.class);
+            return responseBody.get("id").getAsString();
+        }
+
+        throw new RuntimeException("Falha ao criar cliente no Asaas: " + response.getStatusCode());
+    }
+
+    /**
+     * @param pedido 
+     * @param nomePagador 
+     * @param emailPagador 
+     * @param cpfPagador 
+     * @return 
+     */
+    public PedidoCriadoDTO criarCobrancaPix(Pedido pedido, String nomePagador, String emailPagador, String cpfPagador) {
+        try {
+            String customerId = obterOuCriarCustomer(nomePagador, emailPagador, cpfPagador);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("access_token", asaasApiKey);
+
+            String dueDate = LocalDate.now().plusDays(7)
+                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+            JsonObject requestBody = new JsonObject();
+            requestBody.addProperty("customer", customerId);
+            requestBody.addProperty("externalReference", pedido.getId());
+            requestBody.addProperty("description", "Pedido #" + pedido.getId());
+            requestBody.addProperty("billingType", "PIX");
+            requestBody.addProperty("value", pedido.getValorTotal().doubleValue());
+            requestBody.addProperty("dueDate", dueDate);
+
+            HttpEntity<String> entity = new HttpEntity<>(requestBody.toString(), headers);
+
+            String url = asaasApiUrl + "/payments";
+            ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
+
+            if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.CREATED) {
+                JsonObject responseBody = gson.fromJson(response.getBody(), JsonObject.class);
+                
+                String paymentId = responseBody.get("id").getAsString();
+                String pixQrCode = responseBody.has("pixQrCode") ? responseBody.get("pixQrCode").getAsString() : null;
+                String pixCopyAndPaste = responseBody.has("pixCopyAndPaste") ? responseBody.get("pixCopyAndPaste").getAsString() : null;
+
+                pedido.setAsaasPaymentId(paymentId);
+
+                return new PedidoCriadoDTO(pedido.getId(), null, pixCopyAndPaste, pixQrCode);
+            } else {
+                throw new RuntimeException("Falha ao criar cobrança no Asaas: " + response.getStatusCode());
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao comunicar com Asaas para criar cobrança PIX: " + e.getMessage(), e);
+        }
+    }
+}

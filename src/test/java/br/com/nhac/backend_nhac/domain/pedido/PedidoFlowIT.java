@@ -80,10 +80,10 @@ public class PedidoFlowIT extends AbstractIntegrationTest {
         produto.setLoja(loja);
         produtoRepository.save(produto);
 
-        // Mock StripePaymentService
-        Mockito.when(stripePaymentService.criarPaymentIntentPix(Mockito.any(Pedido.class))).thenAnswer(invocation -> {
+        // Mock StripePaymentService - agora usa método para cartão/Google Pay
+        Mockito.when(stripePaymentService.criarPaymentIntentCartao(Mockito.any(Pedido.class))).thenAnswer(invocation -> {
             Pedido pedidoSalvo = invocation.getArgument(0);
-            return new PedidoCriadoDTO(pedidoSalvo.getId(), "mock-secret", "mock-pix", "mock-url");
+            return new PedidoCriadoDTO(pedidoSalvo.getId(), "mock-secret", null, null);
         });
     }
 
@@ -99,8 +99,9 @@ public class PedidoFlowIT extends AbstractIntegrationTest {
 
         PedidoCreateDTO pedidoDto = new PedidoCreateDTO(
                 loja.getId(),
-                "PIX",
+                "CARTAO",
                 "Sem cebola",
+                null,
                 null,
                 endereco,
                 List.of(item)

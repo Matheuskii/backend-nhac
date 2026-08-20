@@ -42,7 +42,7 @@ public class PedidoController {
     }
 
 
-    @Operation(summary = "Finalizar uma nova compra", description = "Recebe o carrinho de compras do Flutter, valida os itens, amarra à loja e gera um novo pedido no sistema.")
+    @Operation(summary = "Finalizar uma nova compra", description = "Recebe o carrinho de compras do Flutter, valida os itens, amarra à loja e gera um novo pedido no sistema. Suporta pagamentos via Stripe (cartão de crédito e Google Pay). Os campos pixCopiaECola e qrCodeUrl serão null para este método de pagamento.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Pedido criado com sucesso. Devolve o ID do pedido gerado."),
 
@@ -60,7 +60,7 @@ public class PedidoController {
             @RequestBody @Valid PedidoCreateDTO dto,
             @AuthenticationPrincipal Usuario usuarioLogado) {
 
-       PedidoCriadoDTO responseDto = pedidoService.finalizarPedido(dto, usuarioLogado.getId());
+       PedidoCriadoDTO responseDto = pedidoService.finalizarPedido(dto, usuarioLogado);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }

@@ -1,40 +1,37 @@
-```
 # Compiled and build artifacts
 *.class
 *.o
 *.obj
-*.out
+*.exe
 *.dll
 *.so
 *.a
+*.out
 
 # Dependencies
 target/
-.gradle/
+.mypy_cache/
+.pytest_cache/
 
 # Logs and temp files
 *.log
 *.tmp
-
-# Editors
-.vscode/
-.idea/
 *.swp
-*.swo
 
 # Environment
 .env
 .env.local
 *.env.*
 
-# Coverage
+# Editors
+.vscode/
+.idea/
+
+# Coverage reports
 coverage/
 htmlcov/
 .coverage
 
-# Package manager
-node_modules/
-__pycache__/
-.mypy_cache/
-.pytest_cache/
-```
+# System files
+.DS_Store
+Thumbs.db

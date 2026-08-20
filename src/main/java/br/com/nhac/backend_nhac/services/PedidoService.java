@@ -7,6 +7,7 @@ import br.com.nhac.backend_nhac.domain.pedido.StatusPedido;
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCreateDTO;
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoDTO;
 import br.com.nhac.backend_nhac.domain.produto.Produto;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
 import br.com.nhac.backend_nhac.repositories.LojaRepository;
 import br.com.nhac.backend_nhac.repositories.PedidoRepository;
@@ -28,16 +29,18 @@ public class PedidoService {
     private final LojaRepository lojaRepository;
     private final ProdutoRepository produtoRepository;
     private final StripePaymentService stripePaymentService;
+    private final AsaasPaymentService asaasPaymentService;
 
-    public PedidoService(PedidoRepository pedidoRepository, LojaRepository lojaRepository, ProdutoRepository produtoRepository, StripePaymentService stripePaymentService) {
+    public PedidoService(PedidoRepository pedidoRepository, LojaRepository lojaRepository, ProdutoRepository produtoRepository, StripePaymentService stripePaymentService, AsaasPaymentService asaasPaymentService) {
         this.pedidoRepository = pedidoRepository;
         this.lojaRepository = lojaRepository;
         this.produtoRepository = produtoRepository;
         this.stripePaymentService = stripePaymentService;
+        this.asaasPaymentService = asaasPaymentService;
     }
 
     @Transactional
-    public br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO finalizarPedido(PedidoCreateDTO dto, String usuarioIdLogado) {
+    public br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO finalizarPedido(PedidoCreateDTO dto, Usuario usuarioLogado) {
 
         Loja loja = lojaRepository.findByIdAndIsAbertoTrue(dto.lojaId())
                 .orElseThrow(() -> new IdNaoEncontradoException("A loja informada não existe ou está fechada."));
@@ -45,7 +48,7 @@ public class PedidoService {
         Pedido pedido = dto.toEntity(loja);
 
 
-        pedido.setUsuarioId(usuarioIdLogado);
+        pedido.setUsuarioId(usuarioLogado.getId());
 
         BigDecimal valorTotalItens = BigDecimal.ZERO;
 
@@ -81,7 +84,16 @@ public class PedidoService {
         Pedido pedidoSalvo = pedidoRepository.save(pedido);
 
         if ("PIX".equalsIgnoreCase(pedido.getFormaPagamento())) {
-            return stripePaymentService.criarPaymentIntentPix(pedidoSalvo);
+            if (dto.cpfPagador() == null || dto.cpfPagador().isBlank()) {
+                throw new RegraDeNegocioException("O CPF do pagador é obrigatório para pagamento via PIX.");
+            }
+            return asaasPaymentService.criarCobrancaPix(
+                    pedidoSalvo, usuarioLogado.getNome(), usuarioLogado.getEmail(), dto.cpfPagador());
+        } else if ("CARTAO".equalsIgnoreCase(pedido.getFormaPagamento()) || 
+                   "GOOGLE_PAY".equalsIgnoreCase(pedido.getFormaPagamento()) ||
+                   "STRIPE".equalsIgnoreCase(pedido.getFormaPagamento())) {
+
+            return stripePaymentService.criarPaymentIntentCartao(pedidoSalvo);
         }
 
         return new br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO(pedidoSalvo.getId(), null, null, null);
@@ -93,6 +105,28 @@ public class PedidoService {
                 .orElseThrow(() -> new IdNaoEncontradoException("Pedido com PaymentIntent " + paymentIntentId + " não encontrado."));
         
         pedido.setStatus(br.com.nhac.backend_nhac.domain.pedido.StatusPedido.PAGO);
+        pedidoRepository.save(pedido);
+    }
+
+    @Transactional
+    public void marcarComoPagoPorAsaasPaymentId(String asaasPaymentId) {
+        Pedido pedido = pedidoRepository.findByAsaasPaymentId(asaasPaymentId)
+                .orElseThrow(() -> new IdNaoEncontradoException("Pedido com Asaas Payment ID " + asaasPaymentId + " não encontrado."));
+        
+        pedido.setStatus(br.com.nhac.backend_nhac.domain.pedido.StatusPedido.PAGO);
+        pedidoRepository.save(pedido);
+    }
+
+    @Transactional
+    public void cancelarPorFalhaPagamentoAsaas(String pedidoId) {
+        Pedido pedido = pedidoRepository.findById(pedidoId)
+                .orElseThrow(() -> new IdNaoEncontradoException("Pedido não encontrado para cancelamento por falha de pagamento Asaas."));
+
+        if (pedido.getStatus() != StatusPedido.PENDENTE && pedido.getStatus() != StatusPedido.PREPARANDO) {
+            throw new RegraDeNegocioException("Falha de pagamento recebida, mas o pedido não está em um estado que permite cancelamento.");
+        }
+
+        pedido.setStatus(StatusPedido.CANCELADO);
         pedidoRepository.save(pedido);
     }
 
