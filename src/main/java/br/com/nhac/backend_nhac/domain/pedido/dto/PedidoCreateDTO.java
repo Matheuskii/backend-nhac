@@ -40,6 +40,10 @@ public record PedidoCreateDTO(
     @JsonProperty(required = false)
     BigDecimal trocoPara,
 
+    @Schema(description = "CPF do pagador, obrigatório quando formaPagamento = PIX (necessário para criar o cliente no Asaas)", example = "12345678901")
+    @JsonProperty(required = false)
+    String cpfPagador,
+
     @Schema(description = "Endereço completo e exato para entrega")
     @JsonProperty(required = false)
     @Valid

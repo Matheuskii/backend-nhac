@@ -13,12 +13,12 @@ import org.springframework.web.bind.annotation.*;
 public class AsaasWebhookController {
 
     private final PedidoService pedidoService;
-    private final String asaasApiKey;
+    private final String asaasWebhookToken;
 
-    public AsaasWebhookController(PedidoService pedidoService, 
-                                  @Value("${asaas.api.key}") String asaasApiKey) {
+    public AsaasWebhookController(PedidoService pedidoService,
+                                  @Value("${asaas.webhook.token}") String asaasWebhookToken) {
         this.pedidoService = pedidoService;
-        this.asaasApiKey = asaasApiKey;
+        this.asaasWebhookToken = asaasWebhookToken;
     }
 
     /**
@@ -32,11 +32,10 @@ public class AsaasWebhookController {
     @PostMapping("/asaas")
     public ResponseEntity<Void> receberWebhookAsaas(
             @RequestBody String payloadJson,
-            @RequestHeader("asaas-api-key") String receivedApiKey,
+            @RequestHeader(value = "asaas-access-token", required = false) String receivedToken,
             HttpServletRequest request) {
 
-        // Validar chave da API (segurança básica)
-        if (!asaasApiKey.equals(receivedApiKey)) {
+        if (receivedToken == null || !asaasWebhookToken.equals(receivedToken)) {
             return ResponseEntity.status(401).build();
         }
 
@@ -46,7 +45,6 @@ public class AsaasWebhookController {
             String notification = payload.has("notification") ? payload.get("notification").getAsString() : null;
             
             if (notification == null && payload.has("event")) {
-                // Formato alternativo: {"event": "PAYMENT_RECEIVED", ...}
                 notification = payload.get("event").getAsString();
             }
 
@@ -54,7 +52,6 @@ public class AsaasWebhookController {
                 return ResponseEntity.badRequest().build();
             }
 
-            // Extrair informações do pagamento
             JsonObject paymentData = payload.has("payment") ? payload.getAsJsonObject("payment") : payload;
             String externalReference = paymentData.has("externalReference") 
                     ? paymentData.get("externalReference").getAsString() 
@@ -63,36 +60,30 @@ public class AsaasWebhookController {
                     ? paymentData.get("id").getAsString() 
                     : null;
 
-            // Extrair ID do pedido da referência externa
             String pedidoId = extrairPedidoIdDaReferencia(externalReference);
 
             switch (notification) {
                 case "PAYMENT_RECEIVED":
-                    // Pagamento confirmado
                     if (asaasPaymentId != null) {
                         pedidoService.marcarComoPagoPorAsaasPaymentId(asaasPaymentId);
                     } else if (pedidoId != null) {
-                        // Fallback: buscar por pedidoId se não tiver asaasPaymentId
                         throw new RuntimeException("Asaas Payment ID não encontrado no webhook");
                     }
                     break;
 
                 case "PAYMENT_OVERDUE":
-                    // Pagamento vencido - cancelar pedido
                     if (pedidoId != null) {
                         pedidoService.cancelarPorFalhaPagamentoAsaas(pedidoId);
                     }
                     break;
 
                 case "PAYMENT_CANCELLED":
-                    // Pagamento cancelado pelo usuário
                     if (pedidoId != null) {
                         pedidoService.cancelarPorFalhaPagamentoAsaas(pedidoId);
                     }
                     break;
 
                 default:
-                    // Evento não tratado - apenas logar
                     System.out.println("Evento Asaas não tratado: " + notification);
             }
 
@@ -105,21 +96,16 @@ public class AsaasWebhookController {
         }
     }
 
-    /**
-     * Extrai o ID do pedido da referência externa do Asaas
-     * Formato esperado: "pedidoId_a1b2c3d4" ou apenas "a1b2c3d4"
-     */
+    
     private String extrairPedidoIdDaReferencia(String externalReference) {
         if (externalReference == null || externalReference.isEmpty()) {
             return null;
         }
 
-        // Se estiver no formato "pedidoId_a1b2c3d4"
         if (externalReference.startsWith("pedidoId_")) {
             return externalReference.substring("pedidoId_".length());
         }
 
-        // Caso contrário, assume que é o próprio ID
         return externalReference;
     }
 }

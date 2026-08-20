@@ -60,7 +60,7 @@ public class PedidoController {
             @RequestBody @Valid PedidoCreateDTO dto,
             @AuthenticationPrincipal Usuario usuarioLogado) {
 
-       PedidoCriadoDTO responseDto = pedidoService.finalizarPedido(dto, usuarioLogado.getId());
+       PedidoCriadoDTO responseDto = pedidoService.finalizarPedido(dto, usuarioLogado);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
