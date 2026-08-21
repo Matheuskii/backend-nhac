@@ -51,6 +51,9 @@ public class Produto {
 
     @Column(name = "percentual_desconto")
     private Integer percentualDesconto;
+    
+    @Column(name = "estoque")
+    private Integer estoque = 100;
 
     public Produto(ProdutoCreateDTO dto, Loja loja) {
         this.loja = loja;
