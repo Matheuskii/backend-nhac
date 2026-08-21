@@ -33,6 +33,9 @@ public class AsaasPaymentServiceTest {
     @Mock
     private RestTemplate restTemplate;
 
+    @Mock
+    private br.com.nhac.backend_nhac.repositories.PedidoRepository pedidoRepository;
+
     private final String testApiKey = "test_asaas_api_key_123";
     private final String testApiUrl = "https://sandbox.asaas.com/api/v3";
 

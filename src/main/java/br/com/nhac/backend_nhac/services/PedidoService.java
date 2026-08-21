@@ -8,19 +8,20 @@ import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCreateDTO;
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoDTO;
 import br.com.nhac.backend_nhac.domain.produto.Produto;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
-import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
+import br.com.nhac.backend_nhac.exceptions.*;
 import br.com.nhac.backend_nhac.repositories.LojaRepository;
 import br.com.nhac.backend_nhac.repositories.PedidoRepository;
 import br.com.nhac.backend_nhac.repositories.ProdutoRepository;
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResponseDTO;
-import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
-import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.util.Map;
 
 @Service
 public class PedidoService {
@@ -40,31 +41,52 @@ public class PedidoService {
     }
 
     @Transactional
-    public br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO finalizarPedido(PedidoCreateDTO dto, Usuario usuarioLogado) {
+    public br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO finalizarPedido(PedidoCreateDTO dto, Usuario usuarioLogado, String idempotencyKey) {
+
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            if (pedidoRepository.existsByIdempotencyKey(idempotencyKey)) {
+                throw new RegraDeNegocioException("Pedido já processado com esta chave de idempotência.");
+            }
+        }
 
         Loja loja = lojaRepository.findByIdAndIsAbertoTrue(dto.lojaId())
-                .orElseThrow(() -> new IdNaoEncontradoException("A loja informada não existe ou está fechada."));
+                .orElseThrow(() -> new LojaFechadaException(dto.lojaId()));
+
+        if (!loja.isAberto()) {
+            throw new LojaFechadaException(dto.lojaId());
+        }
 
         Pedido pedido = dto.toEntity(loja);
-
-
+        pedido.setIdempotencyKey(idempotencyKey);
         pedido.setUsuarioId(usuarioLogado.getId());
 
         BigDecimal valorTotalItens = BigDecimal.ZERO;
 
         for (PedidoCreateDTO.ItemPedidoDTO itemDto : dto.itens()) {
-
-            Produto produtoReal = produtoRepository.findById(itemDto.produtoId())
-                    .orElseThrow(() -> new IdNaoEncontradoException(
-                            "O produto com ID '" + itemDto.produtoId() + "' não existe no catálogo."
-                    ));
-
-            if (!produtoReal.getLoja().getId().equals(loja.getId())) {
-                throw new IllegalArgumentException("O produto '" + produtoReal.getNome() + "' não pertence à loja selecionada.");
+            if (itemDto.quantidade() <= 0) {
+                throw new QuantidadeInvalidaException("A quantidade deve ser maior que zero", Map.of("produtoId", itemDto.produtoId(), "quantidade", itemDto.quantidade()));
             }
 
-            ItemPedido novoItem = itemDto.toEntity(produtoReal);
+            Produto produtoReal = produtoRepository.findById(itemDto.produtoId())
+                    .orElseThrow(() -> new ProdutoNaoEncontradoException(itemDto.produtoId(), loja.getId()));
 
+            if (!produtoReal.getLoja().getId().equals(loja.getId())) {
+                throw new RegraDeNegocioException("O produto '" + produtoReal.getNome() + "' não pertence à loja selecionada.");
+            }
+
+            if (!produtoReal.isAtivo()) {
+                throw new ProdutoInativoException("O produto '" + produtoReal.getNome() + "' está inativo.", Map.of("produtoId", produtoReal.getId()));
+            }
+
+            if (produtoReal.getEstoque() == null || produtoReal.getEstoque() < itemDto.quantidade()) {
+                throw new EstoqueInsuficienteException(produtoReal.getId(), itemDto.quantidade(), produtoReal.getEstoque() == null ? 0 : produtoReal.getEstoque());
+            }
+
+            // Atualiza o estoque
+            produtoReal.setEstoque(produtoReal.getEstoque() - itemDto.quantidade());
+            produtoRepository.save(produtoReal);
+
+            ItemPedido novoItem = itemDto.toEntity(produtoReal);
             BigDecimal precoReal = produtoReal.getPreco();
             novoItem.setPrecoHistorico(precoReal);
 
@@ -72,6 +94,10 @@ public class PedidoService {
             valorTotalItens = valorTotalItens.add(subtotal);
 
             pedido.adicionarItem(novoItem);
+        }
+
+        if (pedido.getEnderecoEntrega() == null) {
+            throw new CampoObrigatorioFaltandoException("enderecoEntrega");
         }
 
         BigDecimal taxaFrete = loja.getDadosOperacionais() != null
@@ -83,20 +109,25 @@ public class PedidoService {
 
         Pedido pedidoSalvo = pedidoRepository.save(pedido);
 
-        if ("PIX".equalsIgnoreCase(pedido.getFormaPagamento())) {
-            if (dto.cpfPagador() == null || dto.cpfPagador().isBlank()) {
-                throw new RegraDeNegocioException("O CPF do pagador é obrigatório para pagamento via PIX.");
+        try {
+            if ("PIX".equalsIgnoreCase(pedido.getFormaPagamento())) {
+                if (dto.cpfPagador() == null || dto.cpfPagador().isBlank()) {
+                    throw new RegraDeNegocioException("O CPF do pagador é obrigatório para pagamento via PIX.");
+                }
+                return asaasPaymentService.criarCobrancaPix(
+                        pedidoSalvo, usuarioLogado.getNome(), usuarioLogado.getEmail(), dto.cpfPagador());
+            } else if ("CARTAO".equalsIgnoreCase(pedido.getFormaPagamento()) || 
+                       "GOOGLE_PAY".equalsIgnoreCase(pedido.getFormaPagamento()) ||
+                       "STRIPE".equalsIgnoreCase(pedido.getFormaPagamento())) {
+                
+                return stripePaymentService.criarPaymentIntentCartao(pedidoSalvo);
             }
-            return asaasPaymentService.criarCobrancaPix(
-                    pedidoSalvo, usuarioLogado.getNome(), usuarioLogado.getEmail(), dto.cpfPagador());
-        } else if ("CARTAO".equalsIgnoreCase(pedido.getFormaPagamento()) || 
-                   "GOOGLE_PAY".equalsIgnoreCase(pedido.getFormaPagamento()) ||
-                   "STRIPE".equalsIgnoreCase(pedido.getFormaPagamento())) {
-
-            return stripePaymentService.criarPaymentIntentCartao(pedidoSalvo);
+            
+            return new br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO(pedidoSalvo.getId(), null, null, null);
+        } catch (Exception e) {
+            // Em caso de erro de pagamento, o @Transactional garante rollback e volta estoque
+            throw new PagamentoRecusadoException("Não foi possível processar seu pagamento", e);
         }
-
-        return new br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO(pedidoSalvo.getId(), null, null, null);
     }
 
     @Transactional
@@ -104,7 +135,7 @@ public class PedidoService {
         Pedido pedido = pedidoRepository.findByStripePaymentIntentId(paymentIntentId)
                 .orElseThrow(() -> new IdNaoEncontradoException("Pedido com PaymentIntent " + paymentIntentId + " não encontrado."));
         
-        pedido.setStatus(br.com.nhac.backend_nhac.domain.pedido.StatusPedido.PAGO);
+        pedido.alterarStatus(StatusPedido.PAGO);
         pedidoRepository.save(pedido);
     }
 
@@ -113,7 +144,7 @@ public class PedidoService {
         Pedido pedido = pedidoRepository.findByAsaasPaymentId(asaasPaymentId)
                 .orElseThrow(() -> new IdNaoEncontradoException("Pedido com Asaas Payment ID " + asaasPaymentId + " não encontrado."));
         
-        pedido.setStatus(br.com.nhac.backend_nhac.domain.pedido.StatusPedido.PAGO);
+        pedido.alterarStatus(StatusPedido.PAGO);
         pedidoRepository.save(pedido);
     }
 
@@ -122,11 +153,8 @@ public class PedidoService {
         Pedido pedido = pedidoRepository.findById(pedidoId)
                 .orElseThrow(() -> new IdNaoEncontradoException("Pedido não encontrado para cancelamento por falha de pagamento Asaas."));
 
-        if (pedido.getStatus() != StatusPedido.PENDENTE && pedido.getStatus() != StatusPedido.PREPARANDO) {
-            throw new RegraDeNegocioException("Falha de pagamento recebida, mas o pedido não está em um estado que permite cancelamento.");
-        }
-
-        pedido.setStatus(StatusPedido.CANCELADO);
+        pedido.alterarStatus(StatusPedido.CANCELADO);
+        devolverEstoque(pedido);
         pedidoRepository.save(pedido);
     }
 
@@ -153,29 +181,8 @@ public class PedidoService {
         Pedido pedido = pedidoRepository.findById(pedidoId)
                 .orElseThrow(() -> new IdNaoEncontradoException("Pedido não encontrado."));
 
-        validarTransicaoDeStatus(pedido.getStatus(), novoStatus);
-        
-        pedido.setStatus(novoStatus);
+        pedido.alterarStatus(novoStatus);
         pedidoRepository.save(pedido);
-    }
-
-    private void validarTransicaoDeStatus(StatusPedido atual, StatusPedido novoStatus) {
-        if (atual == novoStatus) {
-            throw new RegraDeNegocioException("O pedido já está no status " + novoStatus);
-        }
-
-        boolean transicaoValida = switch (atual) {
-            case PENDENTE -> novoStatus == StatusPedido.PREPARANDO;
-            case PAGO, ENTREGUE, CANCELADO -> false;
-            case PREPARANDO -> novoStatus == StatusPedido.SAIU_ENTREGA;
-            case SAIU_ENTREGA -> novoStatus == StatusPedido.ENTREGUE;
-        };
-
-        if (!transicaoValida) {
-            throw new RegraDeNegocioException(
-                    String.format("Transição de status inválida de %s para %s", atual, novoStatus)
-            );
-        }
     }
 
     @Transactional
@@ -187,11 +194,8 @@ public class PedidoService {
             throw new AcessoNegadoException("Acesso negado: você não tem permissão para cancelar este pedido.");
         }
 
-        if (pedido.getStatus() != StatusPedido.PENDENTE && pedido.getStatus() != StatusPedido.PREPARANDO) {
-            throw new RegraDeNegocioException("Não é possível cancelar um pedido que já saiu para entrega ou foi entregue.");
-        }
-
-        pedido.setStatus(StatusPedido.CANCELADO);
+        pedido.alterarStatus(StatusPedido.CANCELADO);
+        devolverEstoque(pedido);
         pedidoRepository.save(pedido);
     }
 
@@ -200,13 +204,18 @@ public class PedidoService {
         Pedido pedido = pedidoRepository.findById(pedidoId)
                 .orElseThrow(() -> new IdNaoEncontradoException("Pedido não encontrado para cancelamento por webhook."));
 
-        if (pedido.getStatus() != StatusPedido.PENDENTE && pedido.getStatus() != StatusPedido.PREPARANDO) {
-            // Se já foi entregue ou saiu para entrega, idealmente o fluxo de negócio seria mais complexo,
-            // mas de acordo com os requisitos simplificados vamos lançar regra de negócio.
-            throw new RegraDeNegocioException("Falha de pagamento recebida, mas o pedido não está em um estado que permite cancelamento.");
-        }
-
-        pedido.setStatus(StatusPedido.CANCELADO);
+        pedido.alterarStatus(StatusPedido.CANCELADO);
+        devolverEstoque(pedido);
         pedidoRepository.save(pedido);
+    }
+    
+    private void devolverEstoque(Pedido pedido) {
+        for (ItemPedido item : pedido.getItens()) {
+            Produto produto = item.getProduto();
+            if (produto.getEstoque() != null) {
+                produto.setEstoque(produto.getEstoque() + item.getQuantidade());
+                produtoRepository.save(produto);
+            }
+        }
     }
 }

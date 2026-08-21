@@ -1,6 +1,8 @@
 package br.com.nhac.backend_nhac.exceptions;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -8,92 +10,138 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class ResourceExceptionHandler {
 
-    @ExceptionHandler(IdNaoEncontradoException.class)
-    public ResponseEntity<ErroPadraoDTO> entidadeNaoEncontrada(IdNaoEncontradoException e, HttpServletRequest request) {
-        HttpStatus status = HttpStatus.NOT_FOUND;
+    private static final Logger logger = LoggerFactory.getLogger(ResourceExceptionHandler.class);
+
+    @ExceptionHandler(NhacException.class)
+    public ResponseEntity<ErroPadraoDTO> handleNhacException(NhacException e, HttpServletRequest request) {
+        String requestId = UUID.randomUUID().toString();
+        logger.error("Erro Nhac: {}, RequestId: {}", e.getErrorCode(), requestId, e);
+
         ErroPadraoDTO erro = new ErroPadraoDTO(
+                requestId,
                 Instant.now(),
-                status.value(),
-                "Recurso Não Encontrado",
+                e.getHttpStatus().value(),
+                e.getErrorCode() != null ? e.getErrorCode().getCode() : "ERRO_DESCONHECIDO",
+                getFriendlyTitle(e.getHttpStatus()),
                 e.getMessage(),
-                request.getRequestURI()
+                e.getDetails(),
+                request.getRequestURI(),
+                Collections.emptyList()
         );
-        return ResponseEntity.status(status).body(erro);
+
+        return ResponseEntity.status(e.getHttpStatus()).body(erro);
     }
 
-    @ExceptionHandler({RegraDeNegocioException.class, IllegalArgumentException.class})
-    public ResponseEntity<ErroPadraoDTO> regraDeNegocio(RuntimeException e, HttpServletRequest request) {
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErroPadraoDTO> regraDeNegocio(IllegalArgumentException e, HttpServletRequest request) {
+        String requestId = UUID.randomUUID().toString();
         HttpStatus status = HttpStatus.BAD_REQUEST;
+        logger.warn("IllegalArgumentException: {}, RequestId: {}", e.getMessage(), requestId);
+
         ErroPadraoDTO erro = new ErroPadraoDTO(
+                requestId,
                 Instant.now(),
                 status.value(),
+                ErrorCode.REGRA_DE_NEGOCIO.getCode(),
                 "Violação de Regra de Negócio",
                 e.getMessage(),
-                request.getRequestURI()
+                Collections.emptyMap(),
+                request.getRequestURI(),
+                Collections.emptyList()
         );
         return ResponseEntity.status(status).body(erro);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErroPadraoDTO> validacaoDeCampos(MethodArgumentNotValidException e, HttpServletRequest request) {
+        String requestId = UUID.randomUUID().toString();
         HttpStatus status = HttpStatus.BAD_REQUEST;
+        logger.warn("Validation Error, RequestId: {}", requestId);
 
         String mensagensValidacao = e.getBindingResult().getFieldErrors().stream()
                 .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
                 .collect(Collectors.joining("; "));
 
+        Map<String, Object> details = e.getBindingResult().getFieldErrors().stream()
+                .collect(Collectors.toMap(
+                    fieldError -> fieldError.getField(),
+                    fieldError -> fieldError.getDefaultMessage() != null ? fieldError.getDefaultMessage() : "Campo inválido",
+                    (msg1, msg2) -> msg1 + "; " + msg2
+                ));
+
         ErroPadraoDTO erro = new ErroPadraoDTO(
+                requestId,
                 Instant.now(),
                 status.value(),
+                ErrorCode.VALIDACAO_FALHOU.getCode(),
                 "Erro de Validação de Dados",
-                mensagensValidacao,
-                request.getRequestURI()
+                "Alguns campos enviados são inválidos. Verifique os detalhes.",
+                details,
+                request.getRequestURI(),
+                Collections.singletonList("Verifique os campos informados e tente novamente.")
         );
         return ResponseEntity.status(status).body(erro);
     }
 
+
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<ErroPadraoDTO> noResourceFound(org.springframework.web.servlet.resource.NoResourceFoundException e, HttpServletRequest request) {
+        String requestId = UUID.randomUUID().toString();
+        HttpStatus status = HttpStatus.NOT_FOUND;
+        logger.warn("Rota nǜo encontrada: {}, RequestId: {}", request.getRequestURI(), requestId);
+
+        ErroPadraoDTO erro = new ErroPadraoDTO(
+                requestId,
+                Instant.now(),
+                status.value(),
+                "ROTA_NAO_ENCONTRADA",
+                "Rota Nǜo Encontrada",
+                "A rota solicitada nǜo existe no servidor.",
+                Collections.emptyMap(),
+                request.getRequestURI(),
+                Collections.singletonList("Verifique a URL e o mǸtodo HTTP solicitados.")
+        );
+        return ResponseEntity.status(status).body(erro);
+    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErroPadraoDTO> erroGenerico(Exception e, HttpServletRequest request) {
+        String requestId = UUID.randomUUID().toString();
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
+        logger.error("Erro Interno não tratado. RequestId: {}", requestId, e);
+
         ErroPadraoDTO erro = new ErroPadraoDTO(
+                requestId,
                 Instant.now(),
                 status.value(),
+                ErrorCode.ERRO_INTERNO_SERVIDOR.getCode(),
                 "Erro Interno do Servidor",
-                e.getMessage(),
-                request.getRequestURI()
+                "Ocorreu um erro inesperado no servidor. Por favor, tente novamente mais tarde.",
+                Collections.emptyMap(),
+                request.getRequestURI(),
+                Collections.emptyList()
         );
         return ResponseEntity.status(status).body(erro);
     }
-
-    @ExceptionHandler(CredenciaisInvalidasException.class)
-    public ResponseEntity<ErroPadraoDTO> credenciaisInvalidas(CredenciaisInvalidasException e, HttpServletRequest request) {
-        HttpStatus status = HttpStatus.UNAUTHORIZED; // 401
-        ErroPadraoDTO erro = new ErroPadraoDTO(
-                Instant.now(),
-                status.value(),
-                "Não Autorizado",
-                e.getMessage(),
-                request.getRequestURI()
-        );
-        return ResponseEntity.status(status).body(erro);
-    }
-
-    @ExceptionHandler(AcessoNegadoException.class)
-    public ResponseEntity<ErroPadraoDTO> acessoNegado(AcessoNegadoException e, HttpServletRequest request) {
-        HttpStatus status = HttpStatus.FORBIDDEN; // 403
-        ErroPadraoDTO erro = new ErroPadraoDTO(
-                Instant.now(),
-                status.value(),
-                "Acesso Negado (Forbidden)",
-                e.getMessage(),
-                request.getRequestURI()
-        );
-        return ResponseEntity.status(status).body(erro);
+    
+    private String getFriendlyTitle(HttpStatus status) {
+        return switch (status) {
+            case NOT_FOUND -> "Recurso Não Encontrado";
+            case BAD_REQUEST -> "Requisição Inválida";
+            case UNAUTHORIZED -> "Não Autorizado";
+            case FORBIDDEN -> "Acesso Negado";
+            case UNPROCESSABLE_ENTITY -> "Entidade Não Processável";
+            case TOO_MANY_REQUESTS -> "Muitas Requisições";
+            case PAYMENT_REQUIRED -> "Pagamento Recusado";
+            default -> "Erro na Requisição";
+        };
     }
 }

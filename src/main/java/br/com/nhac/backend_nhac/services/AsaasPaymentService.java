@@ -2,6 +2,7 @@ package br.com.nhac.backend_nhac.services;
 
 import br.com.nhac.backend_nhac.domain.pedido.Pedido;
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO;
+import br.com.nhac.backend_nhac.repositories.PedidoRepository;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import jakarta.annotation.PostConstruct;
@@ -24,25 +25,14 @@ public class AsaasPaymentService {
     private String asaasApiUrl;
 
     private RestTemplate restTemplate;
-    private Gson gson;
+    private Gson gson = new Gson();
+    private final PedidoRepository pedidoRepository;
 
-    public AsaasPaymentService() {
-    }
-
-    public AsaasPaymentService(RestTemplate restTemplate) {
+    public AsaasPaymentService(RestTemplate restTemplate, PedidoRepository pedidoRepository) {
         this.restTemplate = restTemplate;
-        this.gson = new Gson();
+        this.pedidoRepository = pedidoRepository;
     }
 
-    @PostConstruct
-    public void init() {
-        if (this.restTemplate == null) {
-            this.restTemplate = new RestTemplate();
-        }
-        this.gson = new Gson();
-    }
-
-    
     private String obterOuCriarCustomer(String nome, String email, String cpfCnpj) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -105,13 +95,16 @@ public class AsaasPaymentService {
                 String pixCopyAndPaste = responseBody.has("pixCopyAndPaste") ? responseBody.get("pixCopyAndPaste").getAsString() : null;
 
                 pedido.setAsaasPaymentId(paymentId);
+                pedidoRepository.save(pedido); // ✅ SALVA O PEDIDO COM O ID DO ASAAS
 
+                System.out.println("✅ Cobrança PIX criada: " + paymentId);
                 return new PedidoCriadoDTO(pedido.getId(), null, pixCopyAndPaste, pixQrCode);
             } else {
                 throw new RuntimeException("Falha ao criar cobrança no Asaas: " + response.getStatusCode());
             }
 
         } catch (Exception e) {
+            System.err.println("❌ Erro Asaas: " + e.getMessage());
             throw new RuntimeException("Erro ao comunicar com Asaas para criar cobrança PIX: " + e.getMessage(), e);
         }
     }

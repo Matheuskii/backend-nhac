@@ -1,6 +1,5 @@
 package br.com.nhac.backend_nhac.domain.pedido;
 
-
 import br.com.nhac.backend_nhac.domain.loja.Loja;
 import jakarta.persistence.*;
 import lombok.*;
@@ -39,7 +38,6 @@ public class Pedido {
     @Column(name = "forma_pagamento", nullable = false)
     private String formaPagamento;
 
-
     @Column(name = "troco_para", precision = 10, scale = 2)
     private BigDecimal trocoPara;
 
@@ -61,6 +59,9 @@ public class Pedido {
 
     @Column(name = "asaas_payment_id")
     private String asaasPaymentId;
+    
+    @Column(name = "idempotency_key", unique = true, length = 100)
+    private String idempotencyKey;
 
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ItemPedido> itens = new ArrayList<>();
@@ -68,5 +69,10 @@ public class Pedido {
     public void adicionarItem(ItemPedido item) {
         itens.add(item);
         item.setPedido(this);
+    }
+    
+    public void alterarStatus(StatusPedido novoStatus) {
+        this.status.podeMudarPara(novoStatus);
+        this.status = novoStatus;
     }
 }

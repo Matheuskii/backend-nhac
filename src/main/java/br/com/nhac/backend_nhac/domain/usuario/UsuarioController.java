@@ -80,4 +80,30 @@ public class UsuarioController {
         usuarioService.desativarUsuario(id, usuarioLogado);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{id}/seguindo/{lojaId}")
+    public ResponseEntity<Void> seguirLoja(
+            @PathVariable String id,
+            @PathVariable String lojaId,
+            @AuthenticationPrincipal Usuario usuarioLogado,
+            @org.springframework.beans.factory.annotation.Autowired org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
+        validarPropriedade(id, usuarioLogado);
+        try {
+            jdbcTemplate.update("INSERT INTO tb_usuario_segue_loja (usuario_id, loja_id) VALUES (?, ?)", id, lojaId);
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            // Jǭ segue, ignorar silciosamente
+        }
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{id}/seguindo/{lojaId}")
+    public ResponseEntity<Void> pararDeSeguirLoja(
+            @PathVariable String id,
+            @PathVariable String lojaId,
+            @AuthenticationPrincipal Usuario usuarioLogado,
+            @org.springframework.beans.factory.annotation.Autowired org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
+        validarPropriedade(id, usuarioLogado);
+        jdbcTemplate.update("DELETE FROM tb_usuario_segue_loja WHERE usuario_id = ? AND loja_id = ?", id, lojaId);
+        return ResponseEntity.ok().build();
+    }
 }
