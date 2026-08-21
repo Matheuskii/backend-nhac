@@ -86,10 +86,10 @@ public class GeradorCatalogoInsano {
     }
 
     private static int gerarProdutos(BufferedWriter writer, List<String> lojasGeradas) throws IOException {
-        String insertPrefix = "INSERT INTO tb_produtos (id, loja_id, nome, descricao, preco, categoria_menu, imagem_url, percentual_desconto) VALUES \n";
+        String insertPrefix = "INSERT INTO tb_produtos (id, loja_id, nome, descricao, preco, categoria_menu, imagem_url, percentual_desconto, estoque) VALUES \n";
 
         writer.write("-- ==========================================\n");
-        writer.write("-- INSERÇÃO EM LOTE DE PRODUTOS\n");
+        writer.write("-- 2. PRODUTOS (50 por Loja = " + (QUANTIDADE_LOJAS * PRODUTOS_POR_LOJA) + " no total)\n");
         writer.write("-- ==========================================\n");
 
         StringBuilder lote = new StringBuilder();
@@ -155,10 +155,11 @@ public class GeradorCatalogoInsano {
         String catMenu = sql(CATEGORIAS_PRODUTO[faker.random().nextInt(CATEGORIAS_PRODUTO.length)]);
         String imagemUrl = sql("https://picsum.photos/seed/" + prodId + "/200");
         int desconto = faker.number().numberBetween(1, 10) > 8 ? faker.number().numberBetween(10, 30) : 0;
+        int estoque = faker.number().numberBetween(10, 500);
 
         return String.format(
-                "(%s, %s, %s, %s, %s, %s, %s, %d)",
-                sql(prodId), sql(lojaId), nome, descricao, preco, catMenu, imagemUrl, desconto
+                "(%s, %s, %s, %s, %s, %s, %s, %d, %d)",
+                sql(prodId), sql(lojaId), nome, descricao, preco, catMenu, imagemUrl, desconto, estoque
         );
     }
 
