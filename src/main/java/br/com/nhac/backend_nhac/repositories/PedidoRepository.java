@@ -10,5 +10,6 @@ import java.util.Optional;
 public interface PedidoRepository extends JpaRepository<Pedido, String> {
     Optional<Pedido> findByStripePaymentIntentId(String stripePaymentIntentId);
     Optional<Pedido> findByAsaasPaymentId(String asaasPaymentId);
+    boolean existsByIdempotencyKey(String idempotencyKey);
     Page<Pedido> findByUsuarioId(String usuarioId, Pageable pageable);
 }
