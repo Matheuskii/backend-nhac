@@ -35,6 +35,7 @@ public class StripeWebhookController {
             @RequestHeader(value = "Stripe-Signature", required = false) String sigHeader) {
 
         if (sigHeader == null) {
+            System.err.println("❌ Webhook Stripe: Faltando header Stripe-Signature");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Faltando header Stripe-Signature");
         }
 
@@ -45,8 +46,10 @@ public class StripeWebhookController {
             event = Webhook.constructEvent(payload, sigHeader, endpointSecret);
         } catch (SignatureVerificationException e) {
             // Assinatura inválida (pode ser alguém tentando invadir a API)
+            System.err.println("❌ Webhook Stripe: Assinatura inválida - " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid signature");
         } catch (Exception e) {
+            System.err.println("❌ Webhook Stripe: Payload inválido - " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid payload");
         }
 
@@ -55,6 +58,7 @@ public class StripeWebhookController {
             case "payment_intent.succeeded":
                 PaymentIntent paymentIntent = (PaymentIntent) event.getDataObjectDeserializer().getObject().orElse(null);
                 if (paymentIntent != null) {
+                    System.out.println("✅ Webhook Stripe: Pagamento bem-sucedido para PaymentIntent: " + paymentIntent.getId());
                     // Atualiza o pedido para PAGO
                     pedidoService.marcarComoPagoPorPaymentIntentId(paymentIntent.getId());
                 }
@@ -65,17 +69,17 @@ public class StripeWebhookController {
                     Map<String, String> metadata = failedIntent.getMetadata();
                     if (metadata != null && metadata.containsKey("pedidoId")) {
                         String pedidoId = metadata.get("pedidoId");
+                        System.out.println("⚠️ Webhook Stripe: Pagamento falhou para pedido: " + pedidoId);
                         try {
                             pedidoService.marcarComoCanceladoPorFalhaDePagamento(pedidoId);
                         } catch (Exception e) {
-                            System.err.println("Erro ao cancelar pedido via webhook: " + e.getMessage());
+                            System.err.println("❌ Erro ao cancelar pedido via webhook: " + e.getMessage());
                         }
                     }
                 }
                 break;
             default:
-                // Evento não tratado, retornamos 200 pro Stripe não tentar reenviar
-                break;
+                System.out.println("⚠️ Webhook Stripe: Evento não tratado: " + event.getType());
         }
 
         return ResponseEntity.ok("Success");

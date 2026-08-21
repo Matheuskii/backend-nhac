@@ -93,7 +93,9 @@ public class PedidoService {
                    "GOOGLE_PAY".equalsIgnoreCase(pedido.getFormaPagamento()) ||
                    "STRIPE".equalsIgnoreCase(pedido.getFormaPagamento())) {
 
-            return stripePaymentService.criarPaymentIntentCartao(pedidoSalvo);
+            var resultado = stripePaymentService.criarPaymentIntentCartao(pedidoSalvo);
+            // ✅ Stripe já salva dentro de criarPaymentIntentCartao, mas garante que está salvo
+            return resultado;
         }
 
         return new br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO(pedidoSalvo.getId(), null, null, null);
@@ -165,10 +167,11 @@ public class PedidoService {
         }
 
         boolean transicaoValida = switch (atual) {
-            case PENDENTE -> novoStatus == StatusPedido.PREPARANDO;
-            case PAGO, ENTREGUE, CANCELADO -> false;
+            case PENDENTE -> novoStatus == StatusPedido.PAGO || novoStatus == StatusPedido.PREPARANDO; // ✅ Permite PAGO ou ir direto para PREPARANDO
+            case PAGO -> novoStatus == StatusPedido.PREPARANDO;
             case PREPARANDO -> novoStatus == StatusPedido.SAIU_ENTREGA;
             case SAIU_ENTREGA -> novoStatus == StatusPedido.ENTREGUE;
+            case ENTREGUE, CANCELADO -> false; // Terminal states
         };
 
         if (!transicaoValida) {

@@ -2,6 +2,7 @@ package br.com.nhac.backend_nhac.services;
 
 import br.com.nhac.backend_nhac.domain.pedido.Pedido;
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO;
+import br.com.nhac.backend_nhac.repositories.PedidoRepository;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
@@ -17,6 +18,12 @@ public class StripePaymentService {
 
     @Value("${stripe.api.key}")
     private String stripeApiKey;
+
+    private final PedidoRepository pedidoRepository; // ✅ ADICIONADO
+
+    public StripePaymentService(PedidoRepository pedidoRepository) { // ✅ INJEÇÃO ADICIONADA
+        this.pedidoRepository = pedidoRepository;
+    }
 
     @PostConstruct
     public void init() {
@@ -46,14 +53,17 @@ public class StripePaymentService {
 
             // Vincula o ID gerado pelo Stripe ao Pedido
             pedido.setStripePaymentIntentId(paymentIntent.getId());
+            pedidoRepository.save(pedido); // ✅ SALVA O PEDIDO COM O ID DO STRIPE
 
             // Para cartão/Google Pay, não há QR Code PIX
             // Os campos pixCopiaECola e qrCodeUrl serão null
             String clientSecret = paymentIntent.getClientSecret();
 
+            System.out.println("✅ PaymentIntent criado: " + paymentIntent.getId());
             return new PedidoCriadoDTO(pedido.getId(), clientSecret, null, null);
 
         } catch (StripeException e) {
+            System.err.println("❌ Erro Stripe: " + e.getMessage());
             throw new RuntimeException("Falha ao comunicar com Stripe para criar PaymentIntent: " + e.getMessage(), e);
         }
     }
