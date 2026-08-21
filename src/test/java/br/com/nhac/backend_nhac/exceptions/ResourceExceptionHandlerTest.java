@@ -35,11 +35,13 @@ class ResourceExceptionHandlerTest {
     void deveTratarIdNaoEncontradoException() {
         IdNaoEncontradoException excecao = new IdNaoEncontradoException("Recurso não encontrado.");
 
-        ResponseEntity<ErroPadraoDTO> resposta = handler.entidadeNaoEncontrada(excecao, request);
+        ResponseEntity<ErroPadraoDTO> resposta = handler.handleNhacException(excecao, request);
 
         assertEquals(HttpStatus.NOT_FOUND, resposta.getStatusCode());
         assertEquals("Recurso não encontrado.", resposta.getBody().message());
         assertEquals("/api/v1/teste", resposta.getBody().path());
+        assertEquals("RECURSO_NAO_ENCONTRADO", resposta.getBody().error());
+        assertNotNull(resposta.getBody().requestId());
     }
 
     @Test
@@ -47,10 +49,11 @@ class ResourceExceptionHandlerTest {
     void deveTratarRegraDeNegocioException() {
         RegraDeNegocioException excecao = new RegraDeNegocioException("Regra violada.");
 
-        ResponseEntity<ErroPadraoDTO> resposta = handler.regraDeNegocio(excecao, request);
+        ResponseEntity<ErroPadraoDTO> resposta = handler.handleNhacException(excecao, request);
 
         assertEquals(HttpStatus.BAD_REQUEST, resposta.getStatusCode());
         assertEquals("Regra violada.", resposta.getBody().message());
+        assertEquals("REGRA_DE_NEGOCIO", resposta.getBody().error());
     }
 
     @Test
@@ -62,17 +65,20 @@ class ResourceExceptionHandlerTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, resposta.getStatusCode());
         assertEquals("Argumento inválido.", resposta.getBody().message());
+        assertEquals("REGRA_DE_NEGOCIO", resposta.getBody().error());
     }
 
     @Test
-    @DisplayName("Deve tratar MethodArgumentNotValidException devolvendo 400 com mensagens concatenadas")
+    @DisplayName("Deve tratar MethodArgumentNotValidException devolvendo 400 com campos de erro no map de details")
     void deveTratarMethodArgumentNotValidException() {
         MethodArgumentNotValidException excecao = mockErroDeValidacao();
 
         ResponseEntity<ErroPadraoDTO> resposta = handler.validacaoDeCampos(excecao, request);
 
         assertEquals(HttpStatus.BAD_REQUEST, resposta.getStatusCode());
-        assertEquals("nome: não pode ser vazio", resposta.getBody().message());
+        assertEquals("Alguns campos enviados são inválidos. Verifique os detalhes.", resposta.getBody().message());
+        assertEquals("VALIDACAO_FALHOU", resposta.getBody().error());
+        assertEquals("não pode ser vazio", resposta.getBody().details().get("nome"));
     }
 
     @Test
@@ -83,7 +89,8 @@ class ResourceExceptionHandlerTest {
         ResponseEntity<ErroPadraoDTO> resposta = handler.erroGenerico(excecao, request);
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, resposta.getStatusCode());
-        assertEquals("Erro inesperado.", resposta.getBody().message());
+        assertEquals("Ocorreu um erro inesperado no servidor. Por favor, tente novamente mais tarde.", resposta.getBody().message());
+        assertEquals("ERRO_INTERNO_SERVIDOR", resposta.getBody().error());
     }
 
     @Test
@@ -91,10 +98,11 @@ class ResourceExceptionHandlerTest {
     void deveTratarCredenciaisInvalidasException() {
         CredenciaisInvalidasException excecao = new CredenciaisInvalidasException("Credenciais inválidas.");
 
-        ResponseEntity<ErroPadraoDTO> resposta = handler.credenciaisInvalidas(excecao, request);
+        ResponseEntity<ErroPadraoDTO> resposta = handler.handleNhacException(excecao, request);
 
         assertEquals(HttpStatus.UNAUTHORIZED, resposta.getStatusCode());
         assertEquals("Credenciais inválidas.", resposta.getBody().message());
+        assertEquals("CREDENCIAIS_INVALIDAS", resposta.getBody().error());
     }
 
     @Test
@@ -102,10 +110,49 @@ class ResourceExceptionHandlerTest {
     void deveTratarAcessoNegadoException() {
         AcessoNegadoException excecao = new AcessoNegadoException("Acesso negado.");
 
-        ResponseEntity<ErroPadraoDTO> resposta = handler.acessoNegado(excecao, request);
+        ResponseEntity<ErroPadraoDTO> resposta = handler.handleNhacException(excecao, request);
 
         assertEquals(HttpStatus.FORBIDDEN, resposta.getStatusCode());
         assertEquals("Acesso negado.", resposta.getBody().message());
+        assertEquals("ACESSO_NEGADO", resposta.getBody().error());
+    }
+
+    @Test
+    @DisplayName("Deve tratar LojaFechadaException devolvendo 422")
+    void deveTratarLojaFechadaException() {
+        LojaFechadaException excecao = new LojaFechadaException("loja_1");
+
+        ResponseEntity<ErroPadraoDTO> resposta = handler.handleNhacException(excecao, request);
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, resposta.getStatusCode());
+        assertNotNull(resposta.getBody().message());
+        assertEquals("LOJA_FECHADA", resposta.getBody().error());
+        assertEquals("loja_1", resposta.getBody().details().get("lojaId"));
+    }
+
+    @Test
+    @DisplayName("Deve tratar ProdutoInativoException devolvendo 422")
+    void deveTratarProdutoInativoException() {
+        ProdutoInativoException excecao = new ProdutoInativoException("O produto informado estǭ inativo.", java.util.Map.of("produtoId", "prod_1"));
+
+        ResponseEntity<ErroPadraoDTO> resposta = handler.handleNhacException(excecao, request);
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, resposta.getStatusCode());
+        assertNotNull(resposta.getBody().message());
+        assertEquals("PRODUTO_INATIVO", resposta.getBody().error());
+        assertEquals("prod_1", resposta.getBody().details().get("produtoId"));
+    }
+
+    @Test
+    @DisplayName("Deve tratar EstoqueInsuficienteException devolvendo 422")
+    void deveTratarEstoqueInsuficienteException() {
+        EstoqueInsuficienteException excecao = new EstoqueInsuficienteException("prod_1", 5, 2);
+
+        ResponseEntity<ErroPadraoDTO> resposta = handler.handleNhacException(excecao, request);
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, resposta.getStatusCode());
+        assertNotNull(resposta.getBody().message());
+        assertEquals("ESTOQUE_INSUFICIENTE", resposta.getBody().error());
     }
 
     private MethodArgumentNotValidException mockErroDeValidacao() {
