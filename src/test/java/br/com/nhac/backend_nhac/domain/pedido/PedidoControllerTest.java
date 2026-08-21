@@ -2,6 +2,8 @@ package br.com.nhac.backend_nhac.domain.pedido;
 
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.services.PedidoService;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCreateDTO;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -161,7 +163,7 @@ class PedidoControllerTest {
                 """;
 
         br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO dto = new br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO("pedido_gerado_001", null, null, null);
-        when(pedidoService.finalizarPedido(any(), any(Usuario.class))).thenReturn(dto);
+        when(pedidoService.finalizarPedido(any(PedidoCreateDTO.class), any(Usuario.class), any())).thenReturn(dto);
 
         mockMvc.perform(post("/api/v1/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)
