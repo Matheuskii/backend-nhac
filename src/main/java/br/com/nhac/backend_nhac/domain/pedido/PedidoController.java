@@ -58,9 +58,10 @@ public class PedidoController {
     @PostMapping
     public ResponseEntity<PedidoCriadoDTO> criarPedido(
             @RequestBody @Valid PedidoCreateDTO dto,
-            @AuthenticationPrincipal Usuario usuarioLogado) {
+            @AuthenticationPrincipal Usuario usuarioLogado,
+            @org.springframework.web.bind.annotation.RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
 
-       PedidoCriadoDTO responseDto = pedidoService.finalizarPedido(dto, usuarioLogado);
+       PedidoCriadoDTO responseDto = pedidoService.finalizarPedido(dto, usuarioLogado, idempotencyKey);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
