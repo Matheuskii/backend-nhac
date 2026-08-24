@@ -96,18 +96,18 @@ public class ResourceExceptionHandler {
     public ResponseEntity<ErroPadraoDTO> noResourceFound(org.springframework.web.servlet.resource.NoResourceFoundException e, HttpServletRequest request) {
         String requestId = UUID.randomUUID().toString();
         HttpStatus status = HttpStatus.NOT_FOUND;
-        logger.warn("Rota nǜo encontrada: {}, RequestId: {}", request.getRequestURI(), requestId);
+        logger.warn("Rota não encontrada: {}, RequestId: {}", request.getRequestURI(), requestId);
 
         ErroPadraoDTO erro = new ErroPadraoDTO(
                 requestId,
                 Instant.now(),
                 status.value(),
                 "ROTA_NAO_ENCONTRADA",
-                "Rota Nǜo Encontrada",
-                "A rota solicitada nǜo existe no servidor.",
+                "Rota Não Encontrada",
+                "A rota solicitada não existe no servidor.",
                 Collections.emptyMap(),
                 request.getRequestURI(),
-                Collections.singletonList("Verifique a URL e o mǸtodo HTTP solicitados.")
+                Collections.singletonList("Verifique a URL e o método HTTP solicitados.")
         );
         return ResponseEntity.status(status).body(erro);
     }
