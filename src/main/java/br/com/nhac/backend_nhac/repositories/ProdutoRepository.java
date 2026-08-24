@@ -55,7 +55,7 @@ public interface ProdutoRepository extends JpaRepository<Produto, String> {
 
     Page<Produto> findByIsAtivoTrue(Pageable pageable);
 
-    @Query("SELECT new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoAvaliacaoResumoDTO(COUNT(a.id), COALESCE(AVG(CAST(a.nota AS double)), 0.0)) " +
+    @Query("SELECT new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoAvaliacaoResumoDTO(COUNT(a.id), COALESCE(AVG(a.nota), 0.0)) " +
            "FROM Avaliacao a " +
            "JOIN a.pedido p " +
            "JOIN p.itens i " +
