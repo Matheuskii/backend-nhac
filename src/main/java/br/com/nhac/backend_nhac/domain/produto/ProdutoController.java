@@ -130,4 +130,18 @@ public class ProdutoController {
         produtoService.desativarProduto(produtoId);
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(summary = "Resumo de avaliações de um produto", description = "Retorna a média de notas e o total de avaliações de um produto.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Resumo retornado com sucesso."),
+            @ApiResponse(responseCode = "404", description = "Produto não encontrado.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = "500", description = "Erro interno no servidor.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @GetMapping("/{produtoId}/avaliacoes/resumo")
+    public ResponseEntity<br.com.nhac.backend_nhac.domain.produto.dto.ProdutoAvaliacaoResumoDTO> buscarResumoAvaliacoes(@PathVariable String produtoId) {
+        br.com.nhac.backend_nhac.domain.produto.dto.ProdutoAvaliacaoResumoDTO resumo = produtoService.buscarResumoAvaliacoes(produtoId);
+        return ResponseEntity.ok(resumo);
+    }
 }

@@ -25,23 +25,14 @@ public class AsaasPaymentService {
     private String asaasApiUrl;
 
     private RestTemplate restTemplate;
-    private Gson gson;
-    private final PedidoRepository pedidoRepository; // ✅ ADICIONADO
+    private Gson gson = new Gson();
+    private final PedidoRepository pedidoRepository;
 
-    public AsaasPaymentService(RestTemplate restTemplate, PedidoRepository pedidoRepository) { // ✅ INJEÇÃO ADICIONADA
+    public AsaasPaymentService(RestTemplate restTemplate, PedidoRepository pedidoRepository) {
         this.restTemplate = restTemplate;
         this.pedidoRepository = pedidoRepository;
     }
 
-    @PostConstruct
-    public void init() {
-        if (this.restTemplate == null) {
-            this.restTemplate = new RestTemplate();
-        }
-        this.gson = new Gson();
-    }
-
-    
     private String obterOuCriarCustomer(String nome, String email, String cpfCnpj) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

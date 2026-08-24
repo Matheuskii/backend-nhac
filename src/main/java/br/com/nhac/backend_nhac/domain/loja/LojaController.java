@@ -66,4 +66,12 @@ public class LojaController {
         LojaResumoDTO resumoDTO = lojaService.criarLoja(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(resumoDTO);
     }
+
+    @GetMapping("/{id}/seguidores/contagem")
+    public ResponseEntity<java.util.Map<String, Integer>> contarSeguidores(
+            @PathVariable String id,
+            @org.springframework.beans.factory.annotation.Autowired org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
+        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM tb_usuario_segue_loja WHERE loja_id = ?", Integer.class, id);
+        return ResponseEntity.ok(java.util.Map.of("contagem", count != null ? count : 0));
+    }
 }

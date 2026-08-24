@@ -74,4 +74,37 @@ public class StripeWebhookControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    @DisplayName("Deve retornar 200 OK para webhook payment_intent.succeeded valido")
+    void deveRetornar200ParaWebhookValido() throws Exception {
+        String payload = "{\"type\": \"payment_intent.succeeded\"}";
+        String signature = "t=123,v1=assinatura_valida";
+
+        com.stripe.model.Event mockEvent = org.mockito.Mockito.mock(com.stripe.model.Event.class);
+        org.mockito.Mockito.when(mockEvent.getType()).thenReturn("payment_intent.succeeded");
+
+        com.stripe.model.PaymentIntent mockPaymentIntent = new com.stripe.model.PaymentIntent();
+        mockPaymentIntent.setId("pi_12345");
+
+        com.stripe.model.EventDataObjectDeserializer mockDeserializer = org.mockito.Mockito.mock(com.stripe.model.EventDataObjectDeserializer.class);
+        org.mockito.Mockito.when(mockDeserializer.getObject()).thenReturn(java.util.Optional.of(mockPaymentIntent));
+        
+        org.mockito.Mockito.when(mockEvent.getDataObjectDeserializer()).thenReturn(mockDeserializer);
+
+        try (org.mockito.MockedStatic<com.stripe.net.Webhook> webhookMock = org.mockito.Mockito.mockStatic(com.stripe.net.Webhook.class)) {
+            webhookMock.when(() -> com.stripe.net.Webhook.constructEvent(
+                    org.mockito.ArgumentMatchers.eq(payload), 
+                    org.mockito.ArgumentMatchers.eq(signature), 
+                    org.mockito.ArgumentMatchers.anyString()))
+                    .thenReturn(mockEvent);
+
+            mockMvc.perform(post("/api/v1/webhooks/stripe")
+                    .header("Stripe-Signature", signature)
+                    .content(payload))
+                    .andExpect(status().isOk());
+                    
+            org.mockito.Mockito.verify(pedidoService).marcarComoPagoPorPaymentIntentId("pi_12345");
+        }
+    }
+
 }

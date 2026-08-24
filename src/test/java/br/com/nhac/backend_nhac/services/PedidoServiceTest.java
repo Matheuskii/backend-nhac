@@ -64,11 +64,14 @@ class PedidoServiceTest {
 
         Loja lojaMock = new Loja();
         lojaMock.setId("loja_1");
+        lojaMock.setAberto(true);
 
         Produto burgerMock = new Produto();
         burgerMock.setId("prod_1");
         burgerMock.setLoja(lojaMock);
         burgerMock.setPreco(new BigDecimal("45.00"));
+        burgerMock.setAtivo(true);
+        burgerMock.setEstoque(100);
 
         PedidoCreateDTO.ItemPedidoDTO itemFraudulento = new PedidoCreateDTO.ItemPedidoDTO(
                 "prod_1", "Hambúrguer", "http://imagem.com/burger.jpg", 2
@@ -87,7 +90,7 @@ class PedidoServiceTest {
             return p;
         });
 
-        pedidoService.finalizarPedido(dto, usuario);
+        pedidoService.finalizarPedido(dto, usuario, null);
 
         verify(pedidoRepository).save(argThat(pedido -> {
             boolean totalCorreto = pedido.getValorTotal().compareTo(new BigDecimal("95.00")) == 0;
@@ -100,7 +103,7 @@ class PedidoServiceTest {
     }
 
     @Test
-    @DisplayName("Deve lançar IdNaoEncontradoException quando a loja não existir ou estiver fechada")
+    @DisplayName("Deve lançar LojaFechadaException quando a loja não existir ou estiver fechada")
     void deveLancarExcecaoQuandoLojaNaoExisteOuEstaFechada() {
         Usuario usuario = usuarioPadrao();
 
@@ -114,15 +117,15 @@ class PedidoServiceTest {
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_fechada")).thenReturn(Optional.empty());
 
-        Exception excecao = assertThrows(IdNaoEncontradoException.class,
-                () -> pedidoService.finalizarPedido(dto, usuario));
+        Exception excecao = assertThrows(br.com.nhac.backend_nhac.exceptions.LojaFechadaException.class,
+                () -> pedidoService.finalizarPedido(dto, usuario, null));
 
-        assertEquals("A loja informada não existe ou está fechada.", excecao.getMessage());
+        assertEquals("A loja informada está fechada no momento.", excecao.getMessage());
         verify(pedidoRepository, never()).save(any(Pedido.class));
     }
 
     @Test
-    @DisplayName("Deve lançar IdNaoEncontradoException quando um produto do carrinho não existir")
+    @DisplayName("Deve lançar ProdutoNaoEncontradoException quando um produto do carrinho não existir")
     void deveLancarExcecaoQuandoProdutoNaoExiste() {
         Usuario usuario = usuarioPadrao();
 
@@ -132,6 +135,7 @@ class PedidoServiceTest {
 
         Loja lojaMock = new Loja();
         lojaMock.setId("loja_1");
+        lojaMock.setAberto(true);
 
         PedidoCreateDTO.ItemPedidoDTO itemFantasma = new PedidoCreateDTO.ItemPedidoDTO(
                 "prod_fantasma", "Produto Inexistente", null, 1
@@ -141,15 +145,15 @@ class PedidoServiceTest {
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
         when(produtoRepository.findById("prod_fantasma")).thenReturn(Optional.empty());
 
-        Exception excecao = assertThrows(IdNaoEncontradoException.class,
-                () -> pedidoService.finalizarPedido(dto, usuario));
+        Exception excecao = assertThrows(br.com.nhac.backend_nhac.exceptions.ProdutoNaoEncontradoException.class,
+                () -> pedidoService.finalizarPedido(dto, usuario, null));
 
-        assertEquals("O produto com ID 'prod_fantasma' não existe no catálogo.", excecao.getMessage());
+        assertEquals("Produto com ID 'prod_fantasma' não encontrado na loja 'loja_1'.", excecao.getMessage());
         verify(pedidoRepository, never()).save(any(Pedido.class));
     }
 
     @Test
-    @DisplayName("Deve lançar IllegalArgumentException quando o produto pertencer a outra loja")
+    @DisplayName("Deve lançar RegraDeNegocioException quando o produto pertencer a outra loja")
     void deveLancarExcecaoQuandoProdutoPertenceAOutraLoja() {
         Usuario usuario = usuarioPadrao();
 
@@ -159,6 +163,7 @@ class PedidoServiceTest {
 
         Loja lojaSelecionada = new Loja();
         lojaSelecionada.setId("loja_1");
+        lojaSelecionada.setAberto(true);
 
         Loja outraLoja = new Loja();
         outraLoja.setId("loja_2");
@@ -168,6 +173,8 @@ class PedidoServiceTest {
         produtoDeOutraLoja.setNome("Hambúrguer");
         produtoDeOutraLoja.setLoja(outraLoja);
         produtoDeOutraLoja.setPreco(new BigDecimal("30.00"));
+        produtoDeOutraLoja.setAtivo(true);
+        produtoDeOutraLoja.setEstoque(10);
 
         PedidoCreateDTO.ItemPedidoDTO item = new PedidoCreateDTO.ItemPedidoDTO(
                 "prod_1", "Hambúrguer", null, 1
@@ -177,8 +184,8 @@ class PedidoServiceTest {
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaSelecionada));
         when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(produtoDeOutraLoja));
 
-        Exception excecao = assertThrows(IllegalArgumentException.class,
-                () -> pedidoService.finalizarPedido(dto, usuario));
+        Exception excecao = assertThrows(RegraDeNegocioException.class,
+                () -> pedidoService.finalizarPedido(dto, usuario, null));
 
         assertEquals("O produto 'Hambúrguer' não pertence à loja selecionada.", excecao.getMessage());
         verify(pedidoRepository, never()).save(any(Pedido.class));
@@ -195,16 +202,21 @@ class PedidoServiceTest {
 
         Loja lojaMock = new Loja();
         lojaMock.setId("loja_1");
+        lojaMock.setAberto(true);
 
         Produto produto1 = new Produto();
         produto1.setId("prod_1");
         produto1.setLoja(lojaMock);
         produto1.setPreco(new BigDecimal("10.00"));
+        produto1.setAtivo(true);
+        produto1.setEstoque(10);
 
         Produto produto2 = new Produto();
         produto2.setId("prod_2");
         produto2.setLoja(lojaMock);
         produto2.setPreco(new BigDecimal("20.00"));
+        produto2.setAtivo(true);
+        produto2.setEstoque(10);
 
         PedidoCreateDTO.ItemPedidoDTO item1 = new PedidoCreateDTO.ItemPedidoDTO("prod_1", "Item 1", null, 2);
         PedidoCreateDTO.ItemPedidoDTO item2 = new PedidoCreateDTO.ItemPedidoDTO("prod_2", "Item 2", null, 1);
@@ -220,7 +232,7 @@ class PedidoServiceTest {
             return p;
         });
 
-        pedidoService.finalizarPedido(dto, usuario);
+        pedidoService.finalizarPedido(dto, usuario, null);
 
         // (10.00 * 2) + (20.00 * 1) = 40.00 + taxa fixa de 5.00 = 45.00
         verify(pedidoRepository).save(argThat(pedido ->
@@ -241,6 +253,7 @@ class PedidoServiceTest {
 
         Loja lojaMock = new Loja();
         lojaMock.setId("loja_1");
+        lojaMock.setAberto(true);
         DadosOperacionais dados = new DadosOperacionais();
         dados.setTaxaEntregaBase(new BigDecimal("7.50"));
         lojaMock.setDadosOperacionais(dados);
@@ -249,6 +262,8 @@ class PedidoServiceTest {
         produto.setId("prod_1");
         produto.setLoja(lojaMock);
         produto.setPreco(new BigDecimal("10.00"));
+        produto.setAtivo(true);
+        produto.setEstoque(10);
 
         PedidoCreateDTO.ItemPedidoDTO item = new PedidoCreateDTO.ItemPedidoDTO("prod_1", "Item 1", null, 1);
         PedidoCreateDTO dto = new PedidoCreateDTO("loja_1", "DINHEIRO", null, null, null, enderecoMock, List.of(item));
@@ -257,7 +272,7 @@ class PedidoServiceTest {
         when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(produto));
         when(pedidoRepository.save(any(Pedido.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        pedidoService.finalizarPedido(dto, usuario);
+        pedidoService.finalizarPedido(dto, usuario, null);
 
         verify(pedidoRepository).save(argThat(pedido ->
                 pedido.getTaxaFrete().compareTo(new BigDecimal("7.50")) == 0
@@ -340,7 +355,7 @@ class PedidoServiceTest {
     void deveAtualizarStatusQuandoTransicaoForValida() {
         Pedido pedidoMock = new Pedido();
         pedidoMock.setId("pedido_123");
-        pedidoMock.setStatus(StatusPedido.PENDENTE);
+        pedidoMock.setStatus(StatusPedido.PAGO);
 
         when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
 

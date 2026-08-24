@@ -59,8 +59,14 @@ public class StripeWebhookController {
                 PaymentIntent paymentIntent = (PaymentIntent) event.getDataObjectDeserializer().getObject().orElse(null);
                 if (paymentIntent != null) {
                     System.out.println("✅ Webhook Stripe: Pagamento bem-sucedido para PaymentIntent: " + paymentIntent.getId());
-                    // Atualiza o pedido para PAGO
-                    pedidoService.marcarComoPagoPorPaymentIntentId(paymentIntent.getId());
+                    try {
+                        pedidoService.marcarComoPagoPorPaymentIntentId(paymentIntent.getId());
+                    } catch (br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException e) {
+                        System.out.println("⚠️ Webhook Stripe ignorado: " + e.getMessage());
+                    } catch (Exception e) {
+                        System.err.println("❌ Erro no webhook Stripe: " + e.getMessage());
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // Força o retry do Stripe
+                    }
                 }
                 break;
             case "payment_intent.payment_failed":
@@ -72,8 +78,11 @@ public class StripeWebhookController {
                         System.out.println("⚠️ Webhook Stripe: Pagamento falhou para pedido: " + pedidoId);
                         try {
                             pedidoService.marcarComoCanceladoPorFalhaDePagamento(pedidoId);
+                        } catch (br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException e) {
+                            System.out.println("⚠️ Webhook Stripe ignorado: " + e.getMessage());
                         } catch (Exception e) {
                             System.err.println("❌ Erro ao cancelar pedido via webhook: " + e.getMessage());
+                            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
                         }
                     }
                 }

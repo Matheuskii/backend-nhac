@@ -70,7 +70,11 @@ public class AsaasWebhookController {
                 case "PAYMENT_RECEIVED":
                     if (asaasPaymentId != null && !asaasPaymentId.isEmpty()) {
                         System.out.println("✅ Webhook Asaas: Pagamento recebido para Asaas Payment ID: " + asaasPaymentId);
-                        pedidoService.marcarComoPagoPorAsaasPaymentId(asaasPaymentId);
+                        try {
+                            pedidoService.marcarComoPagoPorAsaasPaymentId(asaasPaymentId);
+                        } catch (br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException e) {
+                            System.out.println("⚠️ Webhook Asaas ignorado (idempotência): " + e.getMessage());
+                        }
                     } else {
                         System.err.println("❌ Webhook Asaas: Asaas Payment ID não encontrado no payload");
                         return ResponseEntity.badRequest().build();
@@ -80,7 +84,11 @@ public class AsaasWebhookController {
                 case "PAYMENT_OVERDUE":
                     if (pedidoId != null && !pedidoId.isEmpty()) {
                         System.out.println("⚠️ Webhook Asaas: Pagamento vencido para pedido: " + pedidoId);
-                        pedidoService.cancelarPorFalhaPagamentoAsaas(pedidoId);
+                        try {
+                            pedidoService.cancelarPorFalhaPagamentoAsaas(pedidoId);
+                        } catch (br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException e) {
+                            System.out.println("⚠️ Webhook Asaas ignorado (idempotência): " + e.getMessage());
+                        }
                     } else {
                         System.out.println("⚠️ Webhook Asaas: PedidoId não encontrado para PAYMENT_OVERDUE");
                     }
@@ -89,7 +97,11 @@ public class AsaasWebhookController {
                 case "PAYMENT_CANCELLED":
                     if (pedidoId != null && !pedidoId.isEmpty()) {
                         System.out.println("⚠️ Webhook Asaas: Pagamento cancelado para pedido: " + pedidoId);
-                        pedidoService.cancelarPorFalhaPagamentoAsaas(pedidoId);
+                        try {
+                            pedidoService.cancelarPorFalhaPagamentoAsaas(pedidoId);
+                        } catch (br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException e) {
+                            System.out.println("⚠️ Webhook Asaas ignorado (idempotência): " + e.getMessage());
+                        }
                     } else {
                         System.out.println("⚠️ Webhook Asaas: PedidoId não encontrado para PAYMENT_CANCELLED");
                     }

@@ -1,7 +1,14 @@
 package br.com.nhac.backend_nhac.exceptions;
 
-public class RegraDeNegocioException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+public class RegraDeNegocioException extends NhacException {
     public RegraDeNegocioException(String mensagem) {
-        super(mensagem);
+        super(mensagem, ErrorCode.REGRA_DE_NEGOCIO);
+    }
+    
+    @Override
+    public HttpStatus getHttpStatus() {
+        return HttpStatus.BAD_REQUEST;
     }
 }
