@@ -298,4 +298,29 @@ class ProdutoServiceTest {
         assertEquals("Não é possível desativar produtos de uma loja fechada.", excecao.getMessage());
         verify(produtoRepository, never()).save(any(Produto.class));
     }
+
+    @Test
+    @DisplayName("Deve retornar resumo de avaliações de um produto")
+    void deveBuscarResumoAvaliacoesProduto() {
+        when(produtoRepository.existsById("produto_1")).thenReturn(true);
+        when(produtoRepository.getResumoAvaliacoesPorProdutoId("produto_1"))
+                .thenReturn(new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoAvaliacaoResumoDTO(15L, 4.8));
+
+        br.com.nhac.backend_nhac.domain.produto.dto.ProdutoAvaliacaoResumoDTO resumo = produtoService.buscarResumoAvaliacoes("produto_1");
+
+        assertNotNull(resumo);
+        assertEquals(15L, resumo.totalAvaliacoes());
+        assertEquals(4.8, resumo.mediaNotas());
+    }
+
+    @Test
+    @DisplayName("Deve lançar IdNaoEncontradoException ao buscar resumo de avaliações de produto inexistente")
+    void deveLancarExcecaoBuscarResumoAvaliacoesProdutoInexistente() {
+        when(produtoRepository.existsById("produto_fantasma")).thenReturn(false);
+
+        Exception excecao = assertThrows(br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException.class,
+                () -> produtoService.buscarResumoAvaliacoes("produto_fantasma"));
+
+        assertTrue(excecao.getMessage().contains("produto_fantasma"));
+    }
 }

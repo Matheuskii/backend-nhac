@@ -47,6 +47,7 @@ public class AsaasPaymentServiceTest {
     public void setUp() {
         ReflectionTestUtils.setField(asaasPaymentService, "asaasApiKey", testApiKey);
         ReflectionTestUtils.setField(asaasPaymentService, "asaasApiUrl", testApiUrl);
+        ReflectionTestUtils.setField(asaasPaymentService, "gson", new Gson());
     }
 
     @Test

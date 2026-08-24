@@ -26,13 +26,19 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final EnderecoUsuarioRepository enderecoRepository;
     private final PasswordEncoder passwordEncoder;
+    private final br.com.nhac.backend_nhac.repositories.PedidoRepository pedidoRepository;
+    private final br.com.nhac.backend_nhac.repositories.FavoritoRepository favoritoRepository;
 
     public UsuarioService(UsuarioRepository usuarioRepository,
                           EnderecoUsuarioRepository enderecoRepository,
-                          PasswordEncoder passwordEncoder) {
+                          PasswordEncoder passwordEncoder,
+                          br.com.nhac.backend_nhac.repositories.PedidoRepository pedidoRepository,
+                          br.com.nhac.backend_nhac.repositories.FavoritoRepository favoritoRepository) {
         this.usuarioRepository = usuarioRepository;
         this.enderecoRepository = enderecoRepository;
         this.passwordEncoder = passwordEncoder;
+        this.pedidoRepository = pedidoRepository;
+        this.favoritoRepository = favoritoRepository;
     }
 
     public UsuarioResponseDTO buscarUsuario(String id) {
@@ -170,5 +176,16 @@ public class UsuarioService {
 
         usuario.setSenha(passwordEncoder.encode(novaSenha));
         usuarioRepository.save(usuario);
+    }
+
+    public br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioEstatisticasDTO obterEstatisticas(String id) {
+        if (!usuarioRepository.existsById(id)) {
+            throw new IdNaoEncontradoException("Usuário não encontrado.");
+        }
+        long totalPedidos = pedidoRepository.countByUsuarioId(id);
+        long lojasFavoritadas = favoritoRepository.countByUsuarioId(id);
+        long cuponsResgatados = pedidoRepository.countByUsuarioIdAndCupomIdIsNotNull(id);
+        
+        return new br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioEstatisticasDTO(totalPedidos, lojasFavoritadas, cuponsResgatados);
     }
 }

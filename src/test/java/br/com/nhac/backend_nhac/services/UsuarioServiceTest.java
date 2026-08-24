@@ -33,6 +33,8 @@ class UsuarioServiceTest {
     @Mock private UsuarioRepository usuarioRepository;
     @Mock private EnderecoUsuarioRepository enderecoRepository;
     @Mock private PasswordEncoder passwordEncoder;
+    @Mock private br.com.nhac.backend_nhac.repositories.PedidoRepository pedidoRepository;
+    @Mock private br.com.nhac.backend_nhac.repositories.FavoritoRepository favoritoRepository;
 
     @InjectMocks private UsuarioService usuarioService;
 
@@ -303,5 +305,20 @@ class UsuarioServiceTest {
                 () -> usuarioService.removerEndereco("invasor_id", "end_1"));
 
         verify(enderecoRepository, never()).delete(any(EnderecoUsuario.class));
+    }
+
+    @Test
+    @DisplayName("Deve obter as estatísticas de um usuário")
+    void deveObterEstatisticas() {
+        when(usuarioRepository.existsById("usu_1")).thenReturn(true);
+        when(pedidoRepository.countByUsuarioId("usu_1")).thenReturn(15L);
+        when(favoritoRepository.countByUsuarioId("usu_1")).thenReturn(3L);
+        when(pedidoRepository.countByUsuarioIdAndCupomIdIsNotNull("usu_1")).thenReturn(5L);
+
+        br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioEstatisticasDTO stats = usuarioService.obterEstatisticas("usu_1");
+
+        assertEquals(15L, stats.totalPedidos());
+        assertEquals(3L, stats.lojasFavoritadas());
+        assertEquals(5L, stats.cuponsResgatados());
     }
 }

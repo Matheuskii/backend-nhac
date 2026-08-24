@@ -63,6 +63,9 @@ public class Pedido {
     @Column(name = "idempotency_key", unique = true, length = 100)
     private String idempotencyKey;
 
+    @Column(name = "cupom_id")
+    private String cupomId;
+
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ItemPedido> itens = new ArrayList<>();
 

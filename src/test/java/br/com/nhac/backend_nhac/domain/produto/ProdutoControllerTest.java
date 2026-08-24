@@ -232,4 +232,19 @@ class ProdutoControllerTest {
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/produtos/{produtoId}", "produto_fantasma"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    @DisplayName("Deve retornar 200 com resumo das avaliações do produto")
+    void deveRetornarResumoAvaliacoesProduto() throws Exception {
+        br.com.nhac.backend_nhac.domain.produto.dto.ProdutoAvaliacaoResumoDTO resumo = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoAvaliacaoResumoDTO(
+                15L, 4.8
+        );
+
+        when(produtoService.buscarResumoAvaliacoes("produto_1")).thenReturn(resumo);
+
+        mockMvc.perform(get("/api/v1/produtos/{produtoId}/avaliacoes/resumo", "produto_1"))
+                .andExpect(status().isOk())
+                .andExpect((ResultMatcher) jsonPath("$.totalAvaliacoes").value(15))
+                .andExpect((ResultMatcher) jsonPath("$.mediaNotas").value(4.8));
+    }
 }

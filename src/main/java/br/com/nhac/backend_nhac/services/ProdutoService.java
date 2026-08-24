@@ -91,4 +91,12 @@ public class ProdutoService {
         produto.setAtivo(false);
         produtoRepository.save(produto);
     }
+
+    @Transactional(readOnly = true)
+    public br.com.nhac.backend_nhac.domain.produto.dto.ProdutoAvaliacaoResumoDTO buscarResumoAvaliacoes(String produtoId) {
+        if (!produtoRepository.existsById(produtoId)) {
+            throw new IdNaoEncontradoException("O produto com o id: " + produtoId + " nǜo foi encontrado.");
+        }
+        return produtoRepository.getResumoAvaliacoesPorProdutoId(produtoId);
+    }
 }
