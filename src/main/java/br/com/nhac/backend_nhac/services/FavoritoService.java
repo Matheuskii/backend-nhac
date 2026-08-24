@@ -59,8 +59,9 @@ public class FavoritoService {
         favoritoRepository.delete(favorito);
     }
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public org.springframework.data.domain.Page<br.com.nhac.backend_nhac.domain.favorito.dto.FavoritoResponseDTO> listarFavoritos(String usuarioId, org.springframework.data.domain.Pageable pageable) {
-        return favoritoRepository.findByUsuarioId(usuarioId, pageable)
+        return favoritoRepository.findByUsuarioIdAndLojaIsAbertoTrue(usuarioId, pageable)
                 .map(f -> new br.com.nhac.backend_nhac.domain.favorito.dto.FavoritoResponseDTO(
                         f.getId(), f.getLoja().getId(), f.getLoja().getNome(), f.getLoja().getImagemUrl(), f.getCriadoEm()
                 ));
