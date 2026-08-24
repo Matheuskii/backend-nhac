@@ -20,7 +20,7 @@ public enum StatusPedido {
             case PAGO -> Set.of(PREPARANDO, CANCELADO).contains(novoStatus);
             case PREPARANDO -> Set.of(SAIU_ENTREGA, CANCELADO).contains(novoStatus);
             case SAIU_ENTREGA -> Set.of(ENTREGUE).contains(novoStatus);
-            case ENTREGUE, CANCELADO -> false; // Estados finais
+            case ENTREGUE, CANCELADO -> false;
         };
         
         if (!isValido) {

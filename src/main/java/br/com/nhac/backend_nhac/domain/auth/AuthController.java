@@ -132,4 +132,33 @@ public class AuthController {
         usuarioService.atualizarSenha(dto.telefone(), dto.novaSenha());
         return ResponseEntity.ok().build();
     }
+
+    @Operation(summary = "Solicitar redefinição de senha por e-mail", description = "Envia um e-mail com código para redefinição caso o e-mail exista.")
+    @PostMapping("/esqueci-senha/email")
+    public ResponseEntity<Void> esqueciSenhaEmail(
+            @RequestBody @Valid br.com.nhac.backend_nhac.domain.auth.dto.EsqueciSenhaEmailDTO dto,
+            @org.springframework.beans.factory.annotation.Autowired br.com.nhac.backend_nhac.services.VerificacaoEmailService verificacaoEmailService) {
+        
+        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(dto.email().trim())
+                .orElseThrow(() -> new br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException("Nenhum usuário encontrado com este e-mail."));
+
+        if (!usuario.isAtivo()) {
+            throw new RegraDeNegocioException("Usuário inativo.");
+        }
+
+        verificacaoEmailService.enviarCodigoReset(dto.email());
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Concluir redefinição de senha por e-mail", description = "Valida o código do e-mail e atualiza a senha do usuário.")
+    @PostMapping("/redefinir-senha/email")
+    public ResponseEntity<Void> redefinirSenhaEmail(
+            @RequestBody @Valid br.com.nhac.backend_nhac.domain.auth.dto.RedefinirSenhaEmailDTO dto,
+            @org.springframework.beans.factory.annotation.Autowired br.com.nhac.backend_nhac.services.VerificacaoEmailService verificacaoEmailService,
+            @org.springframework.beans.factory.annotation.Autowired UsuarioService usuarioService) {
+
+        verificacaoEmailService.verificarCodigoValido(dto.email(), dto.codigo());
+        usuarioService.atualizarSenhaPorEmail(dto.email(), dto.novaSenha());
+        return ResponseEntity.ok().build();
+    }
 }

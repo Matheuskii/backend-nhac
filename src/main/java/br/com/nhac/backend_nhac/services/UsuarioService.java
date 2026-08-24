@@ -178,6 +178,19 @@ public class UsuarioService {
         usuarioRepository.save(usuario);
     }
 
+    @Transactional
+    public void atualizarSenhaPorEmail(String email, String novaSenha) {
+        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new IdNaoEncontradoException("Nenhum usuário cadastrado com esse e-mail."));
+
+        if (!usuario.isAtivo()) {
+            throw new RegraDeNegocioException("Usuário inativo. Não é possível alterar a senha.");
+        }
+
+        usuario.setSenha(passwordEncoder.encode(novaSenha));
+        usuarioRepository.save(usuario);
+    }
+
     public br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioEstatisticasDTO obterEstatisticas(String id) {
         if (!usuarioRepository.existsById(id)) {
             throw new IdNaoEncontradoException("Usuário não encontrado.");
