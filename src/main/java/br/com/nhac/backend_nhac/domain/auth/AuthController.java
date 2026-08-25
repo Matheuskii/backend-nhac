@@ -36,14 +36,20 @@ public class AuthController {
     private final TokenService tokenService;
     private final GoogleAuthService googleAuthService;
     private final SmsAuthService smsAuthService;
+    private final br.com.nhac.backend_nhac.services.VerificacaoTelefoneService verificacaoTelefoneService;
+    private final br.com.nhac.backend_nhac.services.VerificacaoEmailService verificacaoEmailService;
+    private final UsuarioService usuarioService;
 
-    public AuthController(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, TokenService tokenService, GoogleAuthService googleAuthService, SmsAuthService smsAuthService) {
+    public AuthController(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, TokenService tokenService, GoogleAuthService googleAuthService, SmsAuthService smsAuthService, br.com.nhac.backend_nhac.services.VerificacaoTelefoneService verificacaoTelefoneService, br.com.nhac.backend_nhac.services.VerificacaoEmailService verificacaoEmailService, UsuarioService usuarioService) {
 
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
         this.googleAuthService = googleAuthService;
         this.smsAuthService = smsAuthService;
+        this.verificacaoTelefoneService = verificacaoTelefoneService;
+        this.verificacaoEmailService = verificacaoEmailService;
+        this.usuarioService = usuarioService;
     }
 
     @PostMapping("/login")
@@ -107,8 +113,7 @@ public class AuthController {
     @Operation(summary = "Solicitar redefinição de senha", description = "Envia um SMS com código para redefinição caso o telefone exista.")
     @PostMapping("/esqueci-senha")
     public ResponseEntity<Void> esqueciSenha(
-            @RequestBody @Valid br.com.nhac.backend_nhac.domain.auth.dto.EsqueciSenhaDTO dto,
-            @org.springframework.beans.factory.annotation.Autowired br.com.nhac.backend_nhac.services.VerificacaoTelefoneService verificacaoTelefoneService) {
+            @RequestBody @Valid br.com.nhac.backend_nhac.domain.auth.dto.EsqueciSenhaDTO dto) {
         
         Usuario usuario = usuarioRepository.findByTelefone(dto.telefone().trim())
                 .orElseThrow(() -> new br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException("Nenhum usuário encontrado com este telefone."));
@@ -124,9 +129,7 @@ public class AuthController {
     @Operation(summary = "Concluir redefinição de senha", description = "Valida o código SMS e atualiza a senha do usuário.")
     @PostMapping("/redefinir-senha")
     public ResponseEntity<Void> redefinirSenha(
-            @RequestBody @Valid br.com.nhac.backend_nhac.domain.auth.dto.RedefinirSenhaDTO dto,
-            @org.springframework.beans.factory.annotation.Autowired br.com.nhac.backend_nhac.services.VerificacaoTelefoneService verificacaoTelefoneService,
-            @org.springframework.beans.factory.annotation.Autowired UsuarioService usuarioService) {
+            @RequestBody @Valid br.com.nhac.backend_nhac.domain.auth.dto.RedefinirSenhaDTO dto) {
 
         verificacaoTelefoneService.verificarCodigoValido(dto.telefone(), dto.codigo());
         usuarioService.atualizarSenha(dto.telefone(), dto.novaSenha());
@@ -136,8 +139,7 @@ public class AuthController {
     @Operation(summary = "Solicitar redefinição de senha por e-mail", description = "Envia um e-mail com código para redefinição caso o e-mail exista.")
     @PostMapping("/esqueci-senha/email")
     public ResponseEntity<Void> esqueciSenhaEmail(
-            @RequestBody @Valid br.com.nhac.backend_nhac.domain.auth.dto.EsqueciSenhaEmailDTO dto,
-            @org.springframework.beans.factory.annotation.Autowired br.com.nhac.backend_nhac.services.VerificacaoEmailService verificacaoEmailService) {
+            @RequestBody @Valid br.com.nhac.backend_nhac.domain.auth.dto.EsqueciSenhaEmailDTO dto) {
         
         Usuario usuario = usuarioRepository.findByEmailIgnoreCase(dto.email().trim())
                 .orElseThrow(() -> new br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException("Nenhum usuário encontrado com este e-mail."));
@@ -153,9 +155,7 @@ public class AuthController {
     @Operation(summary = "Concluir redefinição de senha por e-mail", description = "Valida o código do e-mail e atualiza a senha do usuário.")
     @PostMapping("/redefinir-senha/email")
     public ResponseEntity<Void> redefinirSenhaEmail(
-            @RequestBody @Valid br.com.nhac.backend_nhac.domain.auth.dto.RedefinirSenhaEmailDTO dto,
-            @org.springframework.beans.factory.annotation.Autowired br.com.nhac.backend_nhac.services.VerificacaoEmailService verificacaoEmailService,
-            @org.springframework.beans.factory.annotation.Autowired UsuarioService usuarioService) {
+            @RequestBody @Valid br.com.nhac.backend_nhac.domain.auth.dto.RedefinirSenhaEmailDTO dto) {
 
         verificacaoEmailService.verificarCodigoValido(dto.email(), dto.codigo());
         usuarioService.atualizarSenhaPorEmail(dto.email(), dto.novaSenha());

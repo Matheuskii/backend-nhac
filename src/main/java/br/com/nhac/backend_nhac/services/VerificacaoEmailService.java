@@ -44,6 +44,13 @@ public class VerificacaoEmailService {
                 .build();
 
         codigoRepository.save(novoCodigo);
+        
+        // Log the generated code so developers can see it in mock mode
+        System.out.println("=================================================");
+        System.out.println("[CÓDIGO DE E-MAIL GERADO]");
+        System.out.println("Destinatário: " + email);
+        System.out.println("Código: " + codigo);
+        System.out.println("=================================================");
 
         String assunto = "Recuperação de Senha - Nhac Delivery";
         
