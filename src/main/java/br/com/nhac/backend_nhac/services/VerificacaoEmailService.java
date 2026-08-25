@@ -66,12 +66,12 @@ public class VerificacaoEmailService {
                 <![endif]-->
                 <style>
                 body, table, td { font-family: 'Roboto', Arial, Helvetica, sans-serif; }
-                body { margin:0; padding:0; background-color:#FFE7E5; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+                body { margin:0; padding:0; background-color:#FFE7E5; -webkit-text-size-adjust:100%%; -ms-text-size-adjust:100%%; }
                 table { border-collapse:collapse; }
-                img { border:0; line-height:100%; outline:none; text-decoration:none; }
+                img { border:0; line-height:100%%; outline:none; text-decoration:none; }
                 a { text-decoration:none; }
                 @media screen and (max-width: 600px) {
-                    .email-container { width:100% !important; }
+                    .email-container { width:100%% !important; }
                     .fluid-padding { padding-left:20px !important; padding-right:20px !important; }
                 }
                 </style>
@@ -80,7 +80,7 @@ public class VerificacaoEmailService {
                 <div style="display:none; max-height:0; overflow:hidden; opacity:0; mso-hide:all;">
                 Recebemos uma solicitação para redefinir a senha da sua conta Nhac. O código de verificação expira em 15 minutos.
                 </div>
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#FFE7E5;">
+                <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" style="background-color:#FFE7E5;">
                 <tr>
                 <td align="center" style="padding:40px 16px;">
                 <table role="presentation" class="email-container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px;">
@@ -97,12 +97,12 @@ public class VerificacaoEmailService {
                 </tr>
                 <tr>
                 <td style="background-color:#FFFFFF; border-radius:20px; padding:40px;" class="fluid-padding">
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                 <td align="center" style="padding-bottom:24px;">
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                <td width="64" height="64" align="center" valign="middle" style="background-color:#FFEBD9; border-radius:50%; width:64px; height:64px; font-size:26px; line-height:64px;">
+                <td width="64" height="64" align="center" valign="middle" style="background-color:#FFEBD9; border-radius:50%%; width:64px; height:64px; font-size:26px; line-height:64px;">
                           🔒
                         </td>
                 </tr>
@@ -149,7 +149,7 @@ public class VerificacaoEmailService {
                 </tr>
                 <tr>
                 <td style="padding:24px 8px 0;">
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#FFF6F5; border-radius:14px;">
+                <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" style="background-color:#FFF6F5; border-radius:14px;">
                 <tr>
                 <td style="padding:16px 20px;">
                 <span style="font-size:12.5px; line-height:19px; color:#5D201C; font-family:Arial, Helvetica, sans-serif;">

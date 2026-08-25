@@ -63,6 +63,7 @@ public class AvaliacaoService {
         return new AvaliacaoResumoDTO(avaliacao);
     }
 
+    @Transactional(readOnly = true)
     public Page<AvaliacaoResumoDTO> listarAvaliacoesPorLoja(String lojaId, Pageable pageable) {
         if (!lojaRepository.existsById(lojaId)) {
             throw new IdNaoEncontradoException("A loja com o id: " + lojaId + " não foi encontrada.");

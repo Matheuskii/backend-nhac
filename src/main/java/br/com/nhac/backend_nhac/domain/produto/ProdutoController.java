@@ -71,7 +71,7 @@ public class ProdutoController {
         return ResponseEntity.ok(produto);
     }
 
-    @Operation(summary = "Listar produtos com filtros dinâmicos", description = "            description = \"Aceita filtros opcionais de loja, preço máximo, categoria ou nome. Retorna paginação.\")\n")
+    @Operation(summary = "Listar produtos com filtros dinâmicos", description = "Aceita filtros opcionais de loja, preço máximo, categoria ou nome. Retorna paginação.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Listagem de produtos retornada com sucesso."),
 
