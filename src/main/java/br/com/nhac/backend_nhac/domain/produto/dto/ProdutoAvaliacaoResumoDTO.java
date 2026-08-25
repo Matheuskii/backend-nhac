@@ -10,4 +10,8 @@ public record ProdutoAvaliacaoResumoDTO(
         @Schema(description = "Média de notas do produto", example = "4.5")
         Double mediaNotas
 ) {
+    public ProdutoAvaliacaoResumoDTO {
+        if (totalAvaliacoes == null) totalAvaliacoes = 0L;
+        if (mediaNotas == null) mediaNotas = 0.0;
+    }
 }
