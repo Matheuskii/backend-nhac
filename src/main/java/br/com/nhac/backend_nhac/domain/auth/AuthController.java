@@ -161,4 +161,20 @@ public class AuthController {
         usuarioService.atualizarSenhaPorEmail(dto.email(), dto.novaSenha());
         return ResponseEntity.ok().build();
     }
+
+    @Operation(summary = "Alterar senha", description = "Altera a senha do usuário logado validando a senha atual.")
+    @PutMapping("/alterar-senha")
+    public ResponseEntity<Void> alterarSenha(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal Usuario usuarioLogado,
+            @RequestBody @Valid br.com.nhac.backend_nhac.domain.auth.dto.AlterarSenhaDTO dto) {
+
+        if (!passwordEncoder.matches(dto.senhaAtual(), usuarioLogado.getSenha())) {
+            throw new br.com.nhac.backend_nhac.exceptions.CredenciaisInvalidasException("A senha atual informada está incorreta.");
+        }
+
+        usuarioLogado.setSenha(passwordEncoder.encode(dto.novaSenha()));
+        usuarioRepository.save(usuarioLogado);
+
+        return ResponseEntity.ok().build();
+    }
 }

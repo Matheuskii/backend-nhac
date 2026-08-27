@@ -1,0 +1,27 @@
+package br.com.nhac.backend_nhac;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import br.com.nhac.backend_nhac.services.RecuperacaoSenhaService;
+import br.com.nhac.backend_nhac.domain.auth.dto.EsqueciSenhaDTO;
+
+@SpringBootTest
+@ActiveProfiles("dev")
+public class EsqueciSenhaReproTest {
+
+    @Autowired
+    RecuperacaoSenhaService recuperacaoSenhaService;
+
+    @Test
+    void testEsqueciSenha() {
+        try {
+            System.out.println("TESTING ESQUECI SENHA...");
+            recuperacaoSenhaService.enviarCodigoRecuperacao(new EsqueciSenhaDTO("teste@teste.com"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+}

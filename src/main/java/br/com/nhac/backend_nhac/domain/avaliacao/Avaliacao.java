@@ -21,7 +21,7 @@ public class Avaliacao {
     @Column(length = 500)
     private String comentario;
 
-    @Column(name = "data_criacao", nullable = false)
+    @Column(name = "criado_em", nullable = false)
     private LocalDateTime dataCriacao;
 
     @ManyToOne(fetch = FetchType.LAZY)
