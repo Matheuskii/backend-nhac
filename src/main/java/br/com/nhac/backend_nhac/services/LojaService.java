@@ -61,4 +61,21 @@ public class LojaService {
     public long contarLojasCadastradas() {
         return lojaRepository.count();
     }
+
+    public br.com.nhac.backend_nhac.domain.loja.dto.CalcularFreteResponseDTO calcularFrete(String lojaId, br.com.nhac.backend_nhac.domain.loja.dto.CalcularFreteRequestDTO dto) {
+        Loja loja = lojaRepository.findByIdAndIsAbertoTrue(lojaId)
+                .orElseThrow(() -> new IdNaoEncontradoException("A loja com o id: " + lojaId + " não foi encontrada ou está fechada."));
+
+        // Lógica simulada de frete: 
+        // 5.00 fixos + 1.50 (simulando que está perto)
+        java.math.BigDecimal frete = new java.math.BigDecimal("6.50");
+        Integer tempo = 45;
+
+        // Se a loja tiver uma taxa base configurada, a gente pode considerar somá-la
+        if (loja.getDadosOperacionais() != null && loja.getDadosOperacionais().getTaxaEntregaBase() != null) {
+            frete = loja.getDadosOperacionais().getTaxaEntregaBase().add(new java.math.BigDecimal("1.50"));
+        }
+
+        return new br.com.nhac.backend_nhac.domain.loja.dto.CalcularFreteResponseDTO(frete, tempo);
+    }
 }

@@ -93,18 +93,19 @@ public class PedidoFlowIT extends AbstractIntegrationTest {
                 "Rua Teste", "123", "Bairro", "Cidade", "SP", "12345-678", "Apto 1"
         );
 
-        PedidoCreateDTO.ItemPedidoDTO item = new PedidoCreateDTO.ItemPedidoDTO(
+        PedidoCreateDTO.ItemPedidoDTO itemDto = new PedidoCreateDTO.ItemPedidoDTO(
                 produto.getId(), produto.getNome(), null, 2
         );
 
         PedidoCreateDTO pedidoDto = new PedidoCreateDTO(
                 loja.getId(),
-                "CARTAO",
+                "DINHEIRO",
                 "Sem cebola",
                 null,
                 null,
-                endereco,
-                List.of(item)
+                new PedidoCreateDTO.EnderecoEntregaDTO("Rua Teste", "123", "Bairro", "Cidade", "SP", "00000-000", null),
+                null,
+                List.of(itemDto)
         );
 
         mockMvc.perform(post("/api/v1/pedidos")

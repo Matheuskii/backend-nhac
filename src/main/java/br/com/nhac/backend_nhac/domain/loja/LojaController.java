@@ -67,4 +67,15 @@ public class LojaController {
         return ResponseEntity.status(HttpStatus.CREATED).body(resumoDTO);
     }
 
+    @Operation(summary = "Calcular frete dinâmico", description = "Calcula o frete e o tempo de entrega com base na localização do cliente.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Cálculo realizado com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Loja não encontrada ou fechada")
+    })
+    @PostMapping("/{id}/calcular-frete")
+    public ResponseEntity<br.com.nhac.backend_nhac.domain.loja.dto.CalcularFreteResponseDTO> calcularFrete(
+            @PathVariable String id,
+            @RequestBody @Valid br.com.nhac.backend_nhac.domain.loja.dto.CalcularFreteRequestDTO dto) {
+        return ResponseEntity.ok(lojaService.calcularFrete(id, dto));
+    }
 }

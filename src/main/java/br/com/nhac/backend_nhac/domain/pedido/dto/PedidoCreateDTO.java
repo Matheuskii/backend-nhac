@@ -49,6 +49,10 @@ public record PedidoCreateDTO(
     @Valid
     EnderecoEntregaDTO enderecoEntrega,
 
+    @Schema(description = "ID do cupom de desconto aplicado, se houver", example = "cupom-001")
+    @JsonProperty(required = false)
+    String cupomId,
+
     @Schema(description = "Lista de produtos comprados")
     @NotNull(message = "O carrinho de compras não pode ser nulo.")
     @NotEmpty(message = "O carrinho de compras não pode estar vazio. Adicione pelo menos um item.")
@@ -62,6 +66,7 @@ public record PedidoCreateDTO(
 
                 pedido.setId(UUID.randomUUID().toString());
                 pedido.setLoja(lojaDaBaseDeDados);
+                pedido.setCupomId(this.cupomId());
 
                 pedido.setFormaPagamento(this.formaPagamento());
                 pedido.setObservacao(this.observacao());
