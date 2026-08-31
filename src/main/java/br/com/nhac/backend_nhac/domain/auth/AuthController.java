@@ -168,6 +168,10 @@ public class AuthController {
             @org.springframework.security.core.annotation.AuthenticationPrincipal Usuario usuarioLogado,
             @RequestBody @Valid br.com.nhac.backend_nhac.domain.auth.dto.AlterarSenhaDTO dto) {
 
+        if (usuarioLogado.getSenha() == null) {
+            throw new RegraDeNegocioException("Esta conta não possui senha cadastrada. Ela foi criada via login por telefone.");
+        }
+
         if (!passwordEncoder.matches(dto.senhaAtual(), usuarioLogado.getSenha())) {
             throw new br.com.nhac.backend_nhac.exceptions.CredenciaisInvalidasException("A senha atual informada está incorreta.");
         }

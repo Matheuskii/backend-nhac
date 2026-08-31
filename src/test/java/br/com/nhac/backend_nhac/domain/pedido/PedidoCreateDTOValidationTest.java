@@ -32,7 +32,7 @@ class PedidoCreateDTOValidationTest {
         PedidoCreateDTO.EnderecoEntregaDTO endereco = new PedidoCreateDTO.EnderecoEntregaDTO("R", "1", "B", "C", "SP", "00000000", null);
         PedidoCreateDTO.ItemPedidoDTO item = new PedidoCreateDTO.ItemPedidoDTO("1", "nome", "img", 1);
         
-        PedidoCreateDTO dto = new PedidoCreateDTO(null, "DINHEIRO", null, null, null, endereco, List.of(item));
+        PedidoCreateDTO dto = new PedidoCreateDTO(null, "DINHEIRO", null, null, null, endereco, null, List.of(item));
         Set<ConstraintViolation<PedidoCreateDTO>> violations = validator.validate(dto);
         assertFalse(violations.isEmpty());
     }
@@ -42,7 +42,7 @@ class PedidoCreateDTOValidationTest {
     void deveFalharSeItensVazios() {
         PedidoCreateDTO.EnderecoEntregaDTO endereco = new PedidoCreateDTO.EnderecoEntregaDTO("R", "1", "B", "C", "SP", "00000000", null);
         
-        PedidoCreateDTO dto = new PedidoCreateDTO("123", "DINHEIRO", null, null, null, endereco, List.of());
+        PedidoCreateDTO dto = new PedidoCreateDTO("123", "DINHEIRO", null, null, null, endereco, null, List.of());
         Set<ConstraintViolation<PedidoCreateDTO>> violations = validator.validate(dto);
         assertFalse(violations.isEmpty());
     }
