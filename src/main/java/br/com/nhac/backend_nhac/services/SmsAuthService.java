@@ -34,7 +34,7 @@ public class SmsAuthService {
         if (usuarioExistente.isPresent()) {
             usuario = usuarioExistente.get();
         } else {
-            usuario = registrarNovoUsuarioSms(dto.telefone());
+            usuario = registrarNovoUsuarioSms(dto.telefone(), dto.nome());
             isNovoUsuario = true;
         }
 
@@ -43,12 +43,12 @@ public class SmsAuthService {
         return new LoginResponseDTO(tokenJwt, usuario.getId(), usuario.getNome(), isNovoUsuario);
     }
 
-    private Usuario registrarNovoUsuarioSms(String telefone) {
+    private Usuario registrarNovoUsuarioSms(String telefone, String nome) {
         Usuario novoUsuario = new Usuario();
         novoUsuario.setId(UUID.randomUUID().toString());
-        // E-mail fictício obrigatório para não quebrar a constraint de not null / regras do banco
-        novoUsuario.setEmail(telefone.replace("+", "") + "@telefone.nhac.com");
-        novoUsuario.setNome("Novo Usuário");
+        // E-mail não é mais gerado para usuários de telefone (Fix B6)
+        novoUsuario.setEmail(null); 
+        novoUsuario.setNome((nome != null && !nome.trim().isEmpty()) ? nome.trim() : "Novo Usuário");
         novoUsuario.setTelefone(telefone);
         novoUsuario.setTelefoneVerificado(true);
         novoUsuario.setEnderecos(new ArrayList<>());

@@ -71,7 +71,7 @@ class AuthControllerTest {
     @Test
     @DisplayName("Deve retornar 200 e o token JWT ao realizar login por SMS com sucesso")
     void deveAutenticarComSmsComSucesso() throws Exception {
-        br.com.nhac.backend_nhac.domain.auth.dto.ValidarCodigoSmsDTO requisicao = new br.com.nhac.backend_nhac.domain.auth.dto.ValidarCodigoSmsDTO("+5511999999999", "123456");
+        br.com.nhac.backend_nhac.domain.auth.dto.ValidarCodigoSmsDTO requisicao = new br.com.nhac.backend_nhac.domain.auth.dto.ValidarCodigoSmsDTO("+5511999999999", "123456", null);
 
         LoginResponseDTO respostaEsperada = new LoginResponseDTO("jwt_gerado_pelo_backend_sms", "user_novo", "Novo Usuário", true);
 

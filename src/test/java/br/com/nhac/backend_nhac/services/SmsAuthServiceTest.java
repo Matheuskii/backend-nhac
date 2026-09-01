@@ -40,9 +40,9 @@ class SmsAuthServiceTest {
     }
 
     @Test
-    @DisplayName("Deve fazer login de usuário existente e retornar isNovoUsuario=false")
+    @DisplayName("Deve fazer login de usuÃ¡rio existente e retornar isNovoUsuario=false")
     void deveFazerLoginUsuarioExistente() {
-        ValidarCodigoSmsDTO dto = new ValidarCodigoSmsDTO("+5511999999999", "123456");
+        ValidarCodigoSmsDTO dto = new ValidarCodigoSmsDTO("+5511999999999", "123456", null);
 
         Usuario usuarioExistente = new Usuario();
         usuarioExistente.setId("user123");
@@ -65,16 +65,16 @@ class SmsAuthServiceTest {
     }
 
     @Test
-    @DisplayName("Deve registrar novo usuário de forma invisível e retornar isNovoUsuario=true")
+    @DisplayName("Deve registrar novo usuÃ¡rio de forma invisÃ­vel e retornar isNovoUsuario=true")
     void deveRegistrarNovoUsuario() {
-        ValidarCodigoSmsDTO dto = new ValidarCodigoSmsDTO("+5511888888888", "654321");
+        ValidarCodigoSmsDTO dto = new ValidarCodigoSmsDTO("+5511888888888", "654321", null);
 
         doNothing().when(verificacaoTelefoneService).validarCodigo(dto);
         when(usuarioRepository.findByTelefone("+5511888888888")).thenReturn(Optional.empty());
 
         Usuario novoUsuarioSalvo = new Usuario();
         novoUsuarioSalvo.setId("novo_id");
-        novoUsuarioSalvo.setNome("Novo Usuário");
+        novoUsuarioSalvo.setNome("Novo UsuÃ¡rio");
         novoUsuarioSalvo.setTelefone("+5511888888888");
 
         when(usuarioRepository.save(any(Usuario.class))).thenReturn(novoUsuarioSalvo);
@@ -88,14 +88,14 @@ class SmsAuthServiceTest {
         verify(usuarioRepository).save(captor.capture());
 
         Usuario usuarioSalvo = captor.getValue();
-        assertEquals("Novo Usuário", usuarioSalvo.getNome());
+        assertEquals("Novo UsuÃ¡rio", usuarioSalvo.getNome());
         assertEquals("5511888888888@telefone.nhac.com", usuarioSalvo.getEmail());
         assertEquals("+5511888888888", usuarioSalvo.getTelefone());
         assertTrue(usuarioSalvo.isTelefoneVerificado());
 
         assertEquals("novo_token_jwt", response.token());
         assertEquals("novo_id", response.usuarioId());
-        assertEquals("Novo Usuário", response.nome());
+        assertEquals("Novo UsuÃ¡rio", response.nome());
         assertTrue(response.isNovoUsuario());
     }
 }

@@ -39,7 +39,7 @@ class VerificacaoTelefoneControllerTest {
     }
 
     @Test
-    @DisplayName("Deve retornar status 200 OK ao enviar código de verificação")
+    @DisplayName("Deve retornar status 200 OK ao enviar cÃƒÂ³digo de verificaÃƒÂ§ÃƒÂ£o")
     void deveEnviarCodigoComSucesso() throws Exception {
         EnviarCodigoSmsDTO dto = new EnviarCodigoSmsDTO("+5511999999999");
 
@@ -54,9 +54,9 @@ class VerificacaoTelefoneControllerTest {
     }
 
     @Test
-    @DisplayName("Deve retornar status 400 Bad Request se telefone estiver vazio no envio de código")
+    @DisplayName("Deve retornar status 400 Bad Request se telefone estiver vazio no envio de cÃƒÂ³digo")
     void deveRetornarBadRequestSeTelefoneVazioNoEnvio() throws Exception {
-        EnviarCodigoSmsDTO dto = new EnviarCodigoSmsDTO(""); // Inválido
+        EnviarCodigoSmsDTO dto = new EnviarCodigoSmsDTO(""); // InvÃƒÂ¡lido
 
         mockMvc.perform(post("/api/v1/verificacao-telefone/enviar-codigo")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -65,9 +65,9 @@ class VerificacaoTelefoneControllerTest {
     }
 
     @Test
-    @DisplayName("Deve retornar status 200 OK ao validar código de verificação")
+    @DisplayName("Deve retornar status 200 OK ao validar cÃƒÂ³digo de verificaÃƒÂ§ÃƒÂ£o")
     void deveValidarCodigoComSucesso() throws Exception {
-        ValidarCodigoSmsDTO dto = new ValidarCodigoSmsDTO("+5511999999999", "123456");
+        ValidarCodigoSmsDTO dto = new ValidarCodigoSmsDTO("+5511999999999", "123456", null);
 
         doNothing().when(verificacaoTelefoneService).validarCodigo(any(ValidarCodigoSmsDTO.class));
 
@@ -80,9 +80,9 @@ class VerificacaoTelefoneControllerTest {
     }
 
     @Test
-    @DisplayName("Deve retornar status 400 Bad Request se formato de DTO for inválido ao validar código")
+    @DisplayName("Deve retornar status 400 Bad Request se formato de DTO for invÃƒÂ¡lido ao validar cÃƒÂ³digo")
     void deveRetornarBadRequestAoValidarCodigoInvalido() throws Exception {
-        ValidarCodigoSmsDTO dto = new ValidarCodigoSmsDTO("11999999999", "123"); // Sem + e código curto (inválido)
+        ValidarCodigoSmsDTO dto = new ValidarCodigoSmsDTO("11999999999", "123", null); // Sem + e cÃƒÂ³digo curto (invÃƒÂ¡lido)
 
         mockMvc.perform(post("/api/v1/verificacao-telefone/validar-codigo")
                         .contentType(MediaType.APPLICATION_JSON)

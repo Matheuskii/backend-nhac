@@ -23,18 +23,19 @@ public class VerificacaoEmailService {
     private static final int TEMPO_EXPIRACAO_MINUTOS = 15;
     private static final int MAX_TENTATIVAS = 3;
 
-    @Transactional
     public void enviarCodigoReset(String email) {
-        email = email.trim().toLowerCase();
+        String finalEmail = email.trim().toLowerCase();
+        CodigoVerificacaoEmail novoCodigo = salvarNovoCodigo(finalEmail);
+        enviarEmail(finalEmail, novoCodigo);
+    }
 
+    @Transactional
+    public CodigoVerificacaoEmail salvarNovoCodigo(String email) {
         Usuario usuario = usuarioRepository.findByEmailIgnoreCase(email).orElse(null);
-        String nomeUsuario = (usuario != null && usuario.getNome() != null) ? usuario.getNome() : "Usuário";
-
         LocalDateTime agora = LocalDateTime.now();
         codigoRepository.inativarCodigosAtivosPorEmail(email);
 
         String codigo = String.format("%06d", new SecureRandom().nextInt(1_000_000));
-
         CodigoVerificacaoEmail novoCodigo = CodigoVerificacaoEmail.builder()
                 .email(email)
                 .codigo(codigo)
@@ -43,7 +44,14 @@ public class VerificacaoEmailService {
                 .utilizado(false)
                 .build();
 
-        codigoRepository.save(novoCodigo);
+        return codigoRepository.save(novoCodigo);
+    }
+
+    private void enviarEmail(String email, CodigoVerificacaoEmail novoCodigo) {
+        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(email).orElse(null);
+        String nomeUsuario = (usuario != null && usuario.getNome() != null) ? usuario.getNome() : "Usuário";
+        String codigo = novoCodigo.getCodigo();
+
         
         // Log the generated code so developers can see it in mock mode
         System.out.println("=================================================");
@@ -185,7 +193,6 @@ public class VerificacaoEmailService {
                 </body>
                 </html>
                 """.formatted(nomeUsuario, codigo, TEMPO_EXPIRACAO_MINUTOS, java.time.Year.now().getValue());
-
         emailService.enviarEmailHtml(email, assunto, htmlConteudo);
     }
 

@@ -110,31 +110,6 @@ public class AuthController {
         return ResponseEntity.ok(new ChecarEmailResponseDTO(existe));
     }
 
-    @Operation(summary = "Solicitar redefinição de senha", description = "Envia um SMS com código para redefinição caso o telefone exista.")
-    @PostMapping("/esqueci-senha")
-    public ResponseEntity<Void> esqueciSenha(
-            @RequestBody @Valid br.com.nhac.backend_nhac.domain.auth.dto.EsqueciSenhaDTO dto) {
-        
-        Usuario usuario = usuarioRepository.findByTelefone(dto.telefone().trim())
-                .orElseThrow(() -> new br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException("Nenhum usuário encontrado com este telefone."));
-
-        if (!usuario.isAtivo()) {
-            throw new RegraDeNegocioException("Usuário inativo.");
-        }
-
-        verificacaoTelefoneService.enviarCodigoReset(dto.telefone());
-        return ResponseEntity.ok().build();
-    }
-
-    @Operation(summary = "Concluir redefinição de senha", description = "Valida o código SMS e atualiza a senha do usuário.")
-    @PostMapping("/redefinir-senha")
-    public ResponseEntity<Void> redefinirSenha(
-            @RequestBody @Valid br.com.nhac.backend_nhac.domain.auth.dto.RedefinirSenhaDTO dto) {
-
-        verificacaoTelefoneService.verificarCodigoValido(dto.telefone(), dto.codigo());
-        usuarioService.atualizarSenha(dto.telefone(), dto.novaSenha());
-        return ResponseEntity.ok().build();
-    }
 
     @Operation(summary = "Solicitar redefinição de senha por e-mail", description = "Envia um e-mail com código para redefinição caso o e-mail exista.")
     @PostMapping("/esqueci-senha/email")

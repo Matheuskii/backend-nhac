@@ -60,6 +60,26 @@ public class ResourceExceptionHandler {
         return ResponseEntity.status(status).body(erro);
     }
 
+    @ExceptionHandler(org.springframework.dao.CannotAcquireLockException.class)
+    public ResponseEntity<ErroPadraoDTO> handleCannotAcquireLockException(org.springframework.dao.CannotAcquireLockException e, HttpServletRequest request) {
+        String requestId = UUID.randomUUID().toString();
+        HttpStatus status = HttpStatus.CONFLICT;
+        logger.warn("Conflito de concorrência (Deadlock): {}, RequestId: {}", e.getMessage(), requestId);
+
+        ErroPadraoDTO erro = new ErroPadraoDTO(
+                requestId,
+                Instant.now(),
+                status.value(),
+                ErrorCode.ERRO_INTERNO_SERVIDOR.getCode(),
+                "Conflito de Concorrência",
+                "Muitas requisições simultâneas. Por favor, tente novamente.",
+                Collections.emptyMap(),
+                request.getRequestURI(),
+                Collections.emptyList()
+        );
+        return ResponseEntity.status(status).body(erro);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErroPadraoDTO> validacaoDeCampos(MethodArgumentNotValidException e, HttpServletRequest request) {
         String requestId = UUID.randomUUID().toString();
