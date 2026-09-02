@@ -40,9 +40,9 @@ class SmsAuthServiceTest {
     }
 
     @Test
-    @DisplayName("Deve fazer login de usuário existente e retornar isNovoUsuario=false")
+    @DisplayName("Deve fazer login de usuÃ¡rio existente e retornar isNovoUsuario=false")
     void deveFazerLoginUsuarioExistente() {
-        ValidarCodigoSmsDTO dto = new ValidarCodigoSmsDTO("+5511999999999", "123456");
+        ValidarCodigoSmsDTO dto = new ValidarCodigoSmsDTO("+5511999999999", "123456", null);
 
         Usuario usuarioExistente = new Usuario();
         usuarioExistente.setId("user123");
@@ -65,9 +65,9 @@ class SmsAuthServiceTest {
     }
 
     @Test
-    @DisplayName("Deve registrar novo usuário de forma invisível e retornar isNovoUsuario=true")
+    @DisplayName("Deve registrar novo usuÃ¡rio de forma invisÃ­vel e retornar isNovoUsuario=true")
     void deveRegistrarNovoUsuario() {
-        ValidarCodigoSmsDTO dto = new ValidarCodigoSmsDTO("+5511888888888", "654321");
+        ValidarCodigoSmsDTO dto = new ValidarCodigoSmsDTO("+5511888888888", "654321", null);
 
         doNothing().when(verificacaoTelefoneService).validarCodigo(dto);
         when(usuarioRepository.findByTelefone("+5511888888888")).thenReturn(Optional.empty());
@@ -89,7 +89,7 @@ class SmsAuthServiceTest {
 
         Usuario usuarioSalvo = captor.getValue();
         assertEquals("Novo Usuário", usuarioSalvo.getNome());
-        assertEquals("5511888888888@telefone.nhac.com", usuarioSalvo.getEmail());
+        assertNull(usuarioSalvo.getEmail());
         assertEquals("+5511888888888", usuarioSalvo.getTelefone());
         assertTrue(usuarioSalvo.isTelefoneVerificado());
 

@@ -1,0 +1,1 @@
+﻿ALTER TABLE tb_usuarios MODIFY email VARCHAR(100) NULL;

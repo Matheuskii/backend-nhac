@@ -46,7 +46,7 @@ class VerificacaoTelefoneServiceTest {
     @BeforeEach
     void setUp() {
         enviarDto = new EnviarCodigoSmsDTO("11999999999");
-        validarDto = new ValidarCodigoSmsDTO("11999999999", "123456");
+        validarDto = new ValidarCodigoSmsDTO("11999999999", "123456", null);
 
         codigoValido = CodigoVerificacao.builder()
                 .telefone("11999999999")
