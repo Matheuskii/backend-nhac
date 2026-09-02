@@ -23,7 +23,7 @@ public class TokenService {
             Algorithm algorithm = Algorithm.HMAC256(secret);
             return JWT.create()
                     .withIssuer("nhac-api")
-                    .withSubject(usuario.getEmail())
+                    .withSubject(usuario.getId())
                     .withClaim("id", usuario.getId())
                     .withExpiresAt(gerarDataExpiracao())
                     .sign(algorithm);

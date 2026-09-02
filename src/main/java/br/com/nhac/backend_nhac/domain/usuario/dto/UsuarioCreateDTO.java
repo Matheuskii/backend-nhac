@@ -29,6 +29,8 @@ public record UsuarioCreateDTO(
         String imagemUrl,
 
         @Schema(description = "Senha em texto limpo para ser encriptada pelo servidor", example = "senhaSegura123")
+        @jakarta.validation.constraints.Size(min = 8, message = "A senha deve ter pelo menos 8 caracteres.")
+        @jakarta.validation.constraints.Pattern(regexp = "^(?=.*[0-9])(?=.*[a-zA-Z]).*$", message = "A senha deve conter pelo menos uma letra e um número.")
         String senha
 ) {
     public Usuario toEntity() {

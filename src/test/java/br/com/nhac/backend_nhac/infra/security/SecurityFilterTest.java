@@ -71,8 +71,8 @@ class SecurityFilterTest {
         Usuario usuario = usuarioDeTeste();
 
         when(request.getHeader("Authorization")).thenReturn("Bearer token_valido");
-        when(tokenService.validarToken("token_valido")).thenReturn("matheus@nhac.com");
-        when(usuarioRepository.findByEmailIgnoreCase("matheus@nhac.com")).thenReturn(java.util.Optional.of(usuario));
+        when(tokenService.validarToken("token_valido")).thenReturn("user_1");
+        when(usuarioRepository.findById("user_1")).thenReturn(java.util.Optional.of(usuario));
 
         securityFilter.doFilterInternal(request, response, filterChain);
 
@@ -90,16 +90,16 @@ class SecurityFilterTest {
         securityFilter.doFilterInternal(request, response, filterChain);
 
         assertNull(SecurityContextHolder.getContext().getAuthentication());
-        verify(usuarioRepository, never()).findByEmailIgnoreCase(anyString());
+        verify(usuarioRepository, never()).findById(anyString());
         verify(filterChain, times(1)).doFilter(request, response);
     }
 
     @Test
-    @DisplayName("Não deve autenticar quando o e-mail do token não corresponder a nenhum usuário")
+    @DisplayName("Não deve autenticar quando o ID do token não corresponder a nenhum usuário")
     void naoDeveAutenticarQuandoUsuarioNaoEncontrado() throws Exception {
         when(request.getHeader("Authorization")).thenReturn("Bearer token_valido");
-        when(tokenService.validarToken("token_valido")).thenReturn("fantasma@nhac.com");
-        when(usuarioRepository.findByEmailIgnoreCase("fantasma@nhac.com")).thenReturn(java.util.Optional.empty());
+        when(tokenService.validarToken("token_valido")).thenReturn("user_fantasma");
+        when(usuarioRepository.findById("user_fantasma")).thenReturn(java.util.Optional.empty());
 
         securityFilter.doFilterInternal(request, response, filterChain);
 
