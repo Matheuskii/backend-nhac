@@ -23,6 +23,7 @@ public class VerificacaoEmailService {
     private static final int TEMPO_EXPIRACAO_MINUTOS = 15;
     private static final int MAX_TENTATIVAS = 3;
 
+    @Transactional
     public void enviarCodigoReset(String email) {
         String finalEmail = email.trim().toLowerCase();
         CodigoVerificacaoEmail novoCodigo = salvarNovoCodigo(finalEmail);
