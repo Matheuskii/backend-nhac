@@ -105,7 +105,7 @@ class VerificacaoTelefoneServiceTest {
             verificacaoTelefoneService.validarCodigo(validarDto);
         });
 
-        assertEquals("CÃƒÂ³digo expirado ou nÃƒÂ£o encontrado. Solicite um novo cÃƒÂ³digo.", exception.getMessage());
+        assertEquals("Código expirado ou não encontrado. Solicite um novo código.", exception.getMessage());
         verify(codigoRepository, never()).save(any());
         verify(usuarioRepository, never()).save(any());
     }
@@ -121,7 +121,7 @@ class VerificacaoTelefoneServiceTest {
             verificacaoTelefoneService.validarCodigo(validarDto);
         });
 
-        assertEquals("CÃƒÂ³digo de verificaÃƒÂ§ÃƒÂ£o invÃƒÂ¡lido.", exception.getMessage());
+        assertEquals("Código de verificação inválido.", exception.getMessage());
         assertEquals(1, codigoValido.getTentativas());
         assertFalse(codigoValido.isUtilizado());
         verify(codigoRepository).save(codigoValido);
@@ -139,7 +139,7 @@ class VerificacaoTelefoneServiceTest {
             verificacaoTelefoneService.validarCodigo(validarDto);
         });
 
-        assertEquals("Limite de tentativas excedido para este cÃƒÂ³digo. Solicite um novo.", exception.getMessage());
+        assertEquals("Limite de tentativas excedido para este código. Solicite um novo.", exception.getMessage());
         assertTrue(codigoValido.isUtilizado()); // Should mark as utilized
         verify(codigoRepository).save(codigoValido);
         verify(usuarioRepository, never()).save(any());

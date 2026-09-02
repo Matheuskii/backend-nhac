@@ -27,6 +27,7 @@ public class EmailService {
         this.emailSender = emailSender;
     }
 
+    @org.springframework.scheduling.annotation.Async
     public void enviarEmailHtml(String para, String assunto, String htmlConteudo) {
         if (mockMode) {
             logger.info("=================================================");

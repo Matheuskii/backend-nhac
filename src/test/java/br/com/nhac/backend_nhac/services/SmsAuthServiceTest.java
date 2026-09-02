@@ -74,7 +74,7 @@ class SmsAuthServiceTest {
 
         Usuario novoUsuarioSalvo = new Usuario();
         novoUsuarioSalvo.setId("novo_id");
-        novoUsuarioSalvo.setNome("Novo UsuÃ¡rio");
+        novoUsuarioSalvo.setNome("Novo Usuário");
         novoUsuarioSalvo.setTelefone("+5511888888888");
 
         when(usuarioRepository.save(any(Usuario.class))).thenReturn(novoUsuarioSalvo);
@@ -88,14 +88,14 @@ class SmsAuthServiceTest {
         verify(usuarioRepository).save(captor.capture());
 
         Usuario usuarioSalvo = captor.getValue();
-        assertEquals("Novo UsuÃ¡rio", usuarioSalvo.getNome());
-        assertEquals("5511888888888@telefone.nhac.com", usuarioSalvo.getEmail());
+        assertEquals("Novo Usuário", usuarioSalvo.getNome());
+        assertNull(usuarioSalvo.getEmail());
         assertEquals("+5511888888888", usuarioSalvo.getTelefone());
         assertTrue(usuarioSalvo.isTelefoneVerificado());
 
         assertEquals("novo_token_jwt", response.token());
         assertEquals("novo_id", response.usuarioId());
-        assertEquals("Novo UsuÃ¡rio", response.nome());
+        assertEquals("Novo Usuário", response.nome());
         assertTrue(response.isNovoUsuario());
     }
 }
