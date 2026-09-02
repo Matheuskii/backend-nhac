@@ -67,4 +67,19 @@ public class VerificacaoEmailServiceTest {
         long count = codigos.stream().filter(c -> c.getEmail().equals(email)).count();
         assertTrue(count >= 1, "Pelo menos um código deveria ter sido gerado com sucesso sem deadlock");
     }
+
+    @Test
+    public void testEnviarCodigoResetSemErroTransacao() {
+        String email = "transaction_test@nhac.com.br";
+        
+        Usuario u = new Usuario();
+        u.setId(java.util.UUID.randomUUID().toString());
+        u.setNome("Transaction Tester");
+        u.setEmail(email);
+        u.setTelefone("88888888888");
+        usuarioRepository.save(u);
+
+        // This should not throw TransactionRequiredException
+        assertDoesNotThrow(() -> verificacaoEmailService.enviarCodigoReset(email));
+    }
 }
