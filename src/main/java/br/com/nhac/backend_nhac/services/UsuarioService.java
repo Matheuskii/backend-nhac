@@ -49,6 +49,13 @@ public class UsuarioService {
 
     @Transactional
     public void salvarUsuario(UsuarioCreateDTO dto) {
+        if (dto.email() != null && usuarioRepository.findByEmailIgnoreCase(dto.email()).isPresent()) {
+            throw new RegraDeNegocioException("Este e-mail já está em uso.");
+        }
+        if (dto.telefone() != null && usuarioRepository.findByTelefone(dto.telefone()).isPresent()) {
+            throw new RegraDeNegocioException("Este telefone já está em uso.");
+        }
+
         Usuario usuario = dto.toEntity();
 
         if (dto.senha() != null && !dto.senha().isBlank()) {

@@ -27,7 +27,7 @@ public class Usuario implements UserDetails {
     @Column(nullable = false, length = 100)
     private String nome;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = true, length = 100)
     private String email;
 
     @Column(nullable = false, length = 20)

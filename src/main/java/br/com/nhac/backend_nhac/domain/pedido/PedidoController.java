@@ -104,7 +104,7 @@ public class PedidoController {
         return ResponseEntity.ok(page);
     }
 
-    @Operation(summary = "Atualizar status do pedido (Uso interno/admin)", description = "Altera o status do pedido (ex: PREPARANDO, SAIU_ENTREGA, ENTREGUE). Como o mecanismo de papéis (Item 9) ainda não foi implementado, temporariamente a rota exige apenas autenticação. No futuro será restrita a ADMIN/LOJA.")
+    @Operation(summary = "Atualizar status do pedido (Uso interno/admin)", description = "Altera o status do pedido (ex: PREPARANDO, SAIU_ENTREGA, ENTREGUE). Restrita aos papéis ADMIN ou LOJISTA.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Status atualizado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Erro de validação ou regra de negócio", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class))),

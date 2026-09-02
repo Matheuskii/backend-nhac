@@ -60,6 +60,9 @@ class AuthControllerTest {
     @Mock
     private SmsAuthService smsAuthService;
 
+    @Mock
+    private br.com.nhac.backend_nhac.services.VerificacaoEmailService verificacaoEmailService;
+
     @InjectMocks
     private AuthController authController;
 
@@ -217,5 +220,55 @@ class AuthControllerTest {
 
         assertEquals(HttpStatus.OK, resposta.getStatusCode());
         assertFalse(resposta.getBody().existe());
+    }
+
+    @Test
+    @DisplayName("Deve lançar RegraDeNegocioException ao tentar alterar senha de uma conta criada por telefone (sem senha prévia)")
+    void deveLancarExcecaoAoAlterarSenhaDeUsuarioSms() {
+        Usuario usuarioSms = new Usuario();
+        usuarioSms.setSenha(null);
+
+        br.com.nhac.backend_nhac.domain.auth.dto.AlterarSenhaDTO requisicao = 
+                new br.com.nhac.backend_nhac.domain.auth.dto.AlterarSenhaDTO("senha_qualquer", "nova_senha_forte");
+
+        RegraDeNegocioException excecao = assertThrows(RegraDeNegocioException.class, () -> {
+            authController.alterarSenha(usuarioSms, requisicao);
+        });
+
+        assertEquals("Esta conta não possui senha cadastrada. Ela foi criada via login por telefone.", excecao.getMessage());
+    }
+
+    @Test
+    @DisplayName("Deve lançar IdNaoEncontradoException ao tentar recuperar senha de um e-mail não cadastrado (ex: usuário de telefone)")
+    void deveLancarExcecaoAoRecuperarSenhaPorEmailNaoCadastrado() {
+        br.com.nhac.backend_nhac.domain.auth.dto.EsqueciSenhaEmailDTO requisicao = 
+                new br.com.nhac.backend_nhac.domain.auth.dto.EsqueciSenhaEmailDTO("naoexiste@nhac.com");
+
+        when(usuarioRepository.findByEmailIgnoreCase("naoexiste@nhac.com")).thenReturn(Optional.empty());
+
+        br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException excecao = assertThrows(
+                br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException.class, 
+                () -> authController.esqueciSenhaEmail(requisicao)
+        );
+
+        assertEquals("Nenhum usuário encontrado com este e-mail.", excecao.getMessage());
+    }
+
+    @Test
+    @DisplayName("Deve retornar 200 OK e chamar o serviço de e-mail ao recuperar senha de um e-mail válido")
+    void deveEnviarCodigoResetComSucesso() {
+        br.com.nhac.backend_nhac.domain.auth.dto.EsqueciSenhaEmailDTO requisicao = 
+                new br.com.nhac.backend_nhac.domain.auth.dto.EsqueciSenhaEmailDTO("matheus@nhac.com");
+
+        Usuario usuarioValido = new Usuario();
+        usuarioValido.setEmail("matheus@nhac.com");
+        usuarioValido.setAtivo(true); // O usuário precisa estar ativo
+
+        when(usuarioRepository.findByEmailIgnoreCase("matheus@nhac.com")).thenReturn(Optional.of(usuarioValido));
+
+        ResponseEntity<Void> resposta = authController.esqueciSenhaEmail(requisicao);
+
+        assertEquals(HttpStatus.OK, resposta.getStatusCode());
+        verify(verificacaoEmailService, times(1)).enviarCodigoReset("matheus@nhac.com");
     }
 }
