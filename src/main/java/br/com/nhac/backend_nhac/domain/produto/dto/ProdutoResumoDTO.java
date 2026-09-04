@@ -37,7 +37,12 @@ public record ProdutoResumoDTO(
         String peso,
 
         @Schema(description = "Percentual de desconto", example = "0")
-        Integer percentualDesconto
+        Integer percentualDesconto,
+
+        @Schema(description = "Indica se a loja do produto está aberta no momento (baseado no campo isAberto da loja). "
+                + "Permite ao cliente decidir a exibição sem precisar chamar GET /lojas/{id} separadamente.",
+                example = "true")
+        boolean lojaAberta
 ) {
     public ProdutoResumoDTO(Produto produto) {
         this(
@@ -50,7 +55,8 @@ public record ProdutoResumoDTO(
                 produto.getCategoriaMenu(),
                 produto.getImagemUrl(),
                 produto.getPeso(),
-                produto.getPercentualDesconto()
+                produto.getPercentualDesconto(),
+                produto.getLoja() != null && produto.getLoja().isAberto()
         );
     }
 }
