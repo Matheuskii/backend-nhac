@@ -1,7 +1,7 @@
 package br.com.nhac.backend_nhac;
 
-import br.com.nhac.backend_nhac.repositories.ProdutoRepository;
-import br.com.nhac.backend_nhac.repositories.AvaliacaoRepository;
+import br.com.nhac.backend_nhac.domain.produto.ProdutoRepository;
+import br.com.nhac.backend_nhac.domain.avaliacao.AvaliacaoRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

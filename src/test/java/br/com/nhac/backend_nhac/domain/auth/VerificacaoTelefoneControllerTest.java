@@ -2,7 +2,7 @@ package br.com.nhac.backend_nhac.domain.auth;
 
 import br.com.nhac.backend_nhac.domain.auth.dto.EnviarCodigoSmsDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.ValidarCodigoSmsDTO;
-import br.com.nhac.backend_nhac.services.VerificacaoTelefoneService;
+import br.com.nhac.backend_nhac.domain.auth.VerificacaoTelefoneService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -10,9 +10,9 @@ import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.exceptions.CredenciaisInvalidasException;
 import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 import br.com.nhac.backend_nhac.infra.security.TokenService;
-import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
-import br.com.nhac.backend_nhac.services.GoogleAuthService;
-import br.com.nhac.backend_nhac.services.SmsAuthService;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import br.com.nhac.backend_nhac.domain.auth.GoogleAuthService;
+import br.com.nhac.backend_nhac.domain.auth.SmsAuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -61,7 +61,7 @@ class AuthControllerTest {
     private SmsAuthService smsAuthService;
 
     @Mock
-    private br.com.nhac.backend_nhac.services.VerificacaoEmailService verificacaoEmailService;
+    private br.com.nhac.backend_nhac.domain.auth.VerificacaoEmailService verificacaoEmailService;
 
     @InjectMocks
     private AuthController authController;

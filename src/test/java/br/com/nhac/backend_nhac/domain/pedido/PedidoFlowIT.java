@@ -6,9 +6,9 @@ import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCreateDTO;
 import br.com.nhac.backend_nhac.domain.produto.Produto;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.infra.security.TokenService;
-import br.com.nhac.backend_nhac.repositories.LojaRepository;
-import br.com.nhac.backend_nhac.repositories.ProdutoRepository;
-import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
+import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
+import br.com.nhac.backend_nhac.domain.produto.ProdutoRepository;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +20,7 @@ import java.util.UUID;
 
 import org.mockito.Mockito;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import br.com.nhac.backend_nhac.services.StripePaymentService;
+import br.com.nhac.backend_nhac.domain.pedido.StripePaymentService;
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;

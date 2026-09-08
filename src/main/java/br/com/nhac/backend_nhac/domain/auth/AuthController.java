@@ -10,10 +10,10 @@ import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.exceptions.CredenciaisInvalidasException;
 import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 import br.com.nhac.backend_nhac.infra.security.TokenService;
-import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
-import br.com.nhac.backend_nhac.services.GoogleAuthService;
-import br.com.nhac.backend_nhac.services.SmsAuthService;
-import br.com.nhac.backend_nhac.services.UsuarioService;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import br.com.nhac.backend_nhac.domain.auth.GoogleAuthService;
+import br.com.nhac.backend_nhac.domain.auth.SmsAuthService;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -36,11 +36,11 @@ public class AuthController {
     private final TokenService tokenService;
     private final GoogleAuthService googleAuthService;
     private final SmsAuthService smsAuthService;
-    private final br.com.nhac.backend_nhac.services.VerificacaoTelefoneService verificacaoTelefoneService;
-    private final br.com.nhac.backend_nhac.services.VerificacaoEmailService verificacaoEmailService;
+    private final br.com.nhac.backend_nhac.domain.auth.VerificacaoTelefoneService verificacaoTelefoneService;
+    private final br.com.nhac.backend_nhac.domain.auth.VerificacaoEmailService verificacaoEmailService;
     private final UsuarioService usuarioService;
 
-    public AuthController(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, TokenService tokenService, GoogleAuthService googleAuthService, SmsAuthService smsAuthService, br.com.nhac.backend_nhac.services.VerificacaoTelefoneService verificacaoTelefoneService, br.com.nhac.backend_nhac.services.VerificacaoEmailService verificacaoEmailService, UsuarioService usuarioService) {
+    public AuthController(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, TokenService tokenService, GoogleAuthService googleAuthService, SmsAuthService smsAuthService, br.com.nhac.backend_nhac.domain.auth.VerificacaoTelefoneService verificacaoTelefoneService, br.com.nhac.backend_nhac.domain.auth.VerificacaoEmailService verificacaoEmailService, UsuarioService usuarioService) {
 
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;

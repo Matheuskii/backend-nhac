@@ -3,7 +3,7 @@ package br.com.nhac.backend_nhac.domain.loja;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaDetalhesDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaResumoDTO;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
-import br.com.nhac.backend_nhac.services.LojaService;
+import br.com.nhac.backend_nhac.domain.loja.LojaService;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,7 +39,7 @@ class LojaControllerTest {
     private br.com.nhac.backend_nhac.infra.security.TokenService tokenService;
 
     @MockitoBean
-    private br.com.nhac.backend_nhac.repositories.UsuarioRepository usuarioRepository;
+    private br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository usuarioRepository;
 
     @Test
     @DisplayName("Deve retornar 200 com a página de lojas abertas")

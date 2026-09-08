@@ -1,7 +1,7 @@
 package br.com.nhac.backend_nhac.infra.security;
 
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
-import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

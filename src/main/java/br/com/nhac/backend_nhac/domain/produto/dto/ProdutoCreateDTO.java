@@ -2,7 +2,7 @@ package br.com.nhac.backend_nhac.domain.produto.dto;
 
 import br.com.nhac.backend_nhac.domain.loja.Loja;
 import br.com.nhac.backend_nhac.domain.produto.Produto;
-import br.com.nhac.backend_nhac.repositories.ProdutoRepository;
+import br.com.nhac.backend_nhac.domain.produto.ProdutoRepository;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 

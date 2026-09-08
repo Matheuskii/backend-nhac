@@ -3,7 +3,7 @@ package br.com.nhac.backend_nhac.domain.favorito;
 import br.com.nhac.backend_nhac.domain.favorito.dto.FavoritoCreateDTO;
 import br.com.nhac.backend_nhac.domain.favorito.dto.FavoritoResponseDTO;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
-import br.com.nhac.backend_nhac.services.FavoritoService;
+import br.com.nhac.backend_nhac.domain.favorito.FavoritoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,7 +44,7 @@ class FavoritoControllerTest {
     private br.com.nhac.backend_nhac.infra.security.TokenService tokenService;
 
     @MockitoBean
-    private br.com.nhac.backend_nhac.repositories.UsuarioRepository usuarioRepository;
+    private br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository usuarioRepository;
 
     private static final String USUARIO_LOGADO_ID = "user_123";
 
