@@ -1,10 +1,14 @@
 package br.com.nhac.backend_nhac.domain.loja;
 
+import br.com.nhac.backend_nhac.domain.loja.dto.LojaCreateDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaDetalhesDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaResumoDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Papel;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
-import br.com.nhac.backend_nhac.domain.loja.LojaService;
 import org.jspecify.annotations.NonNull;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,15 +17,22 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -40,6 +51,25 @@ class LojaControllerTest {
 
     @MockitoBean
     private br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository usuarioRepository;
+
+    private Usuario usuarioLogado;
+
+    @BeforeEach
+    void setUp() {
+        usuarioLogado = new Usuario();
+        usuarioLogado.setId("user_123");
+        usuarioLogado.setEmail("teste@nhac.com");
+        usuarioLogado.setPapel(Papel.CLIENTE);
+
+        UsernamePasswordAuthenticationToken auth =
+                new UsernamePasswordAuthenticationToken(usuarioLogado, null, usuarioLogado.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
 
     @Test
     @DisplayName("Deve retornar 200 com a página de lojas abertas")
@@ -91,5 +121,56 @@ class LojaControllerTest {
         mockMvc.perform(get("/api/v1/lojas/{id}", "loja_fantasma"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("A loja com o id: loja_fantasma não foi encontrada."));
+    }
+
+    @Test
+    @DisplayName("Deve criar loja autenticado usando o usuário do token, ignorando usuarioId no corpo")
+    void deveCriarLojaComUsuarioAutenticadoIgnorandoUsuarioIdDoCorpo() throws Exception {
+        LojaResumoDTO.DadosOperacionaisDTO dadosOp =
+                new LojaResumoDTO.DadosOperacionaisDTO(0.0f, new BigDecimal("5.99"), 30, 45, 0);
+        LojaResumoDTO resumo = new LojaResumoDTO("loja_0001", "Mercado Central", "Orgânicos", "Restaurantes", "url", dadosOp);
+
+        when(lojaService.criarLoja(any(LojaCreateDTO.class), eq(usuarioLogado))).thenReturn(resumo);
+
+        String json = """
+                {
+                  "nome": "Mercado Central",
+                  "descricao": "Orgânicos",
+                  "categoria": "Restaurantes",
+                  "imagemUrl": "https://example.com/banner.jpg",
+                  "isAberto": true,
+                  "usuarioId": "usuario-forjado",
+                  "dadosOperacionais": {
+                    "taxaEntregaBase": 5.99,
+                    "tempoEntregaMin": 30,
+                    "tempoEntregaMax": 45
+                  },
+                  "endereco": {
+                    "rua": "Avenida Paulista",
+                    "numero": "1578",
+                    "cidade": "São Paulo",
+                    "estado": "SP",
+                    "cep": "01310-200"
+                  },
+                  "horarios": {
+                    "domingo": "18:00-23:00",
+                    "segunda": "Fechado",
+                    "terca": "11:00-23:00",
+                    "quarta": "11:00-23:00",
+                    "quinta": "11:00-23:00",
+                    "sexta": "11:00-23:59",
+                    "sabado": "11:00-23:59"
+                  }
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/lojas")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value("loja_0001"))
+                .andExpect(jsonPath("$.nome").value("Mercado Central"));
+
+        verify(lojaService).criarLoja(any(LojaCreateDTO.class), eq(usuarioLogado));
     }
 }

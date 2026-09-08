@@ -5,10 +5,14 @@ import br.com.nhac.backend_nhac.domain.loja.EnderecoLoja;
 import br.com.nhac.backend_nhac.domain.loja.GeoLocalizacao;
 import br.com.nhac.backend_nhac.domain.loja.HorariosFuncionamento;
 import br.com.nhac.backend_nhac.domain.loja.Loja;
+import br.com.nhac.backend_nhac.domain.loja.dto.LojaCreateDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaDetalhesDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaResumoDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Papel;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
-import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +36,9 @@ class LojaServiceTest {
 
     @Mock
     private LojaRepository lojaRepository;
+
+    @Mock
+    private UsuarioRepository usuarioRepository;
 
     @InjectMocks
     private LojaService lojaService;
@@ -107,5 +114,56 @@ class LojaServiceTest {
                 () -> lojaService.obterLojaId("loja_fantasma"));
 
         assertEquals("A loja com o id: loja_fantasma não foi encontrada.", excecao.getMessage());
+    }
+
+    @Test
+    @DisplayName("Deve vincular a loja ao usuário autenticado e promover CLIENTE para LOJISTA")
+    void deveCriarLojaVinculadaEPromoverPapelParaLojista() {
+        Usuario cliente = new Usuario();
+        cliente.setId("user_lojista");
+        cliente.setPapel(Papel.CLIENTE);
+
+        when(lojaRepository.count()).thenReturn(0L);
+        when(lojaRepository.save(any(Loja.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        LojaResumoDTO resumo = lojaService.criarLoja(construirDtoCriacao(), cliente);
+
+        assertEquals("loja_0001", resumo.id());
+        assertEquals(Papel.LOJISTA, cliente.getPapel());
+        verify(usuarioRepository).save(cliente);
+        verify(lojaRepository).save(argThat(loja ->
+                "user_lojista".equals(loja.getUsuarioId()) && "loja_0001".equals(loja.getId())));
+    }
+
+    @Test
+    @DisplayName("Não deve rebaixar ADMIN ao criar loja")
+    void deveManterPapelAdminAoCriarLoja() {
+        Usuario admin = new Usuario();
+        admin.setId("user_admin");
+        admin.setPapel(Papel.ADMIN);
+
+        when(lojaRepository.count()).thenReturn(1L);
+        when(lojaRepository.save(any(Loja.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        lojaService.criarLoja(construirDtoCriacao(), admin);
+
+        assertEquals(Papel.ADMIN, admin.getPapel());
+        verify(usuarioRepository, never()).save(any());
+        verify(lojaRepository).save(argThat(loja -> "user_admin".equals(loja.getUsuarioId())));
+    }
+
+    @Test
+    @DisplayName("Deve recusar criação de loja sem usuário autenticado")
+    void deveRecusarCriacaoSemUsuarioAutenticado() {
+        assertThrows(AcessoNegadoException.class, () -> lojaService.criarLoja(construirDtoCriacao(), null));
+        verify(lojaRepository, never()).save(any());
+    }
+
+    private LojaCreateDTO construirDtoCriacao() {
+        LojaCreateDTO.DadosOperacionaisDTO dadosOp = new LojaCreateDTO.DadosOperacionaisDTO(new BigDecimal("5.0"), 30, 45);
+        LojaCreateDTO.EnderecoDTO endereco = new LojaCreateDTO.EnderecoDTO("Rua X", "123", "Cidade", "SP", "01234-567");
+        LojaCreateDTO.HorariosDTO horarios = new LojaCreateDTO.HorariosDTO("F", "F", "F", "F", "F", "F", "F");
+        return new LojaCreateDTO("Nova Loja", "Desc", "Categoria", "img.jpg", true, dadosOp, endereco, horarios);
     }
 }

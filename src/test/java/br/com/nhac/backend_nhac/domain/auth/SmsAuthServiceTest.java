@@ -61,6 +61,7 @@ class SmsAuthServiceTest {
         assertEquals("token_jwt", response.token());
         assertEquals("user123", response.usuarioId());
         assertEquals("Matheus Alves", response.nome());
+        assertEquals("CLIENTE", response.papel());
         assertFalse(response.isNovoUsuario());
     }
 
@@ -96,6 +97,7 @@ class SmsAuthServiceTest {
         assertEquals("novo_token_jwt", response.token());
         assertEquals("novo_id", response.usuarioId());
         assertEquals("Novo Usuário", response.nome());
+        assertEquals("CLIENTE", response.papel());
         assertTrue(response.isNovoUsuario());
     }
 }

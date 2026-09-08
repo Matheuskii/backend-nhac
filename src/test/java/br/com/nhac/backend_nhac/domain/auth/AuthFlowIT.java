@@ -32,7 +32,8 @@ public class AuthFlowIT extends AbstractIntegrationTest {
                 .content(objectMapper.writeValueAsString(registroReq)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.token").exists())
-                .andExpect(jsonPath("$.nome").value("Usuario Teste"));
+                .andExpect(jsonPath("$.nome").value("Usuario Teste"))
+                .andExpect(jsonPath("$.papel").value("CLIENTE"));
 
         LoginRequestDTO loginReq = new LoginRequestDTO(email, senha);
 
@@ -41,6 +42,7 @@ public class AuthFlowIT extends AbstractIntegrationTest {
                 .content(objectMapper.writeValueAsString(loginReq)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").exists())
-                .andExpect(jsonPath("$.nome").value("Usuario Teste"));
+                .andExpect(jsonPath("$.nome").value("Usuario Teste"))
+                .andExpect(jsonPath("$.papel").value("CLIENTE"));
     }
 }

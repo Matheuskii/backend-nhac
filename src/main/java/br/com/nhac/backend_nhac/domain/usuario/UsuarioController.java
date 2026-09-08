@@ -68,7 +68,7 @@ public class UsuarioController {
         Usuario usuarioAtualizado = usuarioRepository.findById(id).get();
         String novoToken = tokenService.gerarToken(usuarioAtualizado);
 
-        return ResponseEntity.ok(new LoginResponseDTO(novoToken, usuarioAtualizado.getId(), usuarioAtualizado.getNome(), false));
+        return ResponseEntity.ok(LoginResponseDTO.from(usuarioAtualizado, novoToken, false));
     }
 
     @DeleteMapping("/{id}")

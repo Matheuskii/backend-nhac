@@ -40,7 +40,7 @@ public class SmsAuthService {
 
         String tokenJwt = tokenService.gerarToken(usuario);
 
-        return new LoginResponseDTO(tokenJwt, usuario.getId(), usuario.getNome(), isNovoUsuario);
+        return LoginResponseDTO.from(usuario, tokenJwt, isNovoUsuario);
     }
 
     private Usuario registrarNovoUsuarioSms(String telefone, String nome) {

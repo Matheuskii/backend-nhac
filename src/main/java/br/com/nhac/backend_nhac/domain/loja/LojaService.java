@@ -1,12 +1,14 @@
 package br.com.nhac.backend_nhac.domain.loja;
 
 
-import br.com.nhac.backend_nhac.domain.loja.Loja;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaCreateDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaResumoDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaDetalhesDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Papel;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
-import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,10 +20,12 @@ import org.springframework.stereotype.Service;
 public class LojaService {
 
     private final LojaRepository lojaRepository;
+    private final UsuarioRepository usuarioRepository;
 
 
-    public LojaService(LojaRepository lojaRepository){
+    public LojaService(LojaRepository lojaRepository, UsuarioRepository usuarioRepository){
         this.lojaRepository = lojaRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
 
@@ -48,12 +52,23 @@ public class LojaService {
 
     }
     @Transactional
-    public LojaResumoDTO criarLoja(LojaCreateDTO dto) {
+    public LojaResumoDTO criarLoja(LojaCreateDTO dto, Usuario usuarioLogado) {
+        if (usuarioLogado == null) {
+            throw new AcessoNegadoException("É necessário estar autenticado para cadastrar uma loja.");
+        }
+
         long totalLojas = contarLojasCadastradas();
         String novoId = String.format("loja_%04d", totalLojas + 1);
-        
+
         Loja novaLoja = dto.toEntity();
         novaLoja.setId(novoId);
+        novaLoja.setUsuarioId(usuarioLogado.getId());
+
+        if (usuarioLogado.getPapel() == Papel.CLIENTE) {
+            usuarioLogado.setPapel(Papel.LOJISTA);
+            usuarioRepository.save(usuarioLogado);
+        }
+
         Loja lojaSalva = lojaRepository.save(novaLoja);
         return new LojaResumoDTO(lojaSalva);
     }

@@ -59,7 +59,7 @@ public class AuthController {
 
         if (passwordEncoder.matches(body.senha(), usuario.getSenha())) {
             String token = tokenService.gerarToken(usuario);
-            return ResponseEntity.ok(new LoginResponseDTO(token, usuario.getId(), usuario.getNome(), false));
+            return ResponseEntity.ok(LoginResponseDTO.from(usuario, token, false));
         }
 
         throw new CredenciaisInvalidasException("E-mail não encontrado ou senha inválida.");
@@ -83,7 +83,7 @@ public class AuthController {
         usuarioRepository.save(novoUsuario);
 
         String token = tokenService.gerarToken(novoUsuario);
-        return ResponseEntity.status(HttpStatus.CREATED).body(new LoginResponseDTO(token, novoUsuario.getId(), novoUsuario.getNome(), false));
+        return ResponseEntity.status(HttpStatus.CREATED).body(LoginResponseDTO.from(novoUsuario, token, false));
     }
 
     @PostMapping("/social")

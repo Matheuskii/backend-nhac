@@ -57,7 +57,7 @@ public class GoogleAuthService {
 
                 String tokenJwt = tokenService.gerarToken(usuario);
 
-                return new LoginResponseDTO(tokenJwt, usuario.getId(), usuario.getNome(), false);
+                return LoginResponseDTO.from(usuario, tokenJwt, false);
 
             } else {
                 throw new CredenciaisInvalidasException("Token do Google inválido ou expirado");

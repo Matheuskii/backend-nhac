@@ -79,6 +79,7 @@ class GoogleAuthServiceTest {
             assertEquals("jwt-super-secreto", response.token());
             assertEquals("user-id-123", response.usuarioId());
             assertEquals("Teste da Silva", response.nome());
+            assertEquals("CLIENTE", response.papel());
             
             verify(usuarioRepository, never()).save(any()); // Usuario already exists, should not save
         }
@@ -122,6 +123,7 @@ class GoogleAuthServiceTest {
             assertNotNull(response);
             assertEquals("jwt-novo-usuario", response.token());
             assertEquals("new-user-uuid", response.usuarioId());
+            assertEquals("CLIENTE", response.papel());
             verify(usuarioRepository).save(any(Usuario.class)); // Verifies that save was called
         }
     }

@@ -4,7 +4,7 @@ import br.com.nhac.backend_nhac.domain.loja.dto.LojaCreateDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaDetalhesDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaResumoDTO;
 import br.com.nhac.backend_nhac.exceptions.ErroPadraoDTO;
-import br.com.nhac.backend_nhac.domain.loja.LojaService;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -57,13 +58,16 @@ public class LojaController {
     }
 
 
-    @Operation(summary = "Criar nova loja", description = "Cadastra um novo restaurante no sistema.")
+    @Operation(summary = "Criar nova loja", description = "Cadastra um novo restaurante vinculado ao usuário autenticado e promove o papel para LOJISTA. O dono da loja é sempre o usuário do token, nunca um campo do corpo da requisição.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Loja criada com sucesso")
+            @ApiResponse(responseCode = "201", description = "Loja criada com sucesso"),
+            @ApiResponse(responseCode = "401", description = "Não autenticado")
     })
     @PostMapping
-    public ResponseEntity<LojaResumoDTO> criarLoja(@RequestBody @Valid LojaCreateDTO dto) {
-        LojaResumoDTO resumoDTO = lojaService.criarLoja(dto);
+    public ResponseEntity<LojaResumoDTO> criarLoja(
+            @RequestBody @Valid LojaCreateDTO dto,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+        LojaResumoDTO resumoDTO = lojaService.criarLoja(dto, usuarioLogado);
         return ResponseEntity.status(HttpStatus.CREATED).body(resumoDTO);
     }
 

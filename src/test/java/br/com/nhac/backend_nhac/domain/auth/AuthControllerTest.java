@@ -76,7 +76,7 @@ class AuthControllerTest {
     void deveAutenticarComSmsComSucesso() throws Exception {
         br.com.nhac.backend_nhac.domain.auth.dto.ValidarCodigoSmsDTO requisicao = new br.com.nhac.backend_nhac.domain.auth.dto.ValidarCodigoSmsDTO("+5511999999999", "123456", null);
 
-        LoginResponseDTO respostaEsperada = new LoginResponseDTO("jwt_gerado_pelo_backend_sms", "user_novo", "Novo Usuário", true);
+        LoginResponseDTO respostaEsperada = new LoginResponseDTO("jwt_gerado_pelo_backend_sms", "user_novo", "Novo Usuário", true, "CLIENTE");
 
         when(smsAuthService.autenticarComSms(requisicao)).thenReturn(respostaEsperada);
 
@@ -129,6 +129,7 @@ class AuthControllerTest {
         assertEquals(HttpStatus.OK, resposta.getStatusCode());
         assertEquals("token_jwt_gerado", resposta.getBody().token());
         assertEquals("user_1", resposta.getBody().usuarioId());
+        assertEquals("CLIENTE", resposta.getBody().papel());
     }
 
     @Test
@@ -157,6 +158,7 @@ class AuthControllerTest {
 
         assertEquals(HttpStatus.CREATED, resposta.getStatusCode());
         assertEquals("token_jwt_gerado", resposta.getBody().token());
+        assertEquals("CLIENTE", resposta.getBody().papel());
 
         ArgumentCaptor<Usuario> captor = ArgumentCaptor.forClass(Usuario.class);
         verify(usuarioRepository).save(captor.capture());
@@ -184,7 +186,7 @@ class AuthControllerTest {
     void deveAutenticarComGoogleComSucesso() throws Exception {
         SocialLoginRequestDTO requisicao = new SocialLoginRequestDTO("token_google_falso_mas_mockado");
 
-        LoginResponseDTO respostaEsperada = new LoginResponseDTO("jwt_gerado_pelo_backend", "user_1", "Usuário Nhac", false);
+        LoginResponseDTO respostaEsperada = new LoginResponseDTO("jwt_gerado_pelo_backend", "user_1", "Usuário Nhac", false, "CLIENTE");
 
         when(googleAuthService.autenticarComGoogle("token_google_falso_mas_mockado")).thenReturn(respostaEsperada);
 
