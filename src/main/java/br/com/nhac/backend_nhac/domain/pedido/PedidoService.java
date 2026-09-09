@@ -177,9 +177,15 @@ public class PedidoService {
     }
 
     @Transactional
-    public void atualizarStatus(String pedidoId, StatusPedido novoStatus) {
+    public void atualizarStatus(String pedidoId, StatusPedido novoStatus, Usuario usuarioLogado) {
         Pedido pedido = pedidoRepository.findById(pedidoId)
                 .orElseThrow(() -> new IdNaoEncontradoException("Pedido não encontrado."));
+
+        // ADMIN tem bypass na checagem de ownership
+        boolean isAdmin = usuarioLogado.getPapel().name().equals("ADMIN");
+        if (!isAdmin && !pedido.getLoja().getUsuarioId().equals(usuarioLogado.getId())) {
+            throw new AcessoNegadoException("Acesso negado: você não tem permissão para alterar o status deste pedido.");
+        }
 
         pedido.alterarStatus(novoStatus);
         pedidoRepository.save(pedido);

@@ -9,6 +9,7 @@ import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
 import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
+import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;

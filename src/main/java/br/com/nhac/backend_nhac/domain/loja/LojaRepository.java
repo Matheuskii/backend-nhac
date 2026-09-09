@@ -18,6 +18,8 @@ public interface LojaRepository extends JpaRepository<Loja, String> {
 
     Optional<Loja> findByIdAndIsAbertoTrue(String id);
 
+    Optional<Loja> findByUsuarioId(String usuarioId);
+
     @org.springframework.data.jpa.repository.Query(value = "SELECT l.* FROM tb_lojas l " +
             "WHERE l.is_aberto = true " +
             "AND (:nome IS NULL OR LOWER(l.nome) LIKE LOWER(CONCAT('%', :nome, '%'))) " +

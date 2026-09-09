@@ -360,13 +360,22 @@ class PedidoServiceTest {
     @Test
     @DisplayName("Deve atualizar status com sucesso quando a transição for válida")
     void deveAtualizarStatusQuandoTransicaoForValida() {
+        Loja lojaMock = new Loja();
+        lojaMock.setId("loja_001");
+        lojaMock.setUsuarioId("user_001");
+        
+        Usuario usuarioMock = new Usuario();
+        usuarioMock.setId("user_001");
+        usuarioMock.setPapel(br.com.nhac.backend_nhac.domain.usuario.Papel.LOJISTA);
+        
         Pedido pedidoMock = new Pedido();
         pedidoMock.setId("pedido_123");
         pedidoMock.setStatus(StatusPedido.PAGO);
+        pedidoMock.setLoja(lojaMock);
 
         when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
 
-        pedidoService.atualizarStatus("pedido_123", StatusPedido.PREPARANDO);
+        pedidoService.atualizarStatus("pedido_123", StatusPedido.PREPARANDO, usuarioMock);
 
         verify(pedidoRepository, times(1)).save(pedidoMock);
         assertEquals(StatusPedido.PREPARANDO, pedidoMock.getStatus());
@@ -375,14 +384,23 @@ class PedidoServiceTest {
     @Test
     @DisplayName("Deve lançar exceção quando a transição for inválida")
     void deveLancarExcecaoQuandoTransicaoForInvalida() {
+        Loja lojaMock = new Loja();
+        lojaMock.setId("loja_001");
+        lojaMock.setUsuarioId("user_001");
+        
+        Usuario usuarioMock = new Usuario();
+        usuarioMock.setId("user_001");
+        usuarioMock.setPapel(br.com.nhac.backend_nhac.domain.usuario.Papel.LOJISTA);
+        
         Pedido pedidoMock = new Pedido();
         pedidoMock.setId("pedido_123");
         pedidoMock.setStatus(StatusPedido.ENTREGUE);
+        pedidoMock.setLoja(lojaMock);
 
         when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
 
         RegraDeNegocioException excecao = assertThrows(RegraDeNegocioException.class, () -> {
-            pedidoService.atualizarStatus("pedido_123", StatusPedido.PREPARANDO);
+            pedidoService.atualizarStatus("pedido_123", StatusPedido.PREPARANDO, usuarioMock);
         });
 
         assertTrue(excecao.getMessage().contains("Transição de status inválida"));
@@ -391,14 +409,23 @@ class PedidoServiceTest {
     @Test
     @DisplayName("Deve lançar exceção quando status atual for igual ao novo")
     void deveLancarExcecaoQuandoStatusAtualIgualNovo() {
+        Loja lojaMock = new Loja();
+        lojaMock.setId("loja_001");
+        lojaMock.setUsuarioId("user_001");
+        
+        Usuario usuarioMock = new Usuario();
+        usuarioMock.setId("user_001");
+        usuarioMock.setPapel(br.com.nhac.backend_nhac.domain.usuario.Papel.LOJISTA);
+        
         Pedido pedidoMock = new Pedido();
         pedidoMock.setId("pedido_123");
         pedidoMock.setStatus(StatusPedido.PREPARANDO);
+        pedidoMock.setLoja(lojaMock);
 
         when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
 
         RegraDeNegocioException excecao = assertThrows(RegraDeNegocioException.class, () -> {
-            pedidoService.atualizarStatus("pedido_123", StatusPedido.PREPARANDO);
+            pedidoService.atualizarStatus("pedido_123", StatusPedido.PREPARANDO, usuarioMock);
         });
 
         assertTrue(excecao.getMessage().contains("já está no status"));
@@ -476,5 +503,76 @@ class PedidoServiceTest {
         assertThrows(RegraDeNegocioException.class, () -> {
             pedidoService.marcarComoCanceladoPorFalhaDePagamento("pedido_123");
         });
+    }
+
+    @Test
+    @DisplayName("Deve lançar AcessoNegadoException quando lojista não for dono da loja do pedido")
+    void deveLancarAcessoNegadoQuandoLojistaNaoForDonoDaLoja() {
+        Loja lojaDoPedido = new Loja();
+        lojaDoPedido.setId("loja_pedido");
+        lojaDoPedido.setUsuarioId("dono_loja_pedido");
+
+        Usuario lojistaIntruso = new Usuario();
+        lojistaIntruso.setId("intruso");
+        lojistaIntruso.setPapel(br.com.nhac.backend_nhac.domain.usuario.Papel.LOJISTA);
+
+        Pedido pedidoMock = new Pedido();
+        pedidoMock.setId("pedido_123");
+        pedidoMock.setStatus(StatusPedido.PAGO);
+        pedidoMock.setLoja(lojaDoPedido);
+
+        when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
+
+        assertThrows(AcessoNegadoException.class, () -> {
+            pedidoService.atualizarStatus("pedido_123", StatusPedido.PREPARANDO, lojistaIntruso);
+        });
+    }
+
+    @Test
+    @DisplayName("Deve permitir que ADMIN atualize status mesmo sem ser dono da loja (bypass)")
+    void devePermitirAdminAtualizarStatusSemSerDono() {
+        Loja lojaMock = new Loja();
+        lojaMock.setId("loja_001");
+        lojaMock.setUsuarioId("dono_loja");
+
+        Usuario adminMock = new Usuario();
+        adminMock.setId("admin_user");
+        adminMock.setPapel(br.com.nhac.backend_nhac.domain.usuario.Papel.ADMIN);
+
+        Pedido pedidoMock = new Pedido();
+        pedidoMock.setId("pedido_123");
+        pedidoMock.setStatus(StatusPedido.PAGO);
+        pedidoMock.setLoja(lojaMock);
+
+        when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
+
+        pedidoService.atualizarStatus("pedido_123", StatusPedido.PREPARANDO, adminMock);
+
+        verify(pedidoRepository, times(1)).save(pedidoMock);
+        assertEquals(StatusPedido.PREPARANDO, pedidoMock.getStatus());
+    }
+
+    @Test
+    @DisplayName("Deve permitir que lojista dono atualize status do pedido")
+    void devePermitirLojistaDonoAtualizarStatus() {
+        Loja lojaMock = new Loja();
+        lojaMock.setId("loja_001");
+        lojaMock.setUsuarioId("dono_loja");
+
+        Usuario lojistaDono = new Usuario();
+        lojistaDono.setId("dono_loja");
+        lojistaDono.setPapel(br.com.nhac.backend_nhac.domain.usuario.Papel.LOJISTA);
+
+        Pedido pedidoMock = new Pedido();
+        pedidoMock.setId("pedido_123");
+        pedidoMock.setStatus(StatusPedido.PAGO);
+        pedidoMock.setLoja(lojaMock);
+
+        when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
+
+        pedidoService.atualizarStatus("pedido_123", StatusPedido.PREPARANDO, lojistaDono);
+
+        verify(pedidoRepository, times(1)).save(pedidoMock);
+        assertEquals(StatusPedido.PREPARANDO, pedidoMock.getStatus());
     }
 }

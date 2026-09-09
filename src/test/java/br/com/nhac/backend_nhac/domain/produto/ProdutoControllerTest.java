@@ -67,7 +67,7 @@ class ProdutoControllerTest {
     @DisplayName("Deve retornar Erro 422 quando criar produto com nome vazio")
     void deveDevolverErro400QuandoNomeVazio() throws Exception {
         ProdutoCreateDTO dtoInvalido = new ProdutoCreateDTO(
-                "loja_123", "", "Desc", new BigDecimal("10.00"), "Cat", null, "12", null
+                "", "Desc", new BigDecimal("10.00"), "Cat", null, "12", null
         );
 
         //noinspection deprecation
@@ -82,7 +82,7 @@ class ProdutoControllerTest {
     @DisplayName("Deve retornar Erro 400 quando criar produto com preço negativo")
     void deveDevolverErro400QuandoPrecoNegativo() throws Exception {
         ProdutoCreateDTO dtoInvalido = new ProdutoCreateDTO(
-                "loja_123", "Hambúrguer", "Desc", new BigDecimal("-5.00"), "Cat", "url", "23", 0
+                "Hambúrguer", "Desc", new BigDecimal("-5.00"), "Cat", "url", "23", 0
         );
 
         //noinspection deprecation
@@ -97,7 +97,7 @@ class ProdutoControllerTest {
     @DisplayName("Deve retornar 201 ao cadastrar um produto com dados válidos")
     void deveCadastrarProdutoComSucesso() throws Exception {
         ProdutoCreateDTO dtoValido = new ProdutoCreateDTO(
-                "loja_123", "Hossomaki", "Descrição", new BigDecimal("25.50"),
+                "Hossomaki", "Descrição", new BigDecimal("25.50"),
                 "Sushi", "url", "200g", 10
         );
 
@@ -111,7 +111,7 @@ class ProdutoControllerTest {
         lojaMock.setId("loja_123");
         produtoSalvo.setLoja(lojaMock);
 
-        when(produtoService.cadastrarProduto(any())).thenReturn(produtoSalvo);
+        when(produtoService.cadastrarProduto(any(), any())).thenReturn(produtoSalvo);
 
         mockMvc.perform(post("/api/v1/produtos")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -173,7 +173,7 @@ class ProdutoControllerTest {
                 "produto_1", "loja_123", "Loja Teste", "Hossomaki Editado", "Nova descrição", new BigDecimal("30.00"), "Sushi", "nova-url", "250g", 0, true
         );
 
-        when(produtoService.atualizarProduto(any(), any())).thenReturn(produtoAtualizado);
+        when(produtoService.atualizarProduto(any(), any(), any())).thenReturn(produtoAtualizado);
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/v1/produtos/{produtoId}", "produto_1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -205,7 +205,7 @@ class ProdutoControllerTest {
                 "Sushi", "nova-url", "250g", 0, false
         );
 
-        when(produtoService.atualizarProduto(any(), any()))
+        when(produtoService.atualizarProduto(any(), any(), any()))
                 .thenThrow(new br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException("O produto com o id: produto_fantasma não foi encontrado."));
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/v1/produtos/{produtoId}", "produto_fantasma")
@@ -217,7 +217,7 @@ class ProdutoControllerTest {
     @Test
     @DisplayName("Deve retornar 204 ao desativar um produto existente")
     void deveRetornar204AoDesativarProduto() throws Exception {
-        org.mockito.Mockito.doNothing().when(produtoService).desativarProduto("produto_1");
+        org.mockito.Mockito.doNothing().when(produtoService).desativarProduto(any(), any());
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/produtos/{produtoId}", "produto_1"))
                 .andExpect(status().isNoContent());
@@ -227,7 +227,7 @@ class ProdutoControllerTest {
     @DisplayName("Deve retornar Erro 404 ao tentar desativar produto que não existe")
     void deveRetornar404AoDesativarProdutoInexistente() throws Exception {
         org.mockito.Mockito.doThrow(new br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException("O produto com o id: produto_fantasma não foi encontrado."))
-                .when(produtoService).desativarProduto("produto_fantasma");
+                .when(produtoService).desativarProduto(any(), any());
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/produtos/{produtoId}", "produto_fantasma"))
                 .andExpect(status().isNotFound());

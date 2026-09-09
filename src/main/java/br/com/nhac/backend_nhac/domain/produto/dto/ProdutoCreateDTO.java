@@ -10,10 +10,6 @@ import java.math.BigDecimal;
 
 public record ProdutoCreateDTO(
 
-        @Schema(description = "ID da loja à qual o produto pertence", example = "loja_japonesa_001")
-        @NotBlank(message = "O ID da loja é obrigatório.")
-        String lojaId,
-
         @Schema(description = "Nome do produto que vai aparecer no cardápio", example = "Hossomaki de Salmão")
         @NotBlank(message = "O nome do produto não pode estar vazio.")
         @Size(max = 100, message = "O nome deve ter no máximo 100 caracteres.")

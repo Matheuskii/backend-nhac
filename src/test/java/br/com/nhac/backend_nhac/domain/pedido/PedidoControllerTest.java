@@ -229,7 +229,7 @@ class PedidoControllerTest {
     void deveRetornar204AoAtualizarStatusComSucesso() throws Exception {
         String jsonBody = "{\"status\": \"PREPARANDO\"}";
 
-        doNothing().when(pedidoService).atualizarStatus(anyString(), any(StatusPedido.class));
+        doNothing().when(pedidoService).atualizarStatus(anyString(), any(StatusPedido.class), any(Usuario.class));
 
         mockMvc.perform(patch("/api/v1/pedidos/pedido_123/status")
                         .contentType(MediaType.APPLICATION_JSON)

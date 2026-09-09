@@ -5,6 +5,7 @@ import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO;
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoDTO;
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoUpdateStatusDTO;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
 import br.com.nhac.backend_nhac.exceptions.ErroPadraoDTO;
 import br.com.nhac.backend_nhac.domain.pedido.PedidoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -109,15 +111,18 @@ public class PedidoController {
             @ApiResponse(responseCode = "204", description = "Status atualizado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Erro de validação ou regra de negócio", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class))),
             @ApiResponse(responseCode = "401", description = "Usuário não autenticado", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Acesso negado: usuário não tem permissão para alterar status deste pedido", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class))),
             @ApiResponse(responseCode = "404", description = "Pedido não encontrado", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class))),
             @ApiResponse(responseCode = "500", description = "Erro interno no servidor", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class)))
     })
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LOJISTA')")
     public ResponseEntity<Void> atualizarStatus(
             @PathVariable String id,
-            @Valid @RequestBody PedidoUpdateStatusDTO dto
+            @Valid @RequestBody PedidoUpdateStatusDTO dto,
+            @AuthenticationPrincipal Usuario usuarioLogado
     ) {
-        pedidoService.atualizarStatus(id, dto.status());
+        pedidoService.atualizarStatus(id, dto.status(), usuarioLogado);
         return ResponseEntity.noContent().build();
     }
 

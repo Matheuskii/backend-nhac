@@ -4,7 +4,10 @@ import br.com.nhac.backend_nhac.domain.loja.Loja;
 import br.com.nhac.backend_nhac.domain.produto.Produto;
 import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoCreateDTO;
 import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoResumoDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
+import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
 import br.com.nhac.backend_nhac.domain.produto.ProdutoRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -37,16 +40,53 @@ class ProdutoServiceTest {
     @InjectMocks
     private ProdutoService produtoService;
 
+    private Usuario criarUsuario(String id, String papel) {
+        Usuario usuario = new Usuario();
+        usuario.setId(id);
+        usuario.setEmail("teste@nhac.com");
+        usuario.setNome("Teste");
+        if ("ADMIN".equals(papel)) {
+            usuario.setPapel(br.com.nhac.backend_nhac.domain.usuario.Papel.ADMIN);
+        } else {
+            usuario.setPapel(br.com.nhac.backend_nhac.domain.usuario.Papel.LOJISTA);
+        }
+        return usuario;
+    }
+
+    private Loja criarLoja(String id, String usuarioId, boolean aberto) {
+        Loja loja = new Loja();
+        loja.setId(id);
+        loja.setAberto(aberto);
+        // Simula o vínculo 1:1 lojista-loja
+        loja.setUsuarioId(usuarioId);
+        return loja;
+    }
+
+    private Produto produtoDeTeste() {
+        Loja loja = criarLoja("loja_1", "usuario_lojista_1", true);
+
+        Produto produto = new Produto();
+        produto.setId("produto_1");
+        produto.setLoja(loja);
+        produto.setNome("Hossomaki");
+        produto.setDescricao("Descrição do produto");
+        produto.setPreco(new BigDecimal("25.50"));
+        produto.setCategoriaMenu("Sushi");
+        produto.setImagemUrl("url");
+        produto.setPeso("200g");
+        produto.setPercentualDesconto(10);
+        produto.setAtivo(true);
+        return produto;
+    }
+
     @Test
     @DisplayName("Deve cadastrar produto com sucesso quando a loja for encontrada no banco")
     void deveCadastrarProdutoComSucesso() {
-        String lojaId = "loja_123";
-        Loja lojaFalsa = new Loja();
-        lojaFalsa.setId(lojaId);
-        lojaFalsa.setAberto(true);
+        Usuario usuarioLojista = criarUsuario("usuario_123", "LOJISTA");
+        Loja lojaFalsa = criarLoja("loja_123", "usuario_123", true);
 
         ProdutoCreateDTO dto = new ProdutoCreateDTO(
-                lojaId, "Hossomaki", "Descrição", new BigDecimal("25.50"),
+                "Hossomaki", "Descrição", new BigDecimal("25.50"),
                 "Sushi", "url", "200g", 10
         );
 
@@ -54,36 +94,80 @@ class ProdutoServiceTest {
         produtoSalvo.setId("produto_gerado_123");
         produtoSalvo.setNome("Hossomaki");
 
-        when(lojaRepository.findById(lojaId)).thenReturn(Optional.of(lojaFalsa));
+        when(lojaRepository.findByUsuarioId(usuarioLojista.getId())).thenReturn(Optional.of(lojaFalsa));
         when(produtoRepository.save(any(Produto.class))).thenReturn(produtoSalvo);
 
-        Produto resultado = produtoService.cadastrarProduto(dto);
+        Produto resultado = produtoService.cadastrarProduto(dto, usuarioLojista);
 
         assertNotNull(resultado);
         assertEquals("Hossomaki", resultado.getNome());
 
-        verify(lojaRepository, times(1)).findById(lojaId);
+        verify(lojaRepository, times(1)).findByUsuarioId(usuarioLojista.getId());
         verify(produtoRepository, times(1)).save(any(Produto.class));
     }
 
     @Test
-    @DisplayName("Deve explodir exceção quando tentar cadastrar produto numa loja que não existe")
-    void deveLancarExcecaoQuandoLojaNaoExistir() {
-        String lojaFantasmaId = "loja_que_nao_existe_000";
+    @DisplayName("Deve explodir exceção quando usuário não tiver loja cadastrada")
+    void deveLancarExcecaoQuandoUsuarioNaoTiverLoja() {
+        Usuario usuarioSemLoja = criarUsuario("usuario_sem_loja", "LOJISTA");
+        
         ProdutoCreateDTO dto = new ProdutoCreateDTO(
-                lojaFantasmaId, "Hossomaki", "Descrição", new BigDecimal("25.50"),
-                "Sushi", "url", "200g",  10
+                "Hossomaki", "Descrição", new BigDecimal("25.50"),
+                "Sushi", "url", "200g", 10
         );
 
-        when(lojaRepository.findById(lojaFantasmaId)).thenReturn(Optional.empty());
+        when(lojaRepository.findByUsuarioId(usuarioSemLoja.getId())).thenReturn(Optional.empty());
 
-        Exception excecao = assertThrows(IdNaoEncontradoException.class, () -> produtoService.cadastrarProduto(dto));
+        Exception excecao = assertThrows(RegraDeNegocioException.class, () -> produtoService.cadastrarProduto(dto, usuarioSemLoja));
 
-        assertEquals("A loja com o id: " + lojaFantasmaId + " não foi encontrada.", excecao.getMessage());
+        assertEquals("É preciso ter uma loja cadastrada antes de adicionar produtos.", excecao.getMessage());
         verify(produtoRepository, never()).save(any(Produto.class));
     }
 
-    private Produto produtoDeTeste() {
+    @Test
+    @DisplayName("Deve lançar RegraDeNegocioException quando tentar cadastrar produto em loja fechada")
+    void deveLancarExcecaoQuandoLojaEstiverFechada() {
+        Usuario usuarioLojista = criarUsuario("usuario_123", "LOJISTA");
+        Loja lojaFechada = criarLoja("loja_fechada", "usuario_123", false);
+
+        ProdutoCreateDTO dto = new ProdutoCreateDTO(
+                "Hossomaki", "Descrição", new BigDecimal("25.50"),
+                "Sushi", "url", "200g", 10
+        );
+
+        when(lojaRepository.findByUsuarioId(usuarioLojista.getId())).thenReturn(Optional.of(lojaFechada));
+
+        Exception excecao = assertThrows(RegraDeNegocioException.class, () -> produtoService.cadastrarProduto(dto, usuarioLojista));
+
+        assertEquals("Não é possível cadastrar produtos em uma loja fechada.", excecao.getMessage());
+        verify(produtoRepository, never()).save(any(Produto.class));
+    }
+
+    @Test
+    @DisplayName("ADMIN deve poder cadastrar produto mesmo em loja fechada")
+    void adminDeveCadastrarProdutoEmLojaFechada() {
+        Usuario usuarioAdmin = criarUsuario("admin_123", "ADMIN");
+        Loja lojaFechada = criarLoja("loja_fechada", "admin_123", false);
+
+        ProdutoCreateDTO dto = new ProdutoCreateDTO(
+                "Hossomaki", "Descrição", new BigDecimal("25.50"),
+                "Sushi", "url", "200g", 10
+        );
+
+        Produto produtoSalvo = new Produto();
+        produtoSalvo.setId("produto_gerado_123");
+        produtoSalvo.setNome("Hossomaki");
+
+        when(lojaRepository.findByUsuarioId(usuarioAdmin.getId())).thenReturn(Optional.of(lojaFechada));
+        when(produtoRepository.save(any(Produto.class))).thenReturn(produtoSalvo);
+
+        Produto resultado = produtoService.cadastrarProduto(dto, usuarioAdmin);
+
+        assertNotNull(resultado);
+        verify(produtoRepository, times(1)).save(any(Produto.class));
+    }
+
+    private Produto produtoDeTesteAntigo() {
         Loja loja = new Loja();
         loja.setId("loja_1");
         loja.setAberto(true);
@@ -198,8 +282,9 @@ class ProdutoServiceTest {
     }
 
     @Test
-    @DisplayName("Deve atualizar produto com sucesso quando ele for encontrado")
+    @DisplayName("Deve atualizar produto com sucesso quando ele for encontrado e usuário for dono")
     void deveAtualizarProdutoComSucesso() {
+        Usuario usuarioDono = criarUsuario("usuario_lojista_1", "LOJISTA");
         Produto produtoOriginal = produtoDeTeste();
         br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
                 "Hossomaki Editado", "Descrição editada", new BigDecimal("29.90"),
@@ -209,7 +294,7 @@ class ProdutoServiceTest {
         when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
         when(produtoRepository.save(any(Produto.class))).thenReturn(produtoOriginal);
 
-        ProdutoResumoDTO resultado = produtoService.atualizarProduto("produto_1", dto);
+        ProdutoResumoDTO resultado = produtoService.atualizarProduto("produto_1", dto, usuarioDono);
 
         assertEquals("Hossomaki Editado", resultado.nome());
         assertEquals(new BigDecimal("29.90"), resultado.preco());
@@ -219,8 +304,47 @@ class ProdutoServiceTest {
     }
 
     @Test
+    @DisplayName("ADMIN deve poder atualizar produto de qualquer loja")
+    void adminDeveAtualizarProdutoDeQualquerLoja() {
+        Usuario usuarioAdmin = criarUsuario("admin_123", "ADMIN");
+        Produto produtoOriginal = produtoDeTeste();
+        br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
+                "Hossomaki Editado", "Descrição editada", new BigDecimal("29.90"),
+                "Sushi", "nova-url", "300g", 15, false
+        );
+
+        when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
+        when(produtoRepository.save(any(Produto.class))).thenReturn(produtoOriginal);
+
+        ProdutoResumoDTO resultado = produtoService.atualizarProduto("produto_1", dto, usuarioAdmin);
+
+        assertNotNull(resultado);
+        verify(produtoRepository, times(1)).save(any(Produto.class));
+    }
+
+    @Test
+    @DisplayName("Deve lançar AcessoNegadoException quando lojista tentar atualizar produto de outra loja")
+    void deveLancarAcessoNegadoAoAtualizarProdutoDeOutraLoja() {
+        Usuario usuarioDeOutraLoja = criarUsuario("usuario_de_outra_loja", "LOJISTA");
+        Produto produtoOriginal = produtoDeTeste();
+        br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
+                "Hossomaki Editado", "Descrição editada", new BigDecimal("29.90"),
+                "Sushi", "nova-url", "300g", 15, false
+        );
+
+        when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
+
+        Exception excecao = assertThrows(AcessoNegadoException.class,
+                () -> produtoService.atualizarProduto("produto_1", dto, usuarioDeOutraLoja));
+
+        assertEquals("Acesso negado: você não tem permissão para editar este produto.", excecao.getMessage());
+        verify(produtoRepository, never()).save(any(Produto.class));
+    }
+
+    @Test
     @DisplayName("Deve lançar IdNaoEncontradoException ao tentar atualizar produto inexistente")
     void deveLancarExcecaoAoAtualizarProdutoInexistente() {
+        Usuario usuarioLojista = criarUsuario("usuario_lojista_1", "LOJISTA");
         br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
                 "Hossomaki Editado", "Descrição editada", new BigDecimal("29.90"),
                 "Sushi", "nova-url", "300g", 15, false
@@ -229,7 +353,7 @@ class ProdutoServiceTest {
         when(produtoRepository.findById("produto_fantasma")).thenReturn(Optional.empty());
 
         Exception excecao = assertThrows(IdNaoEncontradoException.class,
-                () -> produtoService.atualizarProduto("produto_fantasma", dto));
+                () -> produtoService.atualizarProduto("produto_fantasma", dto, usuarioLojista));
 
         assertEquals("O produto com o id: produto_fantasma não foi encontrado.", excecao.getMessage());
         verify(produtoRepository, never()).save(any(Produto.class));
@@ -238,6 +362,7 @@ class ProdutoServiceTest {
     @Test
     @DisplayName("Deve lançar RegraDeNegocioException ao tentar atualizar produto de loja fechada")
     void deveLancarExcecaoAoAtualizarProdutoDeLojaFechada() {
+        Usuario usuarioLojista = criarUsuario("usuario_lojista_1", "LOJISTA");
         Produto produtoOriginal = produtoDeTeste();
         produtoOriginal.getLoja().setAberto(false);
 
@@ -249,22 +374,23 @@ class ProdutoServiceTest {
         when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
 
         Exception excecao = assertThrows(br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException.class,
-                () -> produtoService.atualizarProduto("produto_1", dto));
+                () -> produtoService.atualizarProduto("produto_1", dto, usuarioLojista));
 
         assertEquals("Não é possível editar produtos de uma loja fechada.", excecao.getMessage());
         verify(produtoRepository, never()).save(any(Produto.class));
     }
 
     @Test
-    @DisplayName("Deve desativar produto com sucesso quando ele for encontrado")
+    @DisplayName("Deve desativar produto com sucesso quando ele for encontrado e usuário for dono")
     void deveDesativarProdutoComSucesso() {
+        Usuario usuarioDono = criarUsuario("usuario_lojista_1", "LOJISTA");
         Produto produtoOriginal = produtoDeTeste();
         produtoOriginal.setAtivo(true);
 
         when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
         when(produtoRepository.save(any(Produto.class))).thenReturn(produtoOriginal);
 
-        produtoService.desativarProduto("produto_1");
+        produtoService.desativarProduto("produto_1", usuarioDono);
 
         assertFalse(produtoOriginal.isAtivo());
 
@@ -273,12 +399,45 @@ class ProdutoServiceTest {
     }
 
     @Test
+    @DisplayName("ADMIN deve poder desativar produto de qualquer loja")
+    void adminDeveDesativarProdutoDeQualquerLoja() {
+        Usuario usuarioAdmin = criarUsuario("admin_123", "ADMIN");
+        Produto produtoOriginal = produtoDeTeste();
+        produtoOriginal.setAtivo(true);
+
+        when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
+        when(produtoRepository.save(any(Produto.class))).thenReturn(produtoOriginal);
+
+        produtoService.desativarProduto("produto_1", usuarioAdmin);
+
+        assertFalse(produtoOriginal.isAtivo());
+        verify(produtoRepository, times(1)).save(produtoOriginal);
+    }
+
+    @Test
+    @DisplayName("Deve lançar AcessoNegadoException quando lojista tentar desativar produto de outra loja")
+    void deveLancarAcessoNegadoAoDesativarProdutoDeOutraLoja() {
+        Usuario usuarioDeOutraLoja = criarUsuario("usuario_de_outra_loja", "LOJISTA");
+        Produto produtoOriginal = produtoDeTeste();
+        produtoOriginal.setAtivo(true);
+
+        when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
+
+        Exception excecao = assertThrows(AcessoNegadoException.class,
+                () -> produtoService.desativarProduto("produto_1", usuarioDeOutraLoja));
+
+        assertEquals("Acesso negado: você não tem permissão para desativar este produto.", excecao.getMessage());
+        verify(produtoRepository, never()).save(any(Produto.class));
+    }
+
+    @Test
     @DisplayName("Deve lançar IdNaoEncontradoException ao tentar desativar produto inexistente")
     void deveLancarExcecaoAoDesativarProdutoInexistente() {
+        Usuario usuarioLojista = criarUsuario("usuario_lojista_1", "LOJISTA");
         when(produtoRepository.findById("produto_fantasma")).thenReturn(Optional.empty());
 
         Exception excecao = assertThrows(IdNaoEncontradoException.class,
-                () -> produtoService.desativarProduto("produto_fantasma"));
+                () -> produtoService.desativarProduto("produto_fantasma", usuarioLojista));
 
         assertEquals("O produto com o id: produto_fantasma não foi encontrado.", excecao.getMessage());
         verify(produtoRepository, never()).save(any(Produto.class));
@@ -287,16 +446,34 @@ class ProdutoServiceTest {
     @Test
     @DisplayName("Deve lançar RegraDeNegocioException ao tentar desativar produto de loja fechada")
     void deveLancarExcecaoAoDesativarProdutoDeLojaFechada() {
+        Usuario usuarioLojista = criarUsuario("usuario_lojista_1", "LOJISTA");
         Produto produtoOriginal = produtoDeTeste();
         produtoOriginal.getLoja().setAberto(false);
 
         when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
 
         Exception excecao = assertThrows(br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException.class,
-                () -> produtoService.desativarProduto("produto_1"));
+                () -> produtoService.desativarProduto("produto_1", usuarioLojista));
 
         assertEquals("Não é possível desativar produtos de uma loja fechada.", excecao.getMessage());
         verify(produtoRepository, never()).save(any(Produto.class));
+    }
+
+    @Test
+    @DisplayName("ADMIN deve poder desativar produto mesmo em loja fechada")
+    void adminDeveDesativarProdutoEmLojaFechada() {
+        Usuario usuarioAdmin = criarUsuario("admin_123", "ADMIN");
+        Produto produtoOriginal = produtoDeTeste();
+        produtoOriginal.setAtivo(true);
+        produtoOriginal.getLoja().setAberto(false);
+
+        when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
+        when(produtoRepository.save(any(Produto.class))).thenReturn(produtoOriginal);
+
+        produtoService.desativarProduto("produto_1", usuarioAdmin);
+
+        assertFalse(produtoOriginal.isAtivo());
+        verify(produtoRepository, times(1)).save(produtoOriginal);
     }
 
     @Test

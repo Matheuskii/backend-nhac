@@ -4,6 +4,8 @@ import br.com.nhac.backend_nhac.domain.loja.Loja;
 import br.com.nhac.backend_nhac.domain.produto.Produto;
 import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoCreateDTO;
 import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoResumoDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
 import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
@@ -29,15 +31,18 @@ public class ProdutoService {
     }
 
     @Transactional
-    public Produto cadastrarProduto(ProdutoCreateDTO dto) {
-        Loja lojaDoProduto = lojaRepository.findById(dto.lojaId())
-                .orElseThrow(() -> new IdNaoEncontradoException("A loja com o id: " + dto.lojaId() + " não foi encontrada."));
+    public Produto cadastrarProduto(ProdutoCreateDTO dto, Usuario usuarioLogado) {
+        // ADMIN tem bypass na checagem de ownership, mas ainda precisa de uma loja associada
+        boolean isAdmin = usuarioLogado.getPapel().name().equals("ADMIN");
+        
+        Loja lojaDoUsuario = lojaRepository.findByUsuarioId(usuarioLogado.getId())
+                .orElseThrow(() -> new RegraDeNegocioException("É preciso ter uma loja cadastrada antes de adicionar produtos."));
 
-        if (!lojaDoProduto.isAberto()) {
+        if (!lojaDoUsuario.isAberto() && !isAdmin) {
             throw new RegraDeNegocioException("Não é possível cadastrar produtos em uma loja fechada.");
         }
 
-        Produto novoProduto = dto.toEntity(lojaDoProduto, produtoRepository);
+        Produto novoProduto = dto.toEntity(lojaDoUsuario, produtoRepository);
         return produtoRepository.save(novoProduto);
     }
 
@@ -57,11 +62,17 @@ public class ProdutoService {
     }
 
     @Transactional
-    public ProdutoResumoDTO atualizarProduto(String id, br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto) {
+    public ProdutoResumoDTO atualizarProduto(String id, br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto, Usuario usuarioLogado) {
         Produto produto = produtoRepository.findById(id)
                 .orElseThrow(() -> new IdNaoEncontradoException("O produto com o id: " + id + " não foi encontrado."));
 
-        if (!produto.getLoja().isAberto()) {
+        // ADMIN tem bypass na checagem de ownership
+        boolean isAdmin = usuarioLogado.getPapel().name().equals("ADMIN");
+        if (!isAdmin && !produto.getLoja().getUsuarioId().equals(usuarioLogado.getId())) {
+            throw new AcessoNegadoException("Acesso negado: você não tem permissão para editar este produto.");
+        }
+
+        if (!produto.getLoja().isAberto() && !isAdmin) {
             throw new RegraDeNegocioException("Não é possível editar produtos de uma loja fechada.");
         }
 
@@ -80,11 +91,17 @@ public class ProdutoService {
     }
 
     @Transactional
-    public void desativarProduto(String id) {
+    public void desativarProduto(String id, Usuario usuarioLogado) {
         Produto produto = produtoRepository.findById(id)
                 .orElseThrow(() -> new IdNaoEncontradoException("O produto com o id: " + id + " não foi encontrado."));
 
-        if (!produto.getLoja().isAberto()) {
+        // ADMIN tem bypass na checagem de ownership
+        boolean isAdmin = usuarioLogado.getPapel().name().equals("ADMIN");
+        if (!isAdmin && !produto.getLoja().getUsuarioId().equals(usuarioLogado.getId())) {
+            throw new AcessoNegadoException("Acesso negado: você não tem permissão para desativar este produto.");
+        }
+
+        if (!produto.getLoja().isAberto() && !isAdmin) {
             throw new RegraDeNegocioException("Não é possível desativar produtos de uma loja fechada.");
         }
 
