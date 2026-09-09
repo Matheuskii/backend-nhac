@@ -45,6 +45,25 @@ public interface ProdutoRepository extends JpaRepository<Produto, String> {
             @Param("precoMaximo") BigDecimal precoMaximo,
             Pageable pageable
     );
+    @Query(value = """
+        SELECT p FROM Produto p
+        WHERE p.loja.usuarioId = :usuarioId
+        AND (:categoriaMenu IS NULL OR LOWER(p.categoriaMenu) = LOWER(:categoriaMenu))
+        AND (:nome IS NULL OR LOWER(p.nome) LIKE LOWER(CONCAT('%', :nome, '%')))
+        """,
+            countQuery = """
+        SELECT COUNT(p) FROM Produto p
+        WHERE p.loja.usuarioId = :usuarioId
+        AND (:categoriaMenu IS NULL OR LOWER(p.categoriaMenu) = LOWER(:categoriaMenu))
+        AND (:nome IS NULL OR LOWER(p.nome) LIKE LOWER(CONCAT('%', :nome, '%')))
+        """)
+    Page<Produto> findByLojista(
+            @Param("usuarioId") String usuarioId,
+            @Param("categoriaMenu") String categoriaMenu,
+            @Param("nome") String nome,
+            Pageable pageable
+    );
+
     Page<Produto> findByLojaIdAndIsAtivoTrue(String lojaId, Pageable pageable);
 
     Page<Produto> findByPrecoLessThanEqualAndIsAtivoTrue(BigDecimal precoMaximo, Pageable pageable);
