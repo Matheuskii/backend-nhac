@@ -38,7 +38,10 @@ public record LojaDetalhesDTO(
             @Schema(description = "Valor base de entrega", example = "5.99") BigDecimal taxaEntregaBase,
             @Schema(description = "Tempo mínimo (min)", example = "30") int tempoEntregaMin,
             @Schema(description = "Tempo máximo (min)", example = "45") int tempoEntregaMax,
-            @Schema(description = "Total de avaliações", example = "150") int totalAvaliacoes
+            @Schema(description = "Total de avaliações", example = "150") int totalAvaliacoes,
+            @Schema(description = "Indica se a loja realiza entrega própria", example = "true") Boolean entregaPropria,
+            @Schema(description = "Indica se a loja permite retirada no local", example = "false") Boolean retiradaNoLocal,
+            @Schema(description = "Raio de entrega em quilômetros (null = ilimitado)", example = "10.5") BigDecimal raioEntregaKm
     ) {}
 
     @Schema(description = "Endereço físico")
@@ -47,7 +50,9 @@ public record LojaDetalhesDTO(
             @Schema(description = "Número", example = "123") String numero,
             @Schema(description = "Cidade", example = "São Paulo") String cidade,
             @Schema(description = "Estado", example = "SP") String estado,
-            @Schema(description = "Código Postal", example = "01000-000") String cep
+            @Schema(description = "Código Postal", example = "01000-000") String cep,
+            @Schema(description = "Bairro", example = "Centro") String bairro,
+            @Schema(description = "Complemento (opcional)", example = "Sala 42") String complemento
     ) {}
 
     @Schema(description = "Horários diários (Formato recomendado: HH:MM - HH:MM ou 'Fechado')")
@@ -72,14 +77,19 @@ public record LojaDetalhesDTO(
                         loja.getDadosOperacionais().getTaxaEntregaBase(),
                         loja.getDadosOperacionais().getTempoEntregaMin(),
                         loja.getDadosOperacionais().getTempoEntregaMax(),
-                        loja.getDadosOperacionais().getTotalAvaliacoes()
+                        loja.getDadosOperacionais().getTotalAvaliacoes(),
+                        loja.getDadosOperacionais().getEntregaPropria(),
+                        loja.getDadosOperacionais().getRetiradaNoLocal(),
+                        loja.getDadosOperacionais().getRaioEntregaKm()
                 ),
                 new LojaDetalhesDTO.EnderecoDTO(
                         loja.getEndereco().getRua(),
                         loja.getEndereco().getNumero(),
                         loja.getEndereco().getCidade(),
                         loja.getEndereco().getEstado(),
-                        loja.getEndereco().getCep()
+                        loja.getEndereco().getCep(),
+                        loja.getEndereco().getBairro(),
+                        loja.getEndereco().getComplemento()
                 ),
                 new LojaDetalhesDTO.HorariosDTO(
                         loja.getHorariosFuncionamento().getDomingo(),

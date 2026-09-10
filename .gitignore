@@ -1,17 +1,22 @@
+```
 # Compiled and build artifacts
 *.class
 *.o
 *.obj
-*.exe
-*.dll
-*.so
-*.a
 *.out
+target/
+build/
+dist/
 
 # Dependencies
-target/
+node_modules/
+venv/
+.venv/
+__pycache__/
 .mypy_cache/
 .pytest_cache/
+.gradle/
+target/
 
 # Logs and temp files
 *.log
@@ -27,11 +32,15 @@ target/
 .vscode/
 .idea/
 
+# System files
+.DS_Store
+Thumbs.db
+
 # Coverage reports
 coverage/
 htmlcov/
 .coverage
 
-# System files
-.DS_Store
-Thumbs.db
+# Backup files
+*.bak
+```

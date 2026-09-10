@@ -51,8 +51,8 @@ class LojaServiceTest {
                 .categoria("Japonesa")
                 .imagemUrl("http://imagem.com/banner.png")
                 .isAberto(aberta)
-                .dadosOperacionais(new DadosOperacionais(4.8f, new BigDecimal("5.99"), 30, 45, 150))
-                .endereco(new EnderecoLoja("Rua das Flores", "123", "São Paulo", "SP", "01000-000"))
+                .dadosOperacionais(new DadosOperacionais(4.8f, new BigDecimal("5.99"), 30, 45, 150, true, false, null))
+                .endereco(new EnderecoLoja("Rua das Flores", "123", "São Paulo", "SP", "01000-000", "Centro", null))
                 .geoLocalizacao(new GeoLocalizacao(-23.5, -46.6, "hash123"))
                 .horariosFuncionamento(new HorariosFuncionamento(
                         "18:00-23:00", "Fechado", "11:00-23:00", "11:00-23:00",
@@ -161,8 +161,8 @@ class LojaServiceTest {
     }
 
     private LojaCreateDTO construirDtoCriacao() {
-        LojaCreateDTO.DadosOperacionaisDTO dadosOp = new LojaCreateDTO.DadosOperacionaisDTO(new BigDecimal("5.0"), 30, 45);
-        LojaCreateDTO.EnderecoDTO endereco = new LojaCreateDTO.EnderecoDTO("Rua X", "123", "Cidade", "SP", "01234-567");
+        LojaCreateDTO.DadosOperacionaisDTO dadosOp = new LojaCreateDTO.DadosOperacionaisDTO(new BigDecimal("5.0"), 30, 45, true, false, null);
+        LojaCreateDTO.EnderecoDTO endereco = new LojaCreateDTO.EnderecoDTO("Rua X", "123", "Cidade", "SP", "01234-567", "Centro", null);
         LojaCreateDTO.HorariosDTO horarios = new LojaCreateDTO.HorariosDTO("F", "F", "F", "F", "F", "F", "F");
         return new LojaCreateDTO("Nova Loja", "Desc", "Categoria", "img.jpg", true, dadosOp, endereco, horarios);
     }
