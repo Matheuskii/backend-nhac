@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 @SpringBootTest
 @TestPropertySource(properties = {
         "nhac.email.mock-mode=false",
-        "brevo.api-key=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",
+        "brevo.api-key=",
         "brevo.sender-email=matheusalvesknight@gmail.com",
         "brevo.sender-name=Nhac Delivery"
 })
