@@ -18,4 +18,7 @@ public interface CodigoVerificacaoEmailRepository extends JpaRepository<CodigoVe
     void inativarCodigosAtivosPorEmail(@Param("email") String email);
 
     Optional<CodigoVerificacaoEmail> findTopByEmailAndUtilizadoFalseAndDataExpiracaoAfterOrderByCriadoEmDesc(String email, LocalDateTime data);
+
+    Optional<CodigoVerificacaoEmail> findTopByEmailAndTipoAndUtilizadoTrueAndDataExpiracaoAfterOrderByCriadoEmDesc(
+        String email, CodigoVerificacaoEmail.TipoCodigo tipo, LocalDateTime dataExpiracao);
 }

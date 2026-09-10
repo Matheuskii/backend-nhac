@@ -50,7 +50,7 @@ public class VerificacaoEmailServiceTest {
             executor.submit(() -> {
                 try {
                     latch.await();
-                    verificacaoEmailService.salvarNovoCodigo(email);
+                    verificacaoEmailService.salvarNovoCodigoReset(email);
                 } catch (Exception e) {
                     fail("Falhou com exceção de concorrência: " + e.getMessage());
                 } finally {

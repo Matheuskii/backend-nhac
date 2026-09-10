@@ -50,4 +50,7 @@ public class Loja {
     @Embedded
     private HorariosFuncionamento horariosFuncionamento;
 
+    @Embedded
+    private FormasPagamento formasPagamento = new FormasPagamento();
+
 }

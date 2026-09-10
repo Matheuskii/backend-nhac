@@ -87,7 +87,7 @@ class ProdutoServiceTest {
 
         ProdutoCreateDTO dto = new ProdutoCreateDTO(
                 "Hossomaki", "Descrição", new BigDecimal("25.50"),
-                "Sushi", "url", "200g", 10
+                "Sushi", "url", "200g", 10, null
         );
 
         Produto produtoSalvo = new Produto();
@@ -113,7 +113,7 @@ class ProdutoServiceTest {
         
         ProdutoCreateDTO dto = new ProdutoCreateDTO(
                 "Hossomaki", "Descrição", new BigDecimal("25.50"),
-                "Sushi", "url", "200g", 10
+                "Sushi", "url", "200g", 10, null
         );
 
         when(lojaRepository.findByUsuarioId(usuarioSemLoja.getId())).thenReturn(Optional.empty());
@@ -132,7 +132,7 @@ class ProdutoServiceTest {
 
         ProdutoCreateDTO dto = new ProdutoCreateDTO(
                 "Hossomaki", "Descrição", new BigDecimal("25.50"),
-                "Sushi", "url", "200g", 10
+                "Sushi", "url", "200g", 10, null
         );
 
         when(lojaRepository.findByUsuarioId(usuarioLojista.getId())).thenReturn(Optional.of(lojaFechada));
@@ -151,7 +151,7 @@ class ProdutoServiceTest {
 
         ProdutoCreateDTO dto = new ProdutoCreateDTO(
                 "Hossomaki", "Descrição", new BigDecimal("25.50"),
-                "Sushi", "url", "200g", 10
+                "Sushi", "url", "200g", 10, null
         );
 
         Produto produtoSalvo = new Produto();
@@ -288,7 +288,7 @@ class ProdutoServiceTest {
         Produto produtoOriginal = produtoDeTeste();
         br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
                 "Hossomaki Editado", "Descrição editada", new BigDecimal("29.90"),
-                "Sushi", "nova-url", "300g", 15, false
+                "Sushi", "nova-url", "300g", 15, false, null
         );
 
         when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
@@ -310,7 +310,7 @@ class ProdutoServiceTest {
         Produto produtoOriginal = produtoDeTeste();
         br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
                 "Hossomaki Editado", "Descrição editada", new BigDecimal("29.90"),
-                "Sushi", "nova-url", "300g", 15, false
+                "Sushi", "nova-url", "300g", 15, false, null
         );
 
         when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
@@ -329,7 +329,7 @@ class ProdutoServiceTest {
         Produto produtoOriginal = produtoDeTeste();
         br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
                 "Hossomaki Editado", "Descrição editada", new BigDecimal("29.90"),
-                "Sushi", "nova-url", "300g", 15, false
+                "Sushi", "nova-url", "300g", 15, false, null
         );
 
         when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
@@ -347,7 +347,7 @@ class ProdutoServiceTest {
         Usuario usuarioLojista = criarUsuario("usuario_lojista_1", "LOJISTA");
         br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
                 "Hossomaki Editado", "Descrição editada", new BigDecimal("29.90"),
-                "Sushi", "nova-url", "300g", 15, false
+                "Sushi", "nova-url", "300g", 15, false, null
         );
 
         when(produtoRepository.findById("produto_fantasma")).thenReturn(Optional.empty());
@@ -368,7 +368,7 @@ class ProdutoServiceTest {
 
         br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
                 "Hossomaki Editado", "Descrição editada", new BigDecimal("29.90"),
-                "Sushi", "nova-url", "300g", 15, false
+                "Sushi", "nova-url", "300g", 15, false, null
         );
 
         when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));

@@ -2,6 +2,7 @@ package br.com.nhac.backend_nhac.domain.auth;
 
 import br.com.nhac.backend_nhac.domain.auth.dto.ChecarEmailRequestDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.ChecarEmailResponseDTO;
+import br.com.nhac.backend_nhac.domain.auth.dto.ConfirmarEmailDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.LoginRequestDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.LoginResponseDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.RegistroRequestDTO;
@@ -24,6 +25,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 @RestController
@@ -57,6 +59,10 @@ public class AuthController {
         Usuario usuario = usuarioRepository.findByEmailIgnoreCase(body.email())
                 .orElseThrow(() -> new CredenciaisInvalidasException("E-mail não encontrado ou senha inválida."));
 
+        if (!usuario.isEmailVerificado()) {
+            throw new RegraDeNegocioException("Verifique seu e-mail antes de fazer login.");
+        }
+
         if (passwordEncoder.matches(body.senha(), usuario.getSenha())) {
             String token = tokenService.gerarToken(usuario);
             return ResponseEntity.ok(LoginResponseDTO.from(usuario, token, false));
@@ -65,8 +71,46 @@ public class AuthController {
         throw new CredenciaisInvalidasException("E-mail não encontrado ou senha inválida.");
     }
 
+    @Operation(summary = "Enviar código de verificação para cadastro", description = "Envia um código de 6 dígitos para o e-mail informado. Necessário para confirmar o e-mail antes do registro.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Código enviado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "E-mail inválido ou não informado"),
+            @ApiResponse(responseCode = "409", description = "E-mail já está em uso"),
+            @ApiResponse(responseCode = "429", description = "Rate limit excedido")
+    })
+    @PostMapping("/enviar-codigo-cadastro")
+    public ResponseEntity<Void> enviarCodigoCadastro(@RequestBody @Valid ChecarEmailRequestDTO body) {
+        verificacaoEmailService.enviarCodigoCadastro(body.email());
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Confirmar e-mail para cadastro", description = "Valida o código de verificação enviado para o e-mail. Após confirmação, o usuário pode concluir o registro.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "E-mail confirmado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Código inválido ou expirado")
+    })
+    @PostMapping("/confirmar-email-cadastro")
+    public ResponseEntity<Void> confirmarEmailCadastro(@RequestBody @Valid ConfirmarEmailDTO body) {
+        verificacaoEmailService.verificarCodigoCadastro(body.email(), body.codigo());
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/registrar")
     public ResponseEntity<LoginResponseDTO> registrar(@RequestBody @Valid RegistroRequestDTO body) {
+        // Verifica se o e-mail foi verificado para cadastro
+        LocalDateTime agora = java.time.LocalDateTime.now();
+        LocalDateTime dataLimite = agora.minusMinutes(30);
+        
+        var codigoVerificado = usuarioRepository.findCodigoVerificacaoPorEmailETipo(
+            body.email().trim().toLowerCase(), 
+            CodigoVerificacaoEmail.TipoCodigo.CADASTRO,
+            dataLimite
+        );
+        
+        if (codigoVerificado.isEmpty() || !codigoVerificado.get().isUtilizado()) {
+            throw new RegraDeNegocioException("E-mail não verificado. Confirme seu e-mail antes de concluir o cadastro.");
+        }
+
         if (usuarioRepository.findByEmailIgnoreCase(body.email()).isPresent()) {
             throw new RegraDeNegocioException("Este e-mail já está em uso.");
         }
@@ -79,6 +123,7 @@ public class AuthController {
         novoUsuario.setTelefone(body.telefone());
         novoUsuario.setSenha(passwordEncoder.encode(body.senha()));
         novoUsuario.setEnderecos(new ArrayList<>());
+        novoUsuario.setEmailVerificado(true);
 
         usuarioRepository.save(novoUsuario);
 

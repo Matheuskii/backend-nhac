@@ -49,10 +49,11 @@ class LojaServiceFase4Test {
         LojaCreateDTO.DadosOperacionaisDTO dadosOp = new LojaCreateDTO.DadosOperacionaisDTO(new BigDecimal("5.0"), 30, 45, true, false, null);
         LojaCreateDTO.EnderecoDTO endereco = new LojaCreateDTO.EnderecoDTO("Rua X", "123", "Cidade", "SP", "01234-567", "Centro", null);
         LojaCreateDTO.HorariosDTO horarios = new LojaCreateDTO.HorariosDTO("F", "F", "F", "F", "F", "F", "F");
+        LojaCreateDTO.FormasPagamentoDTO formasPagamento = new LojaCreateDTO.FormasPagamentoDTO(true, true, true, true, false, false);
 
         LojaCreateDTO dto = new LojaCreateDTO(
             "Nova Loja", "Desc", "Categoria", "img.jpg", true,
-            dadosOp, endereco, horarios
+            dadosOp, endereco, horarios, formasPagamento
         );
 
         Usuario usuarioLogado = new Usuario();
