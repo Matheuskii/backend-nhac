@@ -4,6 +4,7 @@ import br.com.nhac.backend_nhac.domain.produto.Produto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -19,6 +20,10 @@ public interface ProdutoRepository extends JpaRepository<Produto, String> {
     Optional<Produto> findByIdAndIsAtivoTrue(@Param("id") String id);
 
     long countByLojaId(String lojaId);
+
+    @Modifying
+    @Query("UPDATE Produto p SET p.estoque = p.estoque - :quantidade WHERE p.id = :id AND p.estoque >= :quantidade")
+    int decrementarEstoqueSeDisponivel(@Param("id") String id, @Param("quantidade") int quantidade);
 
     @Query(value = """
         SELECT p FROM Produto p

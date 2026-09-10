@@ -1,26 +1,18 @@
 package br.com.nhac.backend_nhac.domain.pedido;
 
 import br.com.nhac.backend_nhac.domain.loja.Loja;
-import br.com.nhac.backend_nhac.domain.pedido.ItemPedido;
-import br.com.nhac.backend_nhac.domain.pedido.Pedido;
-import br.com.nhac.backend_nhac.domain.pedido.StatusPedido;
-import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCreateDTO;
-import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoDTO;
+import br.com.nhac.backend_nhac.domain.pedido.dto.*;
 import br.com.nhac.backend_nhac.domain.produto.Produto;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.exceptions.*;
 import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
-import br.com.nhac.backend_nhac.domain.pedido.PedidoRepository;
 import br.com.nhac.backend_nhac.domain.produto.ProdutoRepository;
-import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResponseDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalTime;
-import java.time.ZoneId;
 import java.util.Map;
 
 @Service
@@ -41,11 +33,15 @@ public class PedidoService {
     }
 
     @Transactional
-    public br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO finalizarPedido(PedidoCreateDTO dto, Usuario usuarioLogado, String idempotencyKey) {
+    public ResultadoCriacaoPedido finalizarPedido(PedidoCreateDTO dto, Usuario usuarioLogado, String idempotencyKey) {
 
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
-            if (pedidoRepository.existsByIdempotencyKey(idempotencyKey)) {
-                throw new RegraDeNegocioException("Pedido já processado com esta chave de idempotência.");
+            var existente = pedidoRepository.findByIdempotencyKey(idempotencyKey);
+            if (existente.isPresent()) {
+                Pedido pedidoExistente = existente.get();
+                return new ResultadoCriacaoPedido(
+                        new PedidoCriadoDTO(pedidoExistente.getId(), null, null, null),
+                        true);
             }
         }
 
@@ -82,9 +78,11 @@ public class PedidoService {
                 throw new EstoqueInsuficienteException(produtoReal.getId(), itemDto.quantidade(), produtoReal.getEstoque() == null ? 0 : produtoReal.getEstoque());
             }
 
-            // Atualiza o estoque
+            int atualizados = produtoRepository.decrementarEstoqueSeDisponivel(produtoReal.getId(), itemDto.quantidade());
+            if (atualizados == 0) {
+                throw new EstoqueInsuficienteException(produtoReal.getId(), itemDto.quantidade(), produtoReal.getEstoque());
+            }
             produtoReal.setEstoque(produtoReal.getEstoque() - itemDto.quantidade());
-            produtoRepository.save(produtoReal);
 
             ItemPedido novoItem = itemDto.toEntity(produtoReal);
             BigDecimal precoReal = produtoReal.getPreco();
@@ -114,18 +112,19 @@ public class PedidoService {
                 if (dto.cpfPagador() == null || dto.cpfPagador().isBlank()) {
                     throw new RegraDeNegocioException("O CPF do pagador é obrigatório para pagamento via PIX.");
                 }
-                return asaasPaymentService.criarCobrancaPix(
-                        pedidoSalvo, usuarioLogado.getNome(), usuarioLogado.getEmail(), dto.cpfPagador());
+                return new ResultadoCriacaoPedido(
+                        asaasPaymentService.criarCobrancaPix(
+                                pedidoSalvo, usuarioLogado.getNome(), usuarioLogado.getEmail(), dto.cpfPagador()),
+                        false);
             } else if ("CARTAO".equalsIgnoreCase(pedido.getFormaPagamento()) || 
                        "GOOGLE_PAY".equalsIgnoreCase(pedido.getFormaPagamento()) ||
                        "STRIPE".equalsIgnoreCase(pedido.getFormaPagamento())) {
                 
-                return stripePaymentService.criarPaymentIntentCartao(pedidoSalvo);
+                return new ResultadoCriacaoPedido(stripePaymentService.criarPaymentIntentCartao(pedidoSalvo), false);
             }
             
-            return new br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO(pedidoSalvo.getId(), null, null, null);
+            return new ResultadoCriacaoPedido(new PedidoCriadoDTO(pedidoSalvo.getId(), null, null, null), false);
         } catch (Exception e) {
-            // Em caso de erro de pagamento, o @Transactional garante rollback e volta estoque
             throw new PagamentoRecusadoException("Não foi possível processar seu pagamento", e);
         }
     }

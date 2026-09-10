@@ -20,6 +20,22 @@ public abstract class AbstractIntegrationTest {
 
     protected ObjectMapper objectMapper = new ObjectMapper();
 
+    @Autowired
+    protected br.com.nhac.backend_nhac.domain.auth.CodigoVerificacaoEmailRepository codigoVerificacaoEmailRepository;
+
+    protected void criarCodigoVerificadoPara(String email) {
+        codigoVerificacaoEmailRepository.save(
+                br.com.nhac.backend_nhac.domain.auth.CodigoVerificacaoEmail.builder()
+                        .email(email.trim().toLowerCase())
+                        .codigo("123456")
+                        .dataExpiracao(java.time.LocalDateTime.now().plusHours(1))
+                        .tentativas(0)
+                        .utilizado(true)
+                        .tipo(br.com.nhac.backend_nhac.domain.auth.CodigoVerificacaoEmail.TipoCodigo.CADASTRO)
+                        .build()
+        );
+    }
+
     @BeforeEach
     public void setup() {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(this.webApplicationContext)

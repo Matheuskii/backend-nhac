@@ -150,6 +150,21 @@ public class ProdutoController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Reativar um produto", description = "Marca o produto como ativo novamente para voltar a aparecer à venda. Apenas o dono da loja ou ADMIN.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Produto reativado com sucesso."),
+            @ApiResponse(responseCode = "403", description = "Acesso negado: usuário não tem permissão para reativar este produto.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Produto não encontrado.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @PatchMapping("/{produtoId}/ativar")
+    @PreAuthorize("hasAnyRole('LOJISTA', 'ADMIN')")
+    public ResponseEntity<ProdutoResumoDTO> ativarProduto(@PathVariable String produtoId,
+                                                          @AuthenticationPrincipal Usuario usuarioLogado) {
+        return ResponseEntity.ok(produtoService.ativarProduto(produtoId, usuarioLogado));
+    }
+
     @Operation(summary = "Resumo de avaliações de um produto", description = "Retorna a média de notas e o total de avaliações de um produto.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Resumo retornado com sucesso."),

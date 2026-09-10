@@ -180,4 +180,127 @@ class LojaControllerTest {
 
         verify(lojaService).criarLoja(any(LojaCreateDTO.class), eq(usuarioLogado));
     }
+
+    @Test
+    @DisplayName("GET /minha-loja deve retornar 200 com os dados da loja do usuário logado")
+    void deveRetornarMinhaLojaComSucesso() throws Exception {
+        LojaDetalhesDTO.DadosOperacionaisDTO dadosOp =
+                new LojaDetalhesDTO.DadosOperacionaisDTO(4.8f, new BigDecimal("5.99"), 30, 45, 150, true, false, null);
+        LojaDetalhesDTO detalhes = getLojaDetalhesDTO(dadosOp);
+
+        when(lojaService.obterMinhaLoja(eq(usuarioLogado))).thenReturn(detalhes);
+
+        mockMvc.perform(get("/api/v1/lojas/minha-loja"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("loja_1"))
+                .andExpect(jsonPath("$.nome").value("Sushi Ken"));
+    }
+
+    @Test
+    @DisplayName("GET /minha-loja deve retornar 404 quando o usuário não tiver loja cadastrada")
+    void deveRetornar404MinhaLojaQuandoUsuarioNaoTiverLoja() throws Exception {
+        when(lojaService.obterMinhaLoja(eq(usuarioLogado)))
+                .thenThrow(new br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException());
+
+        mockMvc.perform(get("/api/v1/lojas/minha-loja"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("PUT /lojas/{id} deve retornar 200 ao atualizar loja com sucesso pelo dono")
+    void deveAtualizarLojaComSucesso() throws Exception {
+        LojaDetalhesDTO.DadosOperacionaisDTO dadosOp =
+                new LojaDetalhesDTO.DadosOperacionaisDTO(4.8f, new BigDecimal("5.99"), 30, 45, 150, true, false, null);
+        LojaDetalhesDTO detalhes = getLojaDetalhesDTO(dadosOp);
+
+        when(lojaService.atualizarLoja(eq("loja_1"), any(LojaCreateDTO.class), eq(usuarioLogado))).thenReturn(detalhes);
+
+        String json = """
+                {
+                  "nome": "Sushi Ken Atualizado",
+                  "descricao": "Descrição",
+                  "categoria": "Japonesa",
+                  "imagemUrl": "https://example.com/banner.jpg",
+                  "isAberto": true,
+                  "dadosOperacionais": {
+                    "taxaEntregaBase": 5.99,
+                    "tempoEntregaMin": 30,
+                    "tempoEntregaMax": 45,
+                    "entregaPropria": true,
+                    "retiradaNoLocal": false
+                  },
+                  "endereco": {
+                    "rua": "Avenida Paulista",
+                    "numero": "1578",
+                    "cidade": "São Paulo",
+                    "estado": "SP",
+                    "cep": "01310-200",
+                    "bairro": "Bela Vista",
+                    "complemento": "Sala 42"
+                  },
+                  "horarios": {
+                    "domingo": "18:00-23:00",
+                    "segunda": "Fechado",
+                    "terca": "11:00-23:00",
+                    "quarta": "11:00-23:00",
+                    "quinta": "11:00-23:00",
+                    "sexta": "11:00-23:59",
+                    "sabado": "11:00-23:59"
+                  }
+                }
+                """;
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/v1/lojas/loja_1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("loja_1"));
+    }
+
+    @Test
+    @DisplayName("PUT /lojas/{id} deve retornar 403 quando o usuário não for o dono")
+    void deveRetornar403AoAtualizarLojaDeOutroUsuario() throws Exception {
+        when(lojaService.atualizarLoja(eq("loja_1"), any(LojaCreateDTO.class), eq(usuarioLogado)))
+                .thenThrow(new br.com.nhac.backend_nhac.exceptions.AcessoNegadoException("Acesso negado"));
+
+        String json = """
+                {
+                  "nome": "Tentativa Invasora",
+                  "descricao": "Desc",
+                  "categoria": "Japonesa",
+                  "imagemUrl": "https://example.com/banner.jpg",
+                  "isAberto": true,
+                  "dadosOperacionais": {
+                    "taxaEntregaBase": 5.99,
+                    "tempoEntregaMin": 30,
+                    "tempoEntregaMax": 45,
+                    "entregaPropria": true,
+                    "retiradaNoLocal": false
+                  },
+                  "endereco": {
+                    "rua": "Avenida Paulista",
+                    "numero": "1578",
+                    "cidade": "São Paulo",
+                    "estado": "SP",
+                    "cep": "01310-200",
+                    "bairro": "Bela Vista",
+                    "complemento": "Sala 42"
+                  },
+                  "horarios": {
+                    "domingo": "18:00-23:00",
+                    "segunda": "Fechado",
+                    "terca": "11:00-23:00",
+                    "quarta": "11:00-23:00",
+                    "quinta": "11:00-23:00",
+                    "sexta": "11:00-23:59",
+                    "sabado": "11:00-23:59"
+                  }
+                }
+                """;
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/v1/lojas/loja_1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isForbidden());
+    }
 }

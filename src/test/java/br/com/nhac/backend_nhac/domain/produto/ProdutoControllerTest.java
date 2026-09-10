@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -246,5 +247,31 @@ class ProdutoControllerTest {
                 .andExpect(status().isOk())
                 .andExpect((ResultMatcher) jsonPath("$.totalAvaliacoes").value(15))
                 .andExpect((ResultMatcher) jsonPath("$.mediaNotas").value(4.8));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 200 ao reativar um produto com sucesso")
+    void deveRetornar200AoAtivarProdutoComSucesso() throws Exception {
+        ProdutoResumoDTO resumo = new ProdutoResumoDTO(
+                "produto_1", "loja_1", "Sushi Ken", "Hossomaki", "Descrição",
+                new BigDecimal("25.50"), "Sushi", "url", "200g", 0, true, List.of()
+        );
+
+        when(produtoService.ativarProduto(eq("produto_1"), any())).thenReturn(resumo);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/v1/produtos/{produtoId}/ativar", "produto_1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("produto_1"))
+                .andExpect(jsonPath("$.nome").value("Hossomaki"));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 403 ao tentar reativar produto de outro usuário")
+    void deveRetornar403AoAtivarProdutoDeOutroUsuario() throws Exception {
+        when(produtoService.ativarProduto(eq("produto_1"), any()))
+                .thenThrow(new br.com.nhac.backend_nhac.exceptions.AcessoNegadoException("Acesso negado"));
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/v1/produtos/{produtoId}/ativar", "produto_1"))
+                .andExpect(status().isForbidden());
     }
 }

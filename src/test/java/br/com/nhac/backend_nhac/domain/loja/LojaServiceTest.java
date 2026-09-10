@@ -161,6 +161,97 @@ class LojaServiceTest {
         verify(lojaRepository, never()).save(any());
     }
 
+    @Test
+    @DisplayName("Deve obter minha loja quando o usuário possuir loja")
+    void deveObterMinhaLojaComSucesso() {
+        Usuario usuario = new Usuario();
+        usuario.setId("user_dono");
+
+        Loja loja = construirLojaCompleta("loja_1", true);
+        loja.setUsuarioId("user_dono");
+
+        when(lojaRepository.findByUsuarioId("user_dono")).thenReturn(Optional.of(loja));
+
+        LojaDetalhesDTO resultado = lojaService.obterMinhaLoja(usuario);
+
+        assertNotNull(resultado);
+        assertEquals("loja_1", resultado.id());
+        assertEquals("Sushi Ken", resultado.nome());
+    }
+
+    @Test
+    @DisplayName("Deve lançar LojaNaoEncontradaException quando o usuário não tiver loja ao consultar minha loja")
+    void deveLancarExcecaoQuandoMinhaLojaNaoExistir() {
+        Usuario usuario = new Usuario();
+        usuario.setId("user_sem_loja");
+
+        when(lojaRepository.findByUsuarioId("user_sem_loja")).thenReturn(Optional.empty());
+
+        assertThrows(br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException.class,
+                () -> lojaService.obterMinhaLoja(usuario));
+    }
+
+    @Test
+    @DisplayName("Deve lançar AcessoNegadoException ao consultar minha loja sem estar autenticado")
+    void deveLancarAcessoNegadoAoConsultarMinhaLojaSemUsuario() {
+        assertThrows(AcessoNegadoException.class, () -> lojaService.obterMinhaLoja(null));
+    }
+
+    @Test
+    @DisplayName("Deve atualizar loja com sucesso quando usuário for o dono e preservar usuarioId")
+    void deveAtualizarLojaQuandoUsuarioForDono() {
+        Usuario dono = new Usuario();
+        dono.setId("user_dono");
+        dono.setPapel(Papel.LOJISTA);
+
+        Loja lojaExistente = construirLojaCompleta("loja_1", true);
+        lojaExistente.setUsuarioId("user_dono");
+
+        when(lojaRepository.findById("loja_1")).thenReturn(Optional.of(lojaExistente));
+        when(lojaRepository.save(any(Loja.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        LojaDetalhesDTO atualizada = lojaService.atualizarLoja("loja_1", construirDtoCriacao(), dono);
+
+        assertNotNull(atualizada);
+        assertEquals("Nova Loja", atualizada.nome());
+        verify(lojaRepository).save(argThat(l -> "user_dono".equals(l.getUsuarioId())));
+    }
+
+    @Test
+    @DisplayName("Deve lançar AcessoNegadoException ao tentar atualizar loja de outro usuário")
+    void deveLancarAcessoNegadoAoAtualizarLojaDeOutroUsuario() {
+        Usuario invasor = new Usuario();
+        invasor.setId("user_invasor");
+        invasor.setPapel(Papel.LOJISTA);
+
+        Loja lojaExistente = construirLojaCompleta("loja_1", true);
+        lojaExistente.setUsuarioId("user_dono");
+
+        when(lojaRepository.findById("loja_1")).thenReturn(Optional.of(lojaExistente));
+
+        assertThrows(AcessoNegadoException.class,
+                () -> lojaService.atualizarLoja("loja_1", construirDtoCriacao(), invasor));
+    }
+
+    @Test
+    @DisplayName("Deve permitir que ADMIN atualize qualquer loja")
+    void devePermitirAdminAtualizarQualquerLoja() {
+        Usuario admin = new Usuario();
+        admin.setId("user_admin");
+        admin.setPapel(Papel.ADMIN);
+
+        Loja lojaExistente = construirLojaCompleta("loja_1", true);
+        lojaExistente.setUsuarioId("user_dono");
+
+        when(lojaRepository.findById("loja_1")).thenReturn(Optional.of(lojaExistente));
+        when(lojaRepository.save(any(Loja.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        LojaDetalhesDTO atualizada = lojaService.atualizarLoja("loja_1", construirDtoCriacao(), admin);
+
+        assertNotNull(atualizada);
+        verify(lojaRepository).save(argThat(l -> "user_dono".equals(l.getUsuarioId())));
+    }
+
     private LojaCreateDTO construirDtoCriacao() {
         LojaCreateDTO.DadosOperacionaisDTO dadosOp = new LojaCreateDTO.DadosOperacionaisDTO(new BigDecimal("5.0"), 30, 45, true, false, null);
         LojaCreateDTO.EnderecoDTO endereco = new LojaCreateDTO.EnderecoDTO("Rua X", "123", "Cidade", "SP", "01234-567", "Centro", null);

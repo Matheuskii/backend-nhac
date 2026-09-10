@@ -1,9 +1,6 @@
 package br.com.nhac.backend_nhac.domain.pedido;
 
-import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCreateDTO;
-import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO;
-import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoDTO;
-import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoUpdateStatusDTO;
+import br.com.nhac.backend_nhac.domain.pedido.dto.*;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
 import br.com.nhac.backend_nhac.exceptions.ErroPadraoDTO;
@@ -23,7 +20,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.domain.Sort;
-import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResponseDTO;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -44,9 +40,10 @@ public class PedidoController {
     }
 
 
-    @Operation(summary = "Finalizar uma nova compra", description = "Recebe o carrinho de compras do Flutter, valida os itens, amarra à loja e gera um novo pedido no sistema. Suporta pagamentos via Stripe (cartão de crédito e Google Pay). Os campos pixCopiaECola e qrCodeUrl serão null para este método de pagamento.")
+    @Operation(summary = "Finalizar uma nova compra", description = "Recebe o carrinho de compras do Flutter, valida os itens, amarra à loja e gera um novo pedido no sistema. Envie o header Idempotency-Key para evitar duplicidade: a mesma chave devolve o pedido já criado com HTTP 200. Status serializado no JSON como string do enum (PENDENTE, PAGO, PREPARANDO, SAIU_ENTREGA, ENTREGUE, CANCELADO).")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Pedido criado com sucesso. Devolve o ID do pedido gerado."),
+            @ApiResponse(responseCode = "200", description = "Pedido já existia para a Idempotency-Key enviada; devolve o pedido original sem criar duplicata."),
 
             @ApiResponse(responseCode = "400", description = "Erro de validação no DTO (ex: carrinho vazio, valores negativos, formato de CEP inválido).",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class))),
@@ -63,9 +60,10 @@ public class PedidoController {
             @AuthenticationPrincipal Usuario usuarioLogado,
             @org.springframework.web.bind.annotation.RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
 
-       PedidoCriadoDTO responseDto = pedidoService.finalizarPedido(dto, usuarioLogado, idempotencyKey);
+        ResultadoCriacaoPedido resultado = pedidoService.finalizarPedido(dto, usuarioLogado, idempotencyKey);
+        HttpStatus status = resultado.replay() ? HttpStatus.OK : HttpStatus.CREATED;
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
+        return ResponseEntity.status(status).body(resultado.dto());
     }
 
     @Operation(summary = "Consultar um pedido", description = "Retorna os detalhes de um pedido específico caso pertença ao usuário logado.")

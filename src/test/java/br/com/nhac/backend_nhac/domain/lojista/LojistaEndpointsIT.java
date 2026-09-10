@@ -67,6 +67,7 @@ class LojistaEndpointsIT extends AbstractIntegrationTest {
         // Criar lojista A
         String emailA = "lojista.a@nhac.com.br";
         String senhaA = "senhaForte123";
+        criarCodigoVerificadoPara(emailA);
         RegistroRequestDTO registroA = new RegistroRequestDTO(
                 UUID.randomUUID().toString(),
                 "Lojista A",
@@ -88,6 +89,7 @@ class LojistaEndpointsIT extends AbstractIntegrationTest {
         // Criar lojista B
         String emailB = "lojista.b@nhac.com.br";
         String senhaB = "senhaForte123";
+        criarCodigoVerificadoPara(emailB);
         RegistroRequestDTO registroB = new RegistroRequestDTO(
                 UUID.randomUUID().toString(),
                 "Lojista B",
@@ -116,6 +118,14 @@ class LojistaEndpointsIT extends AbstractIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString()).get("id").asText();
 
+        // Re-autenticar lojista A para obter token com papel LOJISTA
+        tokenA = objectMapper.readTree(
+                mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequestDTO(emailA, senhaA))))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString()).get("token").asText();
+
         // Criar loja para B
         String jsonLojaB = jsonCriacaoLoja("loja-b");
         String lojaIdB = objectMapper.readTree(
@@ -125,6 +135,14 @@ class LojistaEndpointsIT extends AbstractIntegrationTest {
                         .content(jsonLojaB))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString()).get("id").asText();
+
+        // Re-autenticar lojista B para obter token com papel LOJISTA
+        tokenB = objectMapper.readTree(
+                mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequestDTO(emailB, senhaB))))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString()).get("token").asText();
 
         // Lojista A cadastra produto na sua loja
         String jsonProdutoA = """

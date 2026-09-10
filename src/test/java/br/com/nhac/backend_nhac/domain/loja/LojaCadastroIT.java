@@ -50,6 +50,8 @@ class LojaCadastroIT extends AbstractIntegrationTest {
         String email = "lojista.fase2@nhac.com.br";
         String senha = "senhaForte123";
 
+        criarCodigoVerificadoPara(email);
+
         RegistroRequestDTO registroReq = new RegistroRequestDTO(
                 UUID.randomUUID().toString(),
                 "Lojista Teste",
@@ -102,6 +104,8 @@ class LojaCadastroIT extends AbstractIntegrationTest {
         String email = "lojista.segundaloja@nhac.com.br";
         String senha = "senhaForte123";
 
+        criarCodigoVerificadoPara(email);
+
         RegistroRequestDTO registroReq = new RegistroRequestDTO(
                 UUID.randomUUID().toString(),
                 "Lojista Segunda Loja",
@@ -147,6 +151,99 @@ class LojaCadastroIT extends AbstractIntegrationTest {
 
         // Confirmar que continuou existindo apenas 1 loja
         assertEquals(1, lojaRepository.count());
+    }
+
+    @Test
+    void deveConsultarMinhaLojaComSucesso() throws Exception {
+        String email = "lojista.minhaloja@nhac.com.br";
+        String senha = "senhaForte123";
+
+        criarCodigoVerificadoPara(email);
+
+        RegistroRequestDTO registroReq = new RegistroRequestDTO(
+                UUID.randomUUID().toString(),
+                "Lojista Minha Loja",
+                email,
+                "11988887775",
+                senha
+        );
+
+        mockMvc.perform(post("/api/v1/auth/registrar")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(registroReq)))
+                .andExpect(status().isCreated());
+
+        String token = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequestDTO(email, senha))))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        String jwt = objectMapper.readTree(token).get("token").asText();
+
+        // Antes de criar a loja, deve dar 404
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/lojas/minha-loja")
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isNotFound());
+
+        // Criar loja
+        mockMvc.perform(post("/api/v1/lojas")
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonCriacaoLoja("qualquer")))
+                .andExpect(status().isCreated());
+
+        // Agora GET /minha-loja deve retornar 200 com os dados
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/lojas/minha-loja")
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nome").value("Mercado Central"));
+    }
+
+    @Test
+    void deveAtualizarLojaPeloDonoEBloquearParaOutroUsuario() throws Exception {
+        // Criar usuário 1 (dono)
+        String email1 = "dono.loja@nhac.com.br";
+        String senha = "senhaForte123";
+        criarCodigoVerificadoPara(email1);
+        RegistroRequestDTO registro1 = new RegistroRequestDTO(
+                UUID.randomUUID().toString(), "Dono Loja", email1, "11988887774", senha
+        );
+        mockMvc.perform(post("/api/v1/auth/registrar").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(registro1))).andExpect(status().isCreated());
+        String token1 = objectMapper.readTree(mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(new LoginRequestDTO(email1, senha)))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).get("token").asText();
+
+        // Criar usuário 2 (invasor)
+        String email2 = "invasor.loja@nhac.com.br";
+        criarCodigoVerificadoPara(email2);
+        RegistroRequestDTO registro2 = new RegistroRequestDTO(
+                UUID.randomUUID().toString(), "Invasor Loja", email2, "11988887773", senha
+        );
+        mockMvc.perform(post("/api/v1/auth/registrar").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(registro2))).andExpect(status().isCreated());
+        String token2 = objectMapper.readTree(mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(new LoginRequestDTO(email2, senha)))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).get("token").asText();
+
+        // Dono cria loja
+        String responseLoja = mockMvc.perform(post("/api/v1/lojas")
+                        .header("Authorization", "Bearer " + token1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonCriacaoLoja("qualquer")))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String lojaId = objectMapper.readTree(responseLoja).get("id").asText();
+
+        // Invasor tenta atualizar a loja -> 403
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/v1/lojas/" + lojaId)
+                        .header("Authorization", "Bearer " + token2)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonCriacaoLoja("qualquer")))
+                .andExpect(status().isForbidden());
+
+        // Dono atualiza a loja -> 200
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/v1/lojas/" + lojaId)
+                        .header("Authorization", "Bearer " + token1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonCriacaoLoja("qualquer")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(lojaId));
     }
 
     private String jsonCriacaoLoja(String usuarioIdForjado) {

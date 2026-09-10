@@ -90,6 +90,7 @@ class PedidoServiceTest {
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
         when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(burgerMock));
+        when(produtoRepository.decrementarEstoqueSeDisponivel("prod_1", 2)).thenReturn(1);
 
         when(pedidoRepository.save(any(Pedido.class))).thenAnswer(invocation -> {
             Pedido p = invocation.getArgument(0);
@@ -233,6 +234,8 @@ class PedidoServiceTest {
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
         when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(produto1));
         when(produtoRepository.findById("prod_2")).thenReturn(Optional.of(produto2));
+        when(produtoRepository.decrementarEstoqueSeDisponivel("prod_1", 2)).thenReturn(1);
+        when(produtoRepository.decrementarEstoqueSeDisponivel("prod_2", 1)).thenReturn(1);
         when(pedidoRepository.save(any(Pedido.class))).thenAnswer(invocation -> {
             Pedido p = invocation.getArgument(0);
             p.setId("pedido_gerado_002");
@@ -277,6 +280,7 @@ class PedidoServiceTest {
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
         when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(produto));
+        when(produtoRepository.decrementarEstoqueSeDisponivel("prod_1", 1)).thenReturn(1);
         when(pedidoRepository.save(any(Pedido.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         pedidoService.finalizarPedido(dto, usuario, null);
@@ -399,7 +403,7 @@ class PedidoServiceTest {
 
         when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
 
-        RegraDeNegocioException excecao = assertThrows(RegraDeNegocioException.class, () -> {
+        br.com.nhac.backend_nhac.exceptions.TransicaoStatusInvalidaException excecao = assertThrows(br.com.nhac.backend_nhac.exceptions.TransicaoStatusInvalidaException.class, () -> {
             pedidoService.atualizarStatus("pedido_123", StatusPedido.PREPARANDO, usuarioMock);
         });
 
@@ -424,7 +428,7 @@ class PedidoServiceTest {
 
         when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
 
-        RegraDeNegocioException excecao = assertThrows(RegraDeNegocioException.class, () -> {
+        br.com.nhac.backend_nhac.exceptions.TransicaoStatusInvalidaException excecao = assertThrows(br.com.nhac.backend_nhac.exceptions.TransicaoStatusInvalidaException.class, () -> {
             pedidoService.atualizarStatus("pedido_123", StatusPedido.PREPARANDO, usuarioMock);
         });
 
@@ -462,7 +466,7 @@ class PedidoServiceTest {
     }
 
     @Test
-    @DisplayName("Deve lançar RegraDeNegocioException ao tentar cancelar pedido que já saiu para entrega")
+    @DisplayName("Deve lançar TransicaoStatusInvalidaException ao tentar cancelar pedido que já saiu para entrega")
     void deveLancarRegraDeNegocioAoTentarCancelarPedidoQueJaSaiuParaEntrega() {
         Pedido pedidoMock = new Pedido();
         pedidoMock.setId("pedido_123");
@@ -471,7 +475,7 @@ class PedidoServiceTest {
 
         when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
 
-        assertThrows(RegraDeNegocioException.class, () -> {
+        assertThrows(br.com.nhac.backend_nhac.exceptions.TransicaoStatusInvalidaException.class, () -> {
             pedidoService.cancelarPedido("pedido_123", "user_123");
         });
     }
@@ -492,7 +496,7 @@ class PedidoServiceTest {
     }
 
     @Test
-    @DisplayName("Deve lançar RegraDeNegocioException ao tentar cancelar pedido por falha de pagamento que já saiu para entrega")
+    @DisplayName("Deve lançar TransicaoStatusInvalidaException ao tentar cancelar pedido por falha de pagamento que já saiu para entrega")
     void deveLancarRegraAoCancelarPorFalhaPagamentoPedidoQueJaSaiu() {
         Pedido pedidoMock = new Pedido();
         pedidoMock.setId("pedido_123");
@@ -500,7 +504,7 @@ class PedidoServiceTest {
 
         when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
 
-        assertThrows(RegraDeNegocioException.class, () -> {
+        assertThrows(br.com.nhac.backend_nhac.exceptions.TransicaoStatusInvalidaException.class, () -> {
             pedidoService.marcarComoCanceladoPorFalhaDePagamento("pedido_123");
         });
     }

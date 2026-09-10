@@ -71,6 +71,41 @@ public class LojaController {
         return ResponseEntity.status(HttpStatus.CREATED).body(resumoDTO);
     }
 
+    @Operation(summary = "Consultar a loja do usuário autenticado",
+            description = "Retorna a loja vinculada ao token. Rota canônica do painel do lojista; não usa lojaId na URL.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Loja do usuário retornada com sucesso"),
+            @ApiResponse(responseCode = "401", description = "Não autenticado",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Usuário autenticado ainda não possui loja",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @GetMapping("/minha-loja")
+    public ResponseEntity<LojaDetalhesDTO> obterMinhaLoja(@AuthenticationPrincipal Usuario usuarioLogado) {
+        return ResponseEntity.ok(lojaService.obterMinhaLoja(usuarioLogado));
+    }
+
+    @Operation(summary = "Atualizar loja",
+            description = "Atualização completa da loja (mesmo contrato de criação). Apenas o dono ou ADMIN. O campo usuarioId do corpo, se enviado, é ignorado — o dono não pode ser alterado.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Loja atualizada com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Payload inválido",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = "401", description = "Não autenticado",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Usuário autenticado não é o dono da loja",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Loja não encontrada",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @PutMapping("/{id}")
+    public ResponseEntity<LojaDetalhesDTO> atualizarLoja(
+            @PathVariable String id,
+            @RequestBody @Valid LojaCreateDTO dto,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+        return ResponseEntity.ok(lojaService.atualizarLoja(id, dto, usuarioLogado));
+    }
+
     @Operation(summary = "Calcular frete dinâmico", description = "Calcula o frete e o tempo de entrega com base na localização do cliente.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Cálculo realizado com sucesso"),

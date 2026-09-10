@@ -19,6 +19,8 @@ public class AuthFlowIT extends AbstractIntegrationTest {
         String email = "teste.integracao@nhac.com.br";
         String senha = "senhaForte123";
 
+        criarCodigoVerificadoPara(email);
+
         RegistroRequestDTO registroReq = new RegistroRequestDTO(
                 UUID.randomUUID().toString(),
                 "Usuario Teste",

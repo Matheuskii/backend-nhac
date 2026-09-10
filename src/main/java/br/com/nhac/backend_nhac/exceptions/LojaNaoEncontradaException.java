@@ -5,6 +5,10 @@ import java.util.Map;
 
 public class LojaNaoEncontradaException extends NhacException {
     
+    public LojaNaoEncontradaException() {
+        super("Loja do usuário não encontrada.", ErrorCode.LOJA_NAO_ENCONTRADA);
+    }
+
     public LojaNaoEncontradaException(String lojaId) {
         super("Loja com ID '" + lojaId + "' não encontrada.", 
               ErrorCode.LOJA_NAO_ENCONTRADA, 

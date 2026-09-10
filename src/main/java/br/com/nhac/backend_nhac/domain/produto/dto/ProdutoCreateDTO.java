@@ -36,6 +36,8 @@ public record ProdutoCreateDTO(
         String peso,
 
         @Schema(description = "Percentual de desconto ativo (0 a 100)", example = "10")
+        @Min(value = 0, message = "O percentual de desconto não pode ser negativo.")
+        @Max(value = 100, message = "O percentual de desconto não pode ser maior que 100.")
         Integer percentualDesconto,
 
         @Schema(description = "Lista de grupos de adicionais do produto", example = "[]")

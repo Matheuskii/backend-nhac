@@ -36,7 +36,7 @@ public class ProdutoService {
         boolean isAdmin = usuarioLogado.getPapel().name().equals("ADMIN");
         
         Loja lojaDoUsuario = lojaRepository.findByUsuarioId(usuarioLogado.getId())
-                .orElseThrow(() -> new RegraDeNegocioException("É preciso ter uma loja cadastrada antes de adicionar produtos."));
+                .orElseThrow(br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException::new);
 
         if (!lojaDoUsuario.isAberto() && !isAdmin) {
             throw new RegraDeNegocioException("Não é possível cadastrar produtos em uma loja fechada.");
@@ -107,6 +107,25 @@ public class ProdutoService {
 
         produto.setAtivo(false);
         produtoRepository.save(produto);
+    }
+
+    @Transactional
+    public ProdutoResumoDTO ativarProduto(String id, Usuario usuarioLogado) {
+        Produto produto = produtoRepository.findById(id)
+                .orElseThrow(() -> new IdNaoEncontradoException("O produto com o id: " + id + " não foi encontrado."));
+
+        boolean isAdmin = usuarioLogado.getPapel().name().equals("ADMIN");
+        if (!isAdmin && !produto.getLoja().getUsuarioId().equals(usuarioLogado.getId())) {
+            throw new AcessoNegadoException("Acesso negado: você não tem permissão para reativar este produto.");
+        }
+
+        if (!produto.getLoja().isAberto() && !isAdmin) {
+            throw new RegraDeNegocioException("Não é possível reativar produtos de uma loja fechada.");
+        }
+
+        produto.setAtivo(true);
+        produtoRepository.save(produto);
+        return new ProdutoResumoDTO(produto);
     }
 
     @Transactional(readOnly = true)

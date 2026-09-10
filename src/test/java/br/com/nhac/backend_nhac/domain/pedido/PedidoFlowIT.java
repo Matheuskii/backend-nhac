@@ -68,6 +68,15 @@ public class PedidoFlowIT extends AbstractIntegrationTest {
         loja.setId("loja-123");
         loja.setNome("Pizzaria Nhac");
         loja.setAberto(true);
+        br.com.nhac.backend_nhac.domain.loja.DadosOperacionais dadosOp = new br.com.nhac.backend_nhac.domain.loja.DadosOperacionais();
+        dadosOp.setEntregaPropria(true);
+        dadosOp.setRetiradaNoLocal(true);
+        dadosOp.setTaxaEntregaBase(BigDecimal.ZERO);
+        dadosOp.setTempoEntregaMin(10);
+        dadosOp.setTempoEntregaMax(30);
+        dadosOp.setRaioEntregaKm(new BigDecimal("10.0"));
+        loja.setDadosOperacionais(dadosOp);
+        loja.setEndereco(new br.com.nhac.backend_nhac.domain.loja.EnderecoLoja("Rua Teste", "123", "Cidade", "SP", "00000-000", "Bairro", null));
         lojaRepository.save(loja);
 
         // 4. Criar Produto

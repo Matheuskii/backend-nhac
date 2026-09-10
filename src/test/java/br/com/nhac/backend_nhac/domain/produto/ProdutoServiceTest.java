@@ -118,9 +118,10 @@ class ProdutoServiceTest {
 
         when(lojaRepository.findByUsuarioId(usuarioSemLoja.getId())).thenReturn(Optional.empty());
 
-        Exception excecao = assertThrows(RegraDeNegocioException.class, () -> produtoService.cadastrarProduto(dto, usuarioSemLoja));
+        Exception excecao = assertThrows(br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException.class,
+                () -> produtoService.cadastrarProduto(dto, usuarioSemLoja));
 
-        assertEquals("É preciso ter uma loja cadastrada antes de adicionar produtos.", excecao.getMessage());
+        assertEquals("Loja do usuário não encontrada.", excecao.getMessage());
         verify(produtoRepository, never()).save(any(Produto.class));
     }
 
@@ -499,5 +500,68 @@ class ProdutoServiceTest {
                 () -> produtoService.buscarResumoAvaliacoes("produto_fantasma"));
 
         assertTrue(excecao.getMessage().contains("produto_fantasma"));
+    }
+
+    @Test
+    @DisplayName("Deve reativar produto com sucesso quando ele for encontrado e usuário for o dono")
+    void deveAtivarProdutoComSucesso() {
+        Usuario usuarioDono = criarUsuario("usuario_lojista_1", "LOJISTA");
+        Produto produtoOriginal = produtoDeTeste();
+        produtoOriginal.setAtivo(false);
+
+        when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
+        when(produtoRepository.save(any(Produto.class))).thenReturn(produtoOriginal);
+
+        ProdutoResumoDTO resumo = produtoService.ativarProduto("produto_1", usuarioDono);
+
+        assertNotNull(resumo);
+        assertTrue(produtoOriginal.isAtivo());
+        verify(produtoRepository, times(1)).save(produtoOriginal);
+    }
+
+    @Test
+    @DisplayName("Deve lançar AcessoNegadoException ao tentar reativar produto de outro lojista")
+    void deveLancarAcessoNegadoAoAtivarProdutoDeOutraLoja() {
+        Usuario usuarioInvasor = criarUsuario("usuario_invasor", "LOJISTA");
+        Produto produtoOriginal = produtoDeTeste();
+        produtoOriginal.setAtivo(false);
+
+        when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
+
+        assertThrows(AcessoNegadoException.class,
+                () -> produtoService.ativarProduto("produto_1", usuarioInvasor));
+        verify(produtoRepository, never()).save(any(Produto.class));
+    }
+
+    @Test
+    @DisplayName("ADMIN deve poder reativar produto de qualquer loja")
+    void adminDeveAtivarProdutoDeQualquerLoja() {
+        Usuario admin = criarUsuario("admin_123", "ADMIN");
+        Produto produtoOriginal = produtoDeTeste();
+        produtoOriginal.setAtivo(false);
+
+        when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
+        when(produtoRepository.save(any(Produto.class))).thenReturn(produtoOriginal);
+
+        ProdutoResumoDTO resumo = produtoService.ativarProduto("produto_1", admin);
+
+        assertNotNull(resumo);
+        assertTrue(produtoOriginal.isAtivo());
+        verify(produtoRepository, times(1)).save(produtoOriginal);
+    }
+
+    @Test
+    @DisplayName("Deve lançar RegraDeNegocioException ao tentar reativar produto de loja fechada")
+    void deveLancarExcecaoAoAtivarProdutoDeLojaFechada() {
+        Usuario usuarioDono = criarUsuario("usuario_lojista_1", "LOJISTA");
+        Produto produtoOriginal = produtoDeTeste();
+        produtoOriginal.getLoja().setAberto(false);
+        produtoOriginal.setAtivo(false);
+
+        when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
+
+        assertThrows(RegraDeNegocioException.class,
+                () -> produtoService.ativarProduto("produto_1", usuarioDono));
+        verify(produtoRepository, never()).save(any(Produto.class));
     }
 }

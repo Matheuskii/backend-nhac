@@ -48,9 +48,11 @@ public class LojistaController {
         return ResponseEntity.ok(lojistaService.listarProdutos(usuarioLogado.getId(), categoriaMenu, nome, pageable));
     }
 
-    @Operation(summary = "Listar pedidos recebidos", description = "Lista os pedidos recebidos pelas lojas do usuário autenticado. Sem status, retorna todos ordenados do mais recente para o mais antigo.")
+    @Operation(summary = "Listar pedidos recebidos", description = "Lista os pedidos recebidos pelas lojas do usuário autenticado. Sem status, retorna todos ordenados do mais recente para o mais antigo. O parâmetro status deve ser o valor do enum StatusPedido em maiúsculas (PENDENTE, PAGO, PREPARANDO, SAIU_ENTREGA, ENTREGUE, CANCELADO). Valores inválidos retornam 400.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lista paginada de pedidos. Vazia se ainda não houver pedidos."),
+            @ApiResponse(responseCode = "200", description = "Lista paginada de pedidos. Vazia se ainda não houver pedidos ou se o usuário não tiver loja."),
+            @ApiResponse(responseCode = "400", description = "Valor de status inválido",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
             @ApiResponse(responseCode = "401", description = "Não autenticado",
                     content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class)))
     })
