@@ -57,6 +57,7 @@ class LojaServiceTest {
                 .horariosFuncionamento(new HorariosFuncionamento(
                         "18:00-23:00", "Fechado", "11:00-23:00", "11:00-23:00",
                         "11:00-23:00", "11:00-23:59", "11:00-23:59"))
+                .formasPagamento(new FormasPagamento(true, true, true, true, false, false))
                 .build();
     }
 
@@ -164,6 +165,7 @@ class LojaServiceTest {
         LojaCreateDTO.DadosOperacionaisDTO dadosOp = new LojaCreateDTO.DadosOperacionaisDTO(new BigDecimal("5.0"), 30, 45, true, false, null);
         LojaCreateDTO.EnderecoDTO endereco = new LojaCreateDTO.EnderecoDTO("Rua X", "123", "Cidade", "SP", "01234-567", "Centro", null);
         LojaCreateDTO.HorariosDTO horarios = new LojaCreateDTO.HorariosDTO("F", "F", "F", "F", "F", "F", "F");
-        return new LojaCreateDTO("Nova Loja", "Desc", "Categoria", "img.jpg", true, dadosOp, endereco, horarios);
+        LojaCreateDTO.FormasPagamentoDTO formasPagto = new LojaCreateDTO.FormasPagamentoDTO(true, true, true, true, false, false);
+        return new LojaCreateDTO("Nova Loja", "Desc", "Categoria", "img.jpg", true, dadosOp, endereco, horarios, formasPagto);
     }
 }

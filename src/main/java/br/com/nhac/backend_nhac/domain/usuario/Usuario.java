@@ -56,6 +56,9 @@ public class Usuario implements UserDetails {
     @Column(nullable = false)
     private boolean ativo = true;
 
+    @Column(name = "email_verificado", nullable = false)
+    private boolean emailVerificado = false;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + this.papel.name()));

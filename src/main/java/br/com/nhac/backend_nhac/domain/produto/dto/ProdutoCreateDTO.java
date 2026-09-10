@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public record ProdutoCreateDTO(
 
@@ -35,7 +36,10 @@ public record ProdutoCreateDTO(
         String peso,
 
         @Schema(description = "Percentual de desconto ativo (0 a 100)", example = "10")
-        Integer percentualDesconto
+        Integer percentualDesconto,
+
+        @Schema(description = "Lista de grupos de adicionais do produto", example = "[]")
+        List<GrupoAdicionalDTO> adicionais
 ) {
 
         public Produto toEntity(Loja lojaDaBaseDeDados, ProdutoRepository produtoRepository) {

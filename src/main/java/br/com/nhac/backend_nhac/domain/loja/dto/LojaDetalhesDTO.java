@@ -30,7 +30,10 @@ public record LojaDetalhesDTO(
         EnderecoDTO endereco,
 
         @Schema(description = "Grade completa de horários de funcionamento")
-        HorariosDTO horarios
+        HorariosDTO horarios,
+
+        @Schema(description = "Formas de pagamento aceitas pela loja")
+        FormasPagamentoDTO formasPagamento
 ) {
     @Schema(description = "Dados operacionais")
     public record DadosOperacionaisDTO(
@@ -66,6 +69,16 @@ public record LojaDetalhesDTO(
             @Schema(example = "11:00 - 23:59") String sabado
     ) {}
 
+    @Schema(description = "Formas de pagamento aceitas pela loja")
+    public record FormasPagamentoDTO(
+            @Schema(description = "Aceita dinheiro", example = "true") Boolean aceitaDinheiro,
+            @Schema(description = "Aceita cartão de crédito", example = "true") Boolean aceitaCredito,
+            @Schema(description = "Aceita cartão de débito", example = "true") Boolean aceitaDebito,
+            @Schema(description = "Aceita PIX", example = "true") Boolean aceitaPix,
+            @Schema(description = "Aceita vale-refeição", example = "false") Boolean aceitaValeRefeicao,
+            @Schema(description = "Aceita vale-alimentação", example = "false") Boolean aceitaValeAlimentacao
+    ) {}
+
     public LojaDetalhesDTO(Loja loja) {
         this(loja.getId(),
                 loja.getNome(),
@@ -99,6 +112,14 @@ public record LojaDetalhesDTO(
                         loja.getHorariosFuncionamento().getQuinta(),
                         loja.getHorariosFuncionamento().getSexta() ,
                         loja.getHorariosFuncionamento().getSabado()
+                ),
+                new LojaDetalhesDTO.FormasPagamentoDTO(
+                        loja.getFormasPagamento().getAceitaDinheiro(),
+                        loja.getFormasPagamento().getAceitaCredito(),
+                        loja.getFormasPagamento().getAceitaDebito(),
+                        loja.getFormasPagamento().getAceitaPix(),
+                        loja.getFormasPagamento().getAceitaValeRefeicao(),
+                        loja.getFormasPagamento().getAceitaValeAlimentacao()
                 ));
     }
 }

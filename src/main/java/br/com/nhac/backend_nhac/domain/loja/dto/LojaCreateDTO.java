@@ -44,7 +44,10 @@ public record LojaCreateDTO(
 
         @NotNull(message = "Os horários de funcionamento são obrigatórios.")
         @Valid
-        HorariosDTO horarios
+        HorariosDTO horarios,
+
+        @Schema(description = "Formas de pagamento aceitas pela loja (se nulo, usa defaults: todas exceto VA/VR)")
+        FormasPagamentoDTO formasPagamento
 ) {
     @Schema(description = "Dados de operação logística da loja")
     public record DadosOperacionaisDTO(
@@ -112,6 +115,17 @@ public record LojaCreateDTO(
     ) {
     }
 
+    @Schema(description = "Formas de pagamento aceitas pela loja")
+    public record FormasPagamentoDTO(
+            @Schema(description = "Aceita dinheiro", example = "true") Boolean aceitaDinheiro,
+            @Schema(description = "Aceita cartão de crédito", example = "true") Boolean aceitaCredito,
+            @Schema(description = "Aceita cartão de débito", example = "true") Boolean aceitaDebito,
+            @Schema(description = "Aceita PIX", example = "true") Boolean aceitaPix,
+            @Schema(description = "Aceita vale-refeição", example = "false") Boolean aceitaValeRefeicao,
+            @Schema(description = "Aceita vale-alimentação", example = "false") Boolean aceitaValeAlimentacao
+    ) {
+    }
+
 
     public Loja toEntity() {
         Loja loja = new Loja();
@@ -158,6 +172,18 @@ public record LojaCreateDTO(
         geo.setGeoLat(0.0);
         geo.setGeoLng(0.0);
         loja.setGeoLocalizacao(geo);
+
+        // B4 - Formas de pagamento (defaults se nulo)
+        if (this.formasPagamento() != null) {
+            FormasPagamento fp = new FormasPagamento();
+            fp.setAceitaDinheiro(this.formasPagamento().aceitaDinheiro() != null ? this.formasPagamento().aceitaDinheiro() : true);
+            fp.setAceitaCredito(this.formasPagamento().aceitaCredito() != null ? this.formasPagamento().aceitaCredito() : true);
+            fp.setAceitaDebito(this.formasPagamento().aceitaDebito() != null ? this.formasPagamento().aceitaDebito() : true);
+            fp.setAceitaPix(this.formasPagamento().aceitaPix() != null ? this.formasPagamento().aceitaPix() : true);
+            fp.setAceitaValeRefeicao(this.formasPagamento().aceitaValeRefeicao() != null ? this.formasPagamento().aceitaValeRefeicao() : false);
+            fp.setAceitaValeAlimentacao(this.formasPagamento().aceitaValeAlimentacao() != null ? this.formasPagamento().aceitaValeAlimentacao() : false);
+            loja.setFormasPagamento(fp);
+        }
 
         return loja;
     }

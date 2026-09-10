@@ -7,6 +7,8 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "tb_produtos")
@@ -54,6 +56,9 @@ public class Produto {
     
     @Column(name = "estoque")
     private Integer estoque = 100;
+
+    @OneToMany(mappedBy = "produto", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<GrupoAdicional> adicionais = new ArrayList<>();
 
     public Produto(ProdutoCreateDTO dto, Loja loja) {
         this.loja = loja;

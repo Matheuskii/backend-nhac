@@ -71,7 +71,7 @@ class LojistaControllerTest {
     void deveListarProdutosDoLojista() throws Exception {
         ProdutoLojistaDTO produto = new ProdutoLojistaDTO(
                 "prod_0007", "Hossomaki de Salmão", "Rolinho de arroz e alga com salmão.",
-                new BigDecimal("25.50"), "Sushi", "https://...", "200g", 10, true, 100);
+                new BigDecimal("25.50"), "Sushi", "https://...", "200g", 10, true, 100, null);
         Page<ProdutoLojistaDTO> pagina = new PageImpl<>(List.of(produto), PageRequest.of(0, 20), 1);
 
         when(lojistaService.listarProdutos(eq("user_123"), eq("Sushi"), eq("salmao"), any()))

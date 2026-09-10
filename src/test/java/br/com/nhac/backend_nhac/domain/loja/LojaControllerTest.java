@@ -76,7 +76,8 @@ class LojaControllerTest {
     void deveListarLojasComSucesso() throws Exception {
         LojaResumoDTO.DadosOperacionaisDTO dadosOp =
                 new LojaResumoDTO.DadosOperacionaisDTO(4.8f, new BigDecimal("5.99"), 30, 45, 150, true, false, null);
-        LojaResumoDTO resumo = new LojaResumoDTO("loja_1", "Sushi Ken", "Descrição", "Japonesa", "url", dadosOp);
+        LojaResumoDTO.FormasPagamentoDTO formasPagto = new LojaResumoDTO.FormasPagamentoDTO(true, true, true, true, false, false);
+        LojaResumoDTO resumo = new LojaResumoDTO("loja_1", "Sushi Ken", "Descrição", "Japonesa", "url", dadosOp, formasPagto);
         Page<LojaResumoDTO> pagina = new PageImpl<>(List.of(resumo), PageRequest.of(0, 10), 1);
 
         when(lojaService.obterLojasPaginadas(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), anyInt(), anyInt())).thenReturn(pagina);
@@ -107,8 +108,9 @@ class LojaControllerTest {
                 new LojaDetalhesDTO.EnderecoDTO("Rua das Flores", "123", "São Paulo", "SP", "01000-000", "Centro", "Sala 42");
         LojaDetalhesDTO.HorariosDTO horarios = new LojaDetalhesDTO.HorariosDTO(
                 "18:00-23:00", "Fechado", "11:00-23:00", "11:00-23:00", "11:00-23:00", "11:00-23:59", "11:00-23:59");
+        LojaDetalhesDTO.FormasPagamentoDTO formasPagto = new LojaDetalhesDTO.FormasPagamentoDTO(true, true, true, true, false, false);
         LojaDetalhesDTO detalhes = new LojaDetalhesDTO(
-                "loja_1", "Sushi Ken", "Descrição completa", "Japonesa", "url", dadosOp, endereco, horarios);
+                "loja_1", "Sushi Ken", "Descrição completa", "Japonesa", "url", dadosOp, endereco, horarios, formasPagto);
         return detalhes;
     }
 
@@ -128,7 +130,8 @@ class LojaControllerTest {
     void deveCriarLojaComUsuarioAutenticadoIgnorandoUsuarioIdDoCorpo() throws Exception {
         LojaResumoDTO.DadosOperacionaisDTO dadosOp =
                 new LojaResumoDTO.DadosOperacionaisDTO(0.0f, new BigDecimal("5.99"), 30, 45, 0, true, false, null);
-        LojaResumoDTO resumo = new LojaResumoDTO("loja_0001", "Mercado Central", "Orgânicos", "Restaurantes", "url", dadosOp);
+        LojaResumoDTO.FormasPagamentoDTO formasPagto = new LojaResumoDTO.FormasPagamentoDTO(true, true, true, true, false, false);
+        LojaResumoDTO resumo = new LojaResumoDTO("loja_0001", "Mercado Central", "Orgânicos", "Restaurantes", "url", dadosOp, formasPagto);
 
         when(lojaService.criarLoja(any(LojaCreateDTO.class), eq(usuarioLogado))).thenReturn(resumo);
 

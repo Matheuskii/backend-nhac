@@ -13,6 +13,7 @@ import br.com.nhac.backend_nhac.infra.security.TokenService;
 import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
 import br.com.nhac.backend_nhac.domain.auth.GoogleAuthService;
 import br.com.nhac.backend_nhac.domain.auth.SmsAuthService;
+import br.com.nhac.backend_nhac.domain.auth.CodigoVerificacaoEmail;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -97,6 +99,7 @@ class AuthControllerTest {
         Usuario usuarioDoBanco = new Usuario();
         usuarioDoBanco.setEmail("matheus@nhac.com");
         usuarioDoBanco.setSenha("hash_da_senha_correta");
+        usuarioDoBanco.setEmailVerificado(true);
 
         when(usuarioRepository.findByEmailIgnoreCase("matheus@nhac.com")).thenReturn(Optional.of(usuarioDoBanco));
 
@@ -119,6 +122,7 @@ class AuthControllerTest {
         usuarioDoBanco.setNome("Matheus Alves");
         usuarioDoBanco.setEmail("matheus@nhac.com");
         usuarioDoBanco.setSenha("hash_da_senha_correta");
+        usuarioDoBanco.setEmailVerificado(true);
 
         when(usuarioRepository.findByEmailIgnoreCase("matheus@nhac.com")).thenReturn(Optional.of(usuarioDoBanco));
         when(passwordEncoder.matches("senha_correta", "hash_da_senha_correta")).thenReturn(true);
@@ -153,6 +157,15 @@ class AuthControllerTest {
         when(usuarioRepository.findByEmailIgnoreCase("novo@nhac.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("senha123")).thenReturn("senha_encriptada");
         when(tokenService.gerarToken(any(Usuario.class))).thenReturn("token_jwt_gerado");
+        
+        // Mock do código de verificação de cadastro
+        var codigoVerificacao = new br.com.nhac.backend_nhac.domain.auth.CodigoVerificacaoEmail();
+        codigoVerificacao.setUtilizado(true);
+        when(usuarioRepository.findCodigoVerificacaoPorEmailETipo(
+            eq("novo@nhac.com"), 
+            eq(CodigoVerificacaoEmail.TipoCodigo.CADASTRO),
+            any(java.time.LocalDateTime.class)
+        )).thenReturn(Optional.of(codigoVerificacao));
 
         ResponseEntity<LoginResponseDTO> resposta = authController.registrar(requisicao);
 
@@ -172,8 +185,25 @@ class AuthControllerTest {
         RegistroRequestDTO requisicao = new RegistroRequestDTO(
                 "user_novo", "Novo Usuário", "matheus@nhac.com", "11999998888", "senha123");
 
+        Usuario usuarioExistente = new Usuario();
+        usuarioExistente.setEmail("matheus@nhac.com");
+        usuarioExistente.setEmailVerificado(true);
+
+        // Mock do código de verificação como já utilizado (para passar pela validação de email)
+        CodigoVerificacaoEmail codigoVerificacao = new CodigoVerificacaoEmail();
+        codigoVerificacao.setEmail("matheus@nhac.com");
+        codigoVerificacao.setTipo(CodigoVerificacaoEmail.TipoCodigo.CADASTRO);
+        codigoVerificacao.setUtilizado(true);
+        codigoVerificacao.setCriadoEm(LocalDateTime.now());
+
+        when(usuarioRepository.findCodigoVerificacaoPorEmailETipo(
+                eq("matheus@nhac.com"), 
+                eq(CodigoVerificacaoEmail.TipoCodigo.CADASTRO), 
+                any(LocalDateTime.class)))
+                .thenReturn(Optional.of(codigoVerificacao));
+
         when(usuarioRepository.findByEmailIgnoreCase("matheus@nhac.com"))
-                .thenReturn(Optional.of(new Usuario()));
+                .thenReturn(Optional.of(usuarioExistente));
 
         assertThrows(RegraDeNegocioException.class, () -> authController.registrar(requisicao));
 

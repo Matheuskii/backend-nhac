@@ -67,7 +67,7 @@ class ProdutoControllerTest {
     @DisplayName("Deve retornar Erro 422 quando criar produto com nome vazio")
     void deveDevolverErro400QuandoNomeVazio() throws Exception {
         ProdutoCreateDTO dtoInvalido = new ProdutoCreateDTO(
-                "", "Desc", new BigDecimal("10.00"), "Cat", null, "12", null
+                "", "Desc", new BigDecimal("10.00"), "Cat", null, "12", null, null
         );
 
         //noinspection deprecation
@@ -82,7 +82,7 @@ class ProdutoControllerTest {
     @DisplayName("Deve retornar Erro 400 quando criar produto com preço negativo")
     void deveDevolverErro400QuandoPrecoNegativo() throws Exception {
         ProdutoCreateDTO dtoInvalido = new ProdutoCreateDTO(
-                "Hambúrguer", "Desc", new BigDecimal("-5.00"), "Cat", "url", "23", 0
+                "Hambúrguer", "Desc", new BigDecimal("-5.00"), "Cat", "url", "23", 0, null
         );
 
         //noinspection deprecation
@@ -98,7 +98,7 @@ class ProdutoControllerTest {
     void deveCadastrarProdutoComSucesso() throws Exception {
         ProdutoCreateDTO dtoValido = new ProdutoCreateDTO(
                 "Hossomaki", "Descrição", new BigDecimal("25.50"),
-                "Sushi", "url", "200g", 10
+                "Sushi", "url", "200g", 10, null
         );
 
         br.com.nhac.backend_nhac.domain.produto.Produto produtoSalvo = new br.com.nhac.backend_nhac.domain.produto.Produto();
@@ -123,7 +123,7 @@ class ProdutoControllerTest {
     @DisplayName("Deve retornar 200 ao listar produtos sem filtros")
     void deveListarProdutosComSucesso() throws Exception {
         ProdutoResumoDTO produto = new ProdutoResumoDTO(
-                "produto_1", "loja_123", "Loja Teste", "Hossomaki", "Hossomakinho", new BigDecimal("25.50"), "Sushi", "url", "23g", 0, true
+                "produto_1", "loja_123", "Loja Teste", "Hossomaki", "Hossomakinho", new BigDecimal("25.50"), "Sushi", "url", "23g", 0, true, null
         );
         Page<ProdutoResumoDTO> pagina = new PageImpl<>(List.of(produto), PageRequest.of(0, 10), 1);
 
@@ -138,7 +138,7 @@ class ProdutoControllerTest {
     @DisplayName("Deve retornar 200 com os dados do produto ao buscar por ID")
     void deveBuscarProdutoPorIdComSucesso() throws Exception {
         ProdutoResumoDTO produto = new ProdutoResumoDTO(
-                "produto_1", "loja_123", "Loja Teste", "Hossomaki", "Hossomakinho", new BigDecimal("25.50"), "Sushi", "url", "23g", 0, true
+                "produto_1", "loja_123", "Loja Teste", "Hossomaki", "Hossomakinho", new BigDecimal("25.50"), "Sushi", "url", "23g", 0, true, null
         );
 
         when(produtoService.buscarProdutoPorId("produto_1")).thenReturn(produto);
@@ -166,11 +166,11 @@ class ProdutoControllerTest {
     void deveAtualizarProdutoComSucesso() throws Exception {
         br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dtoValido = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
                 "Hossomaki Editado", "Nova descrição", new BigDecimal("30.00"),
-                "Sushi", "nova-url", "250g", 0, false
+                "Sushi", "nova-url", "250g", 0, false, null
         );
 
         ProdutoResumoDTO produtoAtualizado = new ProdutoResumoDTO(
-                "produto_1", "loja_123", "Loja Teste", "Hossomaki Editado", "Nova descrição", new BigDecimal("30.00"), "Sushi", "nova-url", "250g", 0, true
+                "produto_1", "loja_123", "Loja Teste", "Hossomaki Editado", "Nova descrição", new BigDecimal("30.00"), "Sushi", "nova-url", "250g", 0, true, null
         );
 
         when(produtoService.atualizarProduto(any(), any(), any())).thenReturn(produtoAtualizado);
@@ -187,7 +187,7 @@ class ProdutoControllerTest {
     void deveRetornarErro400AoAtualizarComNomeVazio() throws Exception {
         br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dtoInvalido = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
                 "", "Nova descrição", new BigDecimal("30.00"),
-                "Sushi", "nova-url", "250g", 0, false
+                "Sushi", "nova-url", "250g", 0, false, null
         );
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/v1/produtos/{produtoId}", "produto_1")
@@ -202,7 +202,7 @@ class ProdutoControllerTest {
     void deveRetornarErro404AoAtualizarProdutoInexistente() throws Exception {
         br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dtoValido = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
                 "Hossomaki Editado", "Nova descrição", new BigDecimal("30.00"),
-                "Sushi", "nova-url", "250g", 0, false
+                "Sushi", "nova-url", "250g", 0, false, null
         );
 
         when(produtoService.atualizarProduto(any(), any(), any()))
