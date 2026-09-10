@@ -75,7 +75,7 @@ class LojaControllerTest {
     @DisplayName("Deve retornar 200 com a página de lojas abertas")
     void deveListarLojasComSucesso() throws Exception {
         LojaResumoDTO.DadosOperacionaisDTO dadosOp =
-                new LojaResumoDTO.DadosOperacionaisDTO(4.8f, new BigDecimal("5.99"), 30, 45, 150);
+                new LojaResumoDTO.DadosOperacionaisDTO(4.8f, new BigDecimal("5.99"), 30, 45, 150, true, false, null);
         LojaResumoDTO resumo = new LojaResumoDTO("loja_1", "Sushi Ken", "Descrição", "Japonesa", "url", dadosOp);
         Page<LojaResumoDTO> pagina = new PageImpl<>(List.of(resumo), PageRequest.of(0, 10), 1);
 
@@ -91,7 +91,7 @@ class LojaControllerTest {
     @DisplayName("Deve retornar 200 com os detalhes de uma loja existente")
     void deveRetornarDetalhesDaLojaComSucesso() throws Exception {
         LojaDetalhesDTO.DadosOperacionaisDTO dadosOp =
-                new LojaDetalhesDTO.DadosOperacionaisDTO(4.8f, new BigDecimal("5.99"), 30, 45, 150);
+                new LojaDetalhesDTO.DadosOperacionaisDTO(4.8f, new BigDecimal("5.99"), 30, 45, 150, true, false, null);
         LojaDetalhesDTO detalhes = getLojaDetalhesDTO(dadosOp);
 
         when(lojaService.obterLojaId("loja_1")).thenReturn(detalhes);
@@ -104,7 +104,7 @@ class LojaControllerTest {
 
     private static @NonNull LojaDetalhesDTO getLojaDetalhesDTO(LojaDetalhesDTO.DadosOperacionaisDTO dadosOp) {
         LojaDetalhesDTO.EnderecoDTO endereco =
-                new LojaDetalhesDTO.EnderecoDTO("Rua das Flores", "123", "São Paulo", "SP", "01000-000");
+                new LojaDetalhesDTO.EnderecoDTO("Rua das Flores", "123", "São Paulo", "SP", "01000-000", "Centro", "Sala 42");
         LojaDetalhesDTO.HorariosDTO horarios = new LojaDetalhesDTO.HorariosDTO(
                 "18:00-23:00", "Fechado", "11:00-23:00", "11:00-23:00", "11:00-23:00", "11:00-23:59", "11:00-23:59");
         LojaDetalhesDTO detalhes = new LojaDetalhesDTO(
@@ -127,7 +127,7 @@ class LojaControllerTest {
     @DisplayName("Deve criar loja autenticado usando o usuário do token, ignorando usuarioId no corpo")
     void deveCriarLojaComUsuarioAutenticadoIgnorandoUsuarioIdDoCorpo() throws Exception {
         LojaResumoDTO.DadosOperacionaisDTO dadosOp =
-                new LojaResumoDTO.DadosOperacionaisDTO(0.0f, new BigDecimal("5.99"), 30, 45, 0);
+                new LojaResumoDTO.DadosOperacionaisDTO(0.0f, new BigDecimal("5.99"), 30, 45, 0, true, false, null);
         LojaResumoDTO resumo = new LojaResumoDTO("loja_0001", "Mercado Central", "Orgânicos", "Restaurantes", "url", dadosOp);
 
         when(lojaService.criarLoja(any(LojaCreateDTO.class), eq(usuarioLogado))).thenReturn(resumo);
@@ -143,14 +143,18 @@ class LojaControllerTest {
                   "dadosOperacionais": {
                     "taxaEntregaBase": 5.99,
                     "tempoEntregaMin": 30,
-                    "tempoEntregaMax": 45
+                    "tempoEntregaMax": 45,
+                    "entregaPropria": true,
+                    "retiradaNoLocal": false
                   },
                   "endereco": {
                     "rua": "Avenida Paulista",
                     "numero": "1578",
                     "cidade": "São Paulo",
                     "estado": "SP",
-                    "cep": "01310-200"
+                    "cep": "01310-200",
+                    "bairro": "Bela Vista",
+                    "complemento": "Sala 42"
                   },
                   "horarios": {
                     "domingo": "18:00-23:00",

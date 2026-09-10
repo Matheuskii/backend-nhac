@@ -56,7 +56,16 @@ public record LojaCreateDTO(
             int tempoEntregaMin,
 
             @Schema(description = "Tempo máximo estimado para entrega em minutos", example = "45")
-            int tempoEntregaMax
+            int tempoEntregaMax,
+
+            @Schema(description = "Indica se a loja realiza entrega própria", example = "true")
+            Boolean entregaPropria,
+
+            @Schema(description = "Indica se a loja permite retirada no local", example = "false")
+            Boolean retiradaNoLocal,
+
+            @Schema(description = "Raio de entrega em quilômetros (null = ilimitado)", example = "10.5")
+            BigDecimal raioEntregaKm
     ) {
     }
 
@@ -80,7 +89,14 @@ public record LojaCreateDTO(
 
             @NotBlank(message = "O CEP é obrigatório.")
             @Schema(description = "Código postal no formato XXXXX-XXX", example = "01310-200")
-            String cep
+            String cep,
+
+            @NotBlank(message = "O bairro é obrigatório.")
+            @Schema(description = "Bairro onde a loja está localizada", example = "Bela Vista")
+            String bairro,
+
+            @Schema(description = "Complemento do endereço (opcional)", example = "Sala 42")
+            String complemento
     ) {
     }
 
@@ -111,6 +127,10 @@ public record LojaCreateDTO(
         dados.setTempoEntregaMax(this.dadosOperacionais().tempoEntregaMax());
         dados.setAvaliacaoMedia(0.0f);
         dados.setTotalAvaliacoes(0);
+        // B3 - Defaults para retrocompatibilidade
+        dados.setEntregaPropria(this.dadosOperacionais().entregaPropria() != null ? this.dadosOperacionais().entregaPropria() : true);
+        dados.setRetiradaNoLocal(this.dadosOperacionais().retiradaNoLocal() != null ? this.dadosOperacionais().retiradaNoLocal() : false);
+        dados.setRaioEntregaKm(this.dadosOperacionais().raioEntregaKm());
         loja.setDadosOperacionais(dados);
 
         EnderecoLoja end = new EnderecoLoja();
@@ -119,6 +139,9 @@ public record LojaCreateDTO(
         end.setCidade(this.endereco().cidade());
         end.setEstado(this.endereco().estado());
         end.setCep(this.endereco().cep());
+        // B2 - Bairro e complemento
+        end.setBairro(this.endereco().bairro());
+        end.setComplemento(this.endereco().complemento());
         loja.setEndereco(end);
 
         HorariosFuncionamento h = new HorariosFuncionamento();

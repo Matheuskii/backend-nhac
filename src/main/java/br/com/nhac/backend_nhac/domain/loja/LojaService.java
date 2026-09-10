@@ -58,6 +58,11 @@ public class LojaService {
             throw new AcessoNegadoException("É necessário estar autenticado para cadastrar uma loja.");
         }
 
+        // Verificar se o usuário já possui uma loja cadastrada (A1 - P0)
+        if (lojaRepository.findByUsuarioId(usuarioLogado.getId()).isPresent()) {
+            throw new RegraDeNegocioException("Você já possui uma loja cadastrada.");
+        }
+
         long totalLojas = contarLojasCadastradas();
         String novoId = String.format("loja_%04d", totalLojas + 1);
 

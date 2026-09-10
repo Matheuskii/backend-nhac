@@ -97,6 +97,58 @@ class LojaCadastroIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.papel").value("LOJISTA"));
     }
 
+    @Test
+    void deveBloquearSegundaLojaDoMesmoLojista() throws Exception {
+        String email = "lojista.segundaloja@nhac.com.br";
+        String senha = "senhaForte123";
+
+        RegistroRequestDTO registroReq = new RegistroRequestDTO(
+                UUID.randomUUID().toString(),
+                "Lojista Segunda Loja",
+                email,
+                "11988887776",
+                senha
+        );
+
+        mockMvc.perform(post("/api/v1/auth/registrar")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(registroReq)))
+                .andExpect(status().isCreated());
+
+        String token = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequestDTO(email, senha))))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String jwt = objectMapper.readTree(token).get("token").asText();
+
+        // Primeira loja - sucesso
+        mockMvc.perform(post("/api/v1/lojas")
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonCriacaoLoja("usuario-forjado")))
+                .andExpect(status().isCreated());
+
+        assertEquals(1, lojaRepository.count());
+
+        // Segunda loja - deve falhar com erro de negócio
+        mockMvc.perform(post("/api/v1/lojas")
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonCriacaoLoja("usuario-forjado-2")))
+                .andExpect(result -> {
+                    int status = result.getResponse().getStatus();
+                    assertTrue(status == 400 || status == 422, "Status esperado era 400 ou 422, mas foi " + status);
+                })
+                .andExpect(jsonPath("$.message").value("Você já possui uma loja cadastrada."));
+
+        // Confirmar que continuou existindo apenas 1 loja
+        assertEquals(1, lojaRepository.count());
+    }
+
     private String jsonCriacaoLoja(String usuarioIdForjado) {
         return """
                 {
@@ -109,14 +161,18 @@ class LojaCadastroIT extends AbstractIntegrationTest {
                   "dadosOperacionais": {
                     "taxaEntregaBase": 5.99,
                     "tempoEntregaMin": 30,
-                    "tempoEntregaMax": 45
+                    "tempoEntregaMax": 45,
+                    "entregaPropria": true,
+                    "retiradaNoLocal": false
                   },
                   "endereco": {
                     "rua": "Avenida Paulista",
                     "numero": "1578",
                     "cidade": "São Paulo",
                     "estado": "SP",
-                    "cep": "01310-200"
+                    "cep": "01310-200",
+                    "bairro": "Bela Vista",
+                    "complemento": "Sala 42"
                   },
                   "horarios": {
                     "domingo": "18:00-23:00",
