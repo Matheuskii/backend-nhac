@@ -1,0 +1,104 @@
+package br.com.nhac.backend_nhac.domain.produto;
+
+import br.com.nhac.backend_nhac.domain.produto.Produto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
+
+import java.math.BigDecimal;
+import java.util.Optional;
+
+@Repository
+public interface ProdutoRepository extends JpaRepository<Produto, String> {
+
+    @Query("SELECT p FROM Produto p JOIN FETCH p.loja WHERE p.id = :id AND p.isAtivo = true")
+    Optional<Produto> findByIdAndIsAtivoTrue(@Param("id") String id);
+
+    long countByLojaId(String lojaId);
+
+    @Modifying
+    @Query("UPDATE Produto p SET p.estoque = p.estoque - :quantidade WHERE p.id = :id AND p.estoque >= :quantidade")
+    int decrementarEstoqueSeDisponivel(@Param("id") String id, @Param("quantidade") int quantidade);
+
+    @Query(value = """
+        SELECT p FROM Produto p
+        JOIN FETCH p.loja 
+        WHERE p.isAtivo = true
+        AND (:lojaId IS NULL OR p.loja.id = :lojaId)
+        AND (:categoriaMenu IS NULL OR LOWER(p.categoriaMenu) = LOWER(:categoriaMenu))
+        AND (:nome IS NULL OR LOWER(p.nome) LIKE LOWER(CONCAT('%', :nome, '%')))
+        AND (:precoMaximo IS NULL OR p.preco <= :precoMaximo)
+    """,
+            countQuery = """
+        SELECT COUNT(p) FROM Produto p
+        JOIN p.loja
+        WHERE p.isAtivo = true
+        AND (:lojaId IS NULL OR p.loja.id = :lojaId)
+        AND (:categoriaMenu IS NULL OR LOWER(p.categoriaMenu) = LOWER(:categoriaMenu))
+        AND (:nome IS NULL OR LOWER(p.nome) LIKE LOWER(CONCAT('%', :nome, '%')))
+        AND (:precoMaximo IS NULL OR p.preco <= :precoMaximo)
+    """)
+    Page<Produto> findAllWithFilters(
+            @Param("lojaId") String lojaId,
+            @Param("categoriaMenu") String categoriaMenu,
+            @Param("nome") String nome,
+            @Param("precoMaximo") BigDecimal precoMaximo,
+            Pageable pageable
+    );
+    @Query(value = """
+        SELECT p FROM Produto p
+        WHERE p.loja.id = :lojaId
+        AND (:categoriaMenu IS NULL OR LOWER(p.categoriaMenu) = LOWER(:categoriaMenu))
+        AND (:nome IS NULL OR LOWER(p.nome) LIKE LOWER(CONCAT('%', :nome, '%')))
+        """,
+            countQuery = """
+        SELECT COUNT(p) FROM Produto p
+        WHERE p.loja.id = :lojaId
+        AND (:categoriaMenu IS NULL OR LOWER(p.categoriaMenu) = LOWER(:categoriaMenu))
+        AND (:nome IS NULL OR LOWER(p.nome) LIKE LOWER(CONCAT('%', :nome, '%')))
+        """)
+    Page<Produto> findByLoja(
+            @Param("lojaId") String lojaId,
+            @Param("categoriaMenu") String categoriaMenu,
+            @Param("nome") String nome,
+            Pageable pageable
+    );
+
+    @Query("""
+        SELECT i.produto.id as produtoId, i.produto.nome as nome, i.produto.categoriaMenu as categoria,
+               SUM(i.quantidade) as quantidadeVendida, SUM(i.precoHistorico * i.quantidade) as faturamento
+        FROM ItemPedido i
+        WHERE i.pedido.loja.id = :lojaId
+        AND i.pedido.criadoEm >= :inicio AND i.pedido.criadoEm <= :fim
+        AND i.pedido.status <> br.com.nhac.backend_nhac.domain.pedido.StatusPedido.CANCELADO
+        GROUP BY i.produto.id, i.produto.nome, i.produto.categoriaMenu
+        ORDER BY SUM(i.quantidade) DESC
+        """)
+    java.util.List<Object[]> rankingProdutosVendidos(
+            @Param("lojaId") String lojaId,
+            @Param("inicio") java.time.Instant inicio,
+            @Param("fim") java.time.Instant fim
+    );
+
+    Page<Produto> findByLojaIdAndIsAtivoTrue(String lojaId, Pageable pageable);
+
+    Page<Produto> findByPrecoLessThanEqualAndIsAtivoTrue(BigDecimal precoMaximo, Pageable pageable);
+
+    Page<Produto> findByCategoriaMenuIgnoreCaseAndIsAtivoTrue(String categoriaMenu, Pageable pageable);
+
+    Page<Produto> findByNomeContainingIgnoreCaseAndIsAtivoTrue(String nome, Pageable pageable);
+
+    Page<Produto> findByIsAtivoTrue(Pageable pageable);
+
+    @Query("SELECT new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoAvaliacaoResumoDTO(COUNT(a.id), AVG(a.nota)) " +
+           "FROM Avaliacao a " +
+           "JOIN a.pedido p " +
+           "JOIN p.itens i " +
+           "WHERE i.produto.id = :produtoId")
+    br.com.nhac.backend_nhac.domain.produto.dto.ProdutoAvaliacaoResumoDTO getResumoAvaliacoesPorProdutoId(@Param("produtoId") String produtoId);
+}

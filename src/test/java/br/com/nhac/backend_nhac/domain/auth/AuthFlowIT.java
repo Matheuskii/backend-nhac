@@ -19,6 +19,8 @@ public class AuthFlowIT extends AbstractIntegrationTest {
         String email = "teste.integracao@nhac.com.br";
         String senha = "senhaForte123";
 
+        criarCodigoVerificadoPara(email);
+
         RegistroRequestDTO registroReq = new RegistroRequestDTO(
                 UUID.randomUUID().toString(),
                 "Usuario Teste",
@@ -32,7 +34,8 @@ public class AuthFlowIT extends AbstractIntegrationTest {
                 .content(objectMapper.writeValueAsString(registroReq)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.token").exists())
-                .andExpect(jsonPath("$.nome").value("Usuario Teste"));
+                .andExpect(jsonPath("$.nome").value("Usuario Teste"))
+                .andExpect(jsonPath("$.papel").value("CLIENTE"));
 
         LoginRequestDTO loginReq = new LoginRequestDTO(email, senha);
 
@@ -41,6 +44,7 @@ public class AuthFlowIT extends AbstractIntegrationTest {
                 .content(objectMapper.writeValueAsString(loginReq)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").exists())
-                .andExpect(jsonPath("$.nome").value("Usuario Teste"));
+                .andExpect(jsonPath("$.nome").value("Usuario Teste"))
+                .andExpect(jsonPath("$.papel").value("CLIENTE"));
     }
 }

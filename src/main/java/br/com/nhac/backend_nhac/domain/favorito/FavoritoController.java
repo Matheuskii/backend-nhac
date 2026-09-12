@@ -3,7 +3,7 @@ package br.com.nhac.backend_nhac.domain.favorito;
 import br.com.nhac.backend_nhac.domain.favorito.dto.FavoritoCreateDTO;
 import br.com.nhac.backend_nhac.domain.favorito.dto.FavoritoResponseDTO;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
-import br.com.nhac.backend_nhac.services.FavoritoService;
+import br.com.nhac.backend_nhac.domain.favorito.FavoritoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;

@@ -1,12 +1,15 @@
 package br.com.nhac.backend_nhac.domain.produto.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public record ProdutoUpdateDTO(
 
@@ -34,10 +37,15 @@ public record ProdutoUpdateDTO(
         String peso,
 
         @Schema(description = "Percentual de desconto ativo (0 a 100)", example = "15")
+        @Min(value = 0, message = "O percentual de desconto não pode ser negativo.")
+        @Max(value = 100, message = "O percentual de desconto não pode ser maior que 100.")
         Integer percentualDesconto,
 
         @Schema(description = "Indica se o produto está ativo e disponível para venda", example = "true")
         @NotNull(message = "O status de atividade (isAtivo) é obrigatório.")
-        Boolean isAtivo
+        Boolean isAtivo,
+
+        @Schema(description = "Lista de grupos de adicionais do produto", example = "[]")
+        List<GrupoAdicionalDTO> adicionais
 ) {
 }

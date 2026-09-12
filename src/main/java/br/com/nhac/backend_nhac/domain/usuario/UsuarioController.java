@@ -7,8 +7,8 @@ import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioCreateDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioResponseDTO;
 import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
 import br.com.nhac.backend_nhac.infra.security.TokenService;
-import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
-import br.com.nhac.backend_nhac.services.UsuarioService;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,10 +25,10 @@ public class UsuarioController {
     private final UsuarioService usuarioService;
     private final UsuarioRepository usuarioRepository;
     private final TokenService tokenService;
-    private final br.com.nhac.backend_nhac.services.FavoritoService favoritoService;
-    private final br.com.nhac.backend_nhac.services.PedidoService pedidoService;
+    private final br.com.nhac.backend_nhac.domain.favorito.FavoritoService favoritoService;
+    private final br.com.nhac.backend_nhac.domain.pedido.PedidoService pedidoService;
 
-    public UsuarioController(UsuarioService usuarioService, UsuarioRepository usuarioRepository, TokenService tokenService, br.com.nhac.backend_nhac.services.FavoritoService favoritoService, br.com.nhac.backend_nhac.services.PedidoService pedidoService) {
+    public UsuarioController(UsuarioService usuarioService, UsuarioRepository usuarioRepository, TokenService tokenService, br.com.nhac.backend_nhac.domain.favorito.FavoritoService favoritoService, br.com.nhac.backend_nhac.domain.pedido.PedidoService pedidoService) {
         this.usuarioService = usuarioService;
         this.usuarioRepository = usuarioRepository;
         this.tokenService = tokenService;
@@ -68,7 +68,7 @@ public class UsuarioController {
         Usuario usuarioAtualizado = usuarioRepository.findById(id).get();
         String novoToken = tokenService.gerarToken(usuarioAtualizado);
 
-        return ResponseEntity.ok(new LoginResponseDTO(novoToken, usuarioAtualizado.getId(), usuarioAtualizado.getNome(), false));
+        return ResponseEntity.ok(LoginResponseDTO.from(usuarioAtualizado, novoToken, false));
     }
 
     @DeleteMapping("/{id}")

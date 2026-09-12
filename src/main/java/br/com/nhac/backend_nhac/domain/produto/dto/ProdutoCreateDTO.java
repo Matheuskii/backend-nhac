@@ -2,17 +2,15 @@ package br.com.nhac.backend_nhac.domain.produto.dto;
 
 import br.com.nhac.backend_nhac.domain.loja.Loja;
 import br.com.nhac.backend_nhac.domain.produto.Produto;
-import br.com.nhac.backend_nhac.repositories.ProdutoRepository;
+import br.com.nhac.backend_nhac.domain.produto.ProdutoRepository;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
 
 public record ProdutoCreateDTO(
-
-        @Schema(description = "ID da loja à qual o produto pertence", example = "loja_japonesa_001")
-        @NotBlank(message = "O ID da loja é obrigatório.")
-        String lojaId,
 
         @Schema(description = "Nome do produto que vai aparecer no cardápio", example = "Hossomaki de Salmão")
         @NotBlank(message = "O nome do produto não pode estar vazio.")
@@ -39,12 +37,16 @@ public record ProdutoCreateDTO(
         String peso,
 
         @Schema(description = "Percentual de desconto ativo (0 a 100)", example = "10")
-        Integer percentualDesconto
+        @Min(value = 0, message = "O percentual de desconto não pode ser negativo.")
+        @Max(value = 100, message = "O percentual de desconto não pode ser maior que 100.")
+        Integer percentualDesconto,
+
+        @Schema(description = "Lista de grupos de adicionais do produto", example = "[]")
+        List<GrupoAdicionalDTO> adicionais
 ) {
 
         public Produto toEntity(Loja lojaDaBaseDeDados, ProdutoRepository produtoRepository) {
-                long totalProdutos = produtoRepository.countByLojaId(lojaDaBaseDeDados.getId());
-                String novoId = String.format("prod_%04d", totalProdutos + 1);
+                String novoId = "prod_" + UUID.randomUUID();
 
                 Produto produto = new Produto(this, lojaDaBaseDeDados);
                 produto.setId(novoId);

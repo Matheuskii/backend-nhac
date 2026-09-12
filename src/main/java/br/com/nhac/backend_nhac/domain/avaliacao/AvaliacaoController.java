@@ -4,7 +4,7 @@ import br.com.nhac.backend_nhac.domain.avaliacao.dto.AvaliacaoCreateDTO;
 import br.com.nhac.backend_nhac.domain.avaliacao.dto.AvaliacaoResumoDTO;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.exceptions.ErroPadraoDTO;
-import br.com.nhac.backend_nhac.services.AvaliacaoService;
+import br.com.nhac.backend_nhac.domain.avaliacao.AvaliacaoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;

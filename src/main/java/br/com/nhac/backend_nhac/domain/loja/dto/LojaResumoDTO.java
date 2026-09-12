@@ -24,7 +24,10 @@ public record LojaResumoDTO(
         String imagemUrl,
 
         @Schema(description = "Métricas principais da loja para exibição no card")
-        DadosOperacionaisDTO dadosOperacionais
+        DadosOperacionaisDTO dadosOperacionais,
+
+        @Schema(description = "Formas de pagamento aceitas pela loja")
+        FormasPagamentoDTO formasPagamento
 ) {
     @Schema(description = "Dados de logística e avaliação resumidos")
     public record DadosOperacionaisDTO(
@@ -41,7 +44,26 @@ public record LojaResumoDTO(
             int tempoEntregaMax,
 
             @Schema(description = "Quantidade total de avaliações recebidas", example = "150")
-            int totalAvaliacoes
+            int totalAvaliacoes,
+
+            @Schema(description = "Indica se a loja realiza entrega própria", example = "true")
+            Boolean entregaPropria,
+
+            @Schema(description = "Indica se a loja permite retirada no local", example = "false")
+            Boolean retiradaNoLocal,
+
+            @Schema(description = "Raio de entrega em quilômetros (null = ilimitado)", example = "10.5")
+            BigDecimal raioEntregaKm
+    ) {}
+
+    @Schema(description = "Formas de pagamento aceitas pela loja")
+    public record FormasPagamentoDTO(
+            @Schema(description = "Aceita dinheiro", example = "true") Boolean aceitaDinheiro,
+            @Schema(description = "Aceita cartão de crédito", example = "true") Boolean aceitaCredito,
+            @Schema(description = "Aceita cartão de débito", example = "true") Boolean aceitaDebito,
+            @Schema(description = "Aceita PIX", example = "true") Boolean aceitaPix,
+            @Schema(description = "Aceita vale-refeição", example = "false") Boolean aceitaValeRefeicao,
+            @Schema(description = "Aceita vale-alimentação", example = "false") Boolean aceitaValeAlimentacao
     ) {}
 
     public LojaResumoDTO(Loja loja){
@@ -55,7 +77,18 @@ public record LojaResumoDTO(
                         loja.getDadosOperacionais().getTaxaEntregaBase(),
                         loja.getDadosOperacionais().getTempoEntregaMin(),
                         loja.getDadosOperacionais().getTempoEntregaMax(),
-                        loja.getDadosOperacionais().getTotalAvaliacoes()
+                        loja.getDadosOperacionais().getTotalAvaliacoes(),
+                        loja.getDadosOperacionais().getEntregaPropria(),
+                        loja.getDadosOperacionais().getRetiradaNoLocal(),
+                        loja.getDadosOperacionais().getRaioEntregaKm()
+                ),
+                new LojaResumoDTO.FormasPagamentoDTO(
+                        loja.getFormasPagamento().getAceitaDinheiro(),
+                        loja.getFormasPagamento().getAceitaCredito(),
+                        loja.getFormasPagamento().getAceitaDebito(),
+                        loja.getFormasPagamento().getAceitaPix(),
+                        loja.getFormasPagamento().getAceitaValeRefeicao(),
+                        loja.getFormasPagamento().getAceitaValeAlimentacao()
                 ));
     }
 }

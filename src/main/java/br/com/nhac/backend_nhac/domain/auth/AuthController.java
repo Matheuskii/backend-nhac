@@ -2,6 +2,7 @@ package br.com.nhac.backend_nhac.domain.auth;
 
 import br.com.nhac.backend_nhac.domain.auth.dto.ChecarEmailRequestDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.ChecarEmailResponseDTO;
+import br.com.nhac.backend_nhac.domain.auth.dto.ConfirmarEmailDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.LoginRequestDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.LoginResponseDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.RegistroRequestDTO;
@@ -10,10 +11,10 @@ import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.exceptions.CredenciaisInvalidasException;
 import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 import br.com.nhac.backend_nhac.infra.security.TokenService;
-import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
-import br.com.nhac.backend_nhac.services.GoogleAuthService;
-import br.com.nhac.backend_nhac.services.SmsAuthService;
-import br.com.nhac.backend_nhac.services.UsuarioService;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import br.com.nhac.backend_nhac.domain.auth.GoogleAuthService;
+import br.com.nhac.backend_nhac.domain.auth.SmsAuthService;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -24,6 +25,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 @RestController
@@ -36,11 +38,11 @@ public class AuthController {
     private final TokenService tokenService;
     private final GoogleAuthService googleAuthService;
     private final SmsAuthService smsAuthService;
-    private final br.com.nhac.backend_nhac.services.VerificacaoTelefoneService verificacaoTelefoneService;
-    private final br.com.nhac.backend_nhac.services.VerificacaoEmailService verificacaoEmailService;
+    private final br.com.nhac.backend_nhac.domain.auth.VerificacaoTelefoneService verificacaoTelefoneService;
+    private final br.com.nhac.backend_nhac.domain.auth.VerificacaoEmailService verificacaoEmailService;
     private final UsuarioService usuarioService;
 
-    public AuthController(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, TokenService tokenService, GoogleAuthService googleAuthService, SmsAuthService smsAuthService, br.com.nhac.backend_nhac.services.VerificacaoTelefoneService verificacaoTelefoneService, br.com.nhac.backend_nhac.services.VerificacaoEmailService verificacaoEmailService, UsuarioService usuarioService) {
+    public AuthController(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, TokenService tokenService, GoogleAuthService googleAuthService, SmsAuthService smsAuthService, br.com.nhac.backend_nhac.domain.auth.VerificacaoTelefoneService verificacaoTelefoneService, br.com.nhac.backend_nhac.domain.auth.VerificacaoEmailService verificacaoEmailService, UsuarioService usuarioService) {
 
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
@@ -57,16 +59,58 @@ public class AuthController {
         Usuario usuario = usuarioRepository.findByEmailIgnoreCase(body.email())
                 .orElseThrow(() -> new CredenciaisInvalidasException("E-mail não encontrado ou senha inválida."));
 
+        if (!usuario.isEmailVerificado()) {
+            throw new RegraDeNegocioException("Verifique seu e-mail antes de fazer login.");
+        }
+
         if (passwordEncoder.matches(body.senha(), usuario.getSenha())) {
             String token = tokenService.gerarToken(usuario);
-            return ResponseEntity.ok(new LoginResponseDTO(token, usuario.getId(), usuario.getNome(), false));
+            return ResponseEntity.ok(LoginResponseDTO.from(usuario, token, false));
         }
 
         throw new CredenciaisInvalidasException("E-mail não encontrado ou senha inválida.");
     }
 
+    @Operation(summary = "Enviar código de verificação para cadastro", description = "Envia um código de 6 dígitos para o e-mail informado. Necessário para confirmar o e-mail antes do registro.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Código enviado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "E-mail inválido ou não informado"),
+            @ApiResponse(responseCode = "409", description = "E-mail já está em uso"),
+            @ApiResponse(responseCode = "429", description = "Rate limit excedido")
+    })
+    @PostMapping("/enviar-codigo-cadastro")
+    public ResponseEntity<Void> enviarCodigoCadastro(@RequestBody @Valid ChecarEmailRequestDTO body) {
+        verificacaoEmailService.enviarCodigoCadastro(body.email());
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Confirmar e-mail para cadastro", description = "Valida o código de verificação enviado para o e-mail. Após confirmação, o usuário pode concluir o registro.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "E-mail confirmado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Código inválido ou expirado")
+    })
+    @PostMapping("/confirmar-email-cadastro")
+    public ResponseEntity<Void> confirmarEmailCadastro(@RequestBody @Valid ConfirmarEmailDTO body) {
+        verificacaoEmailService.verificarCodigoCadastro(body.email(), body.codigo());
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/registrar")
     public ResponseEntity<LoginResponseDTO> registrar(@RequestBody @Valid RegistroRequestDTO body) {
+        // Verifica se o e-mail foi verificado para cadastro
+        LocalDateTime agora = java.time.LocalDateTime.now();
+        LocalDateTime dataLimite = agora.minusMinutes(30);
+        
+        var codigoVerificado = usuarioRepository.findCodigoVerificacaoPorEmailETipo(
+            body.email().trim().toLowerCase(), 
+            CodigoVerificacaoEmail.TipoCodigo.CADASTRO,
+            dataLimite
+        );
+        
+        if (codigoVerificado.isEmpty() || !codigoVerificado.get().isUtilizado()) {
+            throw new RegraDeNegocioException("E-mail não verificado. Confirme seu e-mail antes de concluir o cadastro.");
+        }
+
         if (usuarioRepository.findByEmailIgnoreCase(body.email()).isPresent()) {
             throw new RegraDeNegocioException("Este e-mail já está em uso.");
         }
@@ -79,11 +123,12 @@ public class AuthController {
         novoUsuario.setTelefone(body.telefone());
         novoUsuario.setSenha(passwordEncoder.encode(body.senha()));
         novoUsuario.setEnderecos(new ArrayList<>());
+        novoUsuario.setEmailVerificado(true);
 
         usuarioRepository.save(novoUsuario);
 
         String token = tokenService.gerarToken(novoUsuario);
-        return ResponseEntity.status(HttpStatus.CREATED).body(new LoginResponseDTO(token, novoUsuario.getId(), novoUsuario.getNome(), false));
+        return ResponseEntity.status(HttpStatus.CREATED).body(LoginResponseDTO.from(novoUsuario, token, false));
     }
 
     @PostMapping("/social")

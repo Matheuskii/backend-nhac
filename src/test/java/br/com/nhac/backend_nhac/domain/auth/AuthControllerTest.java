@@ -10,9 +10,10 @@ import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.exceptions.CredenciaisInvalidasException;
 import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 import br.com.nhac.backend_nhac.infra.security.TokenService;
-import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
-import br.com.nhac.backend_nhac.services.GoogleAuthService;
-import br.com.nhac.backend_nhac.services.SmsAuthService;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import br.com.nhac.backend_nhac.domain.auth.GoogleAuthService;
+import br.com.nhac.backend_nhac.domain.auth.SmsAuthService;
+import br.com.nhac.backend_nhac.domain.auth.CodigoVerificacaoEmail;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -61,7 +63,7 @@ class AuthControllerTest {
     private SmsAuthService smsAuthService;
 
     @Mock
-    private br.com.nhac.backend_nhac.services.VerificacaoEmailService verificacaoEmailService;
+    private br.com.nhac.backend_nhac.domain.auth.VerificacaoEmailService verificacaoEmailService;
 
     @InjectMocks
     private AuthController authController;
@@ -76,7 +78,7 @@ class AuthControllerTest {
     void deveAutenticarComSmsComSucesso() throws Exception {
         br.com.nhac.backend_nhac.domain.auth.dto.ValidarCodigoSmsDTO requisicao = new br.com.nhac.backend_nhac.domain.auth.dto.ValidarCodigoSmsDTO("+5511999999999", "123456", null);
 
-        LoginResponseDTO respostaEsperada = new LoginResponseDTO("jwt_gerado_pelo_backend_sms", "user_novo", "Novo Usuário", true);
+        LoginResponseDTO respostaEsperada = new LoginResponseDTO("jwt_gerado_pelo_backend_sms", "user_novo", "Novo Usuário", true, "CLIENTE");
 
         when(smsAuthService.autenticarComSms(requisicao)).thenReturn(respostaEsperada);
 
@@ -97,6 +99,7 @@ class AuthControllerTest {
         Usuario usuarioDoBanco = new Usuario();
         usuarioDoBanco.setEmail("matheus@nhac.com");
         usuarioDoBanco.setSenha("hash_da_senha_correta");
+        usuarioDoBanco.setEmailVerificado(true);
 
         when(usuarioRepository.findByEmailIgnoreCase("matheus@nhac.com")).thenReturn(Optional.of(usuarioDoBanco));
 
@@ -119,6 +122,7 @@ class AuthControllerTest {
         usuarioDoBanco.setNome("Matheus Alves");
         usuarioDoBanco.setEmail("matheus@nhac.com");
         usuarioDoBanco.setSenha("hash_da_senha_correta");
+        usuarioDoBanco.setEmailVerificado(true);
 
         when(usuarioRepository.findByEmailIgnoreCase("matheus@nhac.com")).thenReturn(Optional.of(usuarioDoBanco));
         when(passwordEncoder.matches("senha_correta", "hash_da_senha_correta")).thenReturn(true);
@@ -129,6 +133,7 @@ class AuthControllerTest {
         assertEquals(HttpStatus.OK, resposta.getStatusCode());
         assertEquals("token_jwt_gerado", resposta.getBody().token());
         assertEquals("user_1", resposta.getBody().usuarioId());
+        assertEquals("CLIENTE", resposta.getBody().papel());
     }
 
     @Test
@@ -152,11 +157,21 @@ class AuthControllerTest {
         when(usuarioRepository.findByEmailIgnoreCase("novo@nhac.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("senha123")).thenReturn("senha_encriptada");
         when(tokenService.gerarToken(any(Usuario.class))).thenReturn("token_jwt_gerado");
+        
+        // Mock do código de verificação de cadastro
+        var codigoVerificacao = new br.com.nhac.backend_nhac.domain.auth.CodigoVerificacaoEmail();
+        codigoVerificacao.setUtilizado(true);
+        when(usuarioRepository.findCodigoVerificacaoPorEmailETipo(
+            eq("novo@nhac.com"), 
+            eq(CodigoVerificacaoEmail.TipoCodigo.CADASTRO),
+            any(java.time.LocalDateTime.class)
+        )).thenReturn(Optional.of(codigoVerificacao));
 
         ResponseEntity<LoginResponseDTO> resposta = authController.registrar(requisicao);
 
         assertEquals(HttpStatus.CREATED, resposta.getStatusCode());
         assertEquals("token_jwt_gerado", resposta.getBody().token());
+        assertEquals("CLIENTE", resposta.getBody().papel());
 
         ArgumentCaptor<Usuario> captor = ArgumentCaptor.forClass(Usuario.class);
         verify(usuarioRepository).save(captor.capture());
@@ -170,8 +185,25 @@ class AuthControllerTest {
         RegistroRequestDTO requisicao = new RegistroRequestDTO(
                 "user_novo", "Novo Usuário", "matheus@nhac.com", "11999998888", "senha123");
 
+        Usuario usuarioExistente = new Usuario();
+        usuarioExistente.setEmail("matheus@nhac.com");
+        usuarioExistente.setEmailVerificado(true);
+
+        // Mock do código de verificação como já utilizado (para passar pela validação de email)
+        CodigoVerificacaoEmail codigoVerificacao = new CodigoVerificacaoEmail();
+        codigoVerificacao.setEmail("matheus@nhac.com");
+        codigoVerificacao.setTipo(CodigoVerificacaoEmail.TipoCodigo.CADASTRO);
+        codigoVerificacao.setUtilizado(true);
+        codigoVerificacao.setCriadoEm(LocalDateTime.now());
+
+        when(usuarioRepository.findCodigoVerificacaoPorEmailETipo(
+                eq("matheus@nhac.com"), 
+                eq(CodigoVerificacaoEmail.TipoCodigo.CADASTRO), 
+                any(LocalDateTime.class)))
+                .thenReturn(Optional.of(codigoVerificacao));
+
         when(usuarioRepository.findByEmailIgnoreCase("matheus@nhac.com"))
-                .thenReturn(Optional.of(new Usuario()));
+                .thenReturn(Optional.of(usuarioExistente));
 
         assertThrows(RegraDeNegocioException.class, () -> authController.registrar(requisicao));
 
@@ -184,7 +216,7 @@ class AuthControllerTest {
     void deveAutenticarComGoogleComSucesso() throws Exception {
         SocialLoginRequestDTO requisicao = new SocialLoginRequestDTO("token_google_falso_mas_mockado");
 
-        LoginResponseDTO respostaEsperada = new LoginResponseDTO("jwt_gerado_pelo_backend", "user_1", "Usuário Nhac", false);
+        LoginResponseDTO respostaEsperada = new LoginResponseDTO("jwt_gerado_pelo_backend", "user_1", "Usuário Nhac", false, "CLIENTE");
 
         when(googleAuthService.autenticarComGoogle("token_google_falso_mas_mockado")).thenReturn(respostaEsperada);
 

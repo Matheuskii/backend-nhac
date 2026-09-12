@@ -3,7 +3,7 @@ package br.com.nhac.backend_nhac.domain.pedido;
 import br.com.nhac.backend_nhac.AbstractIntegrationTest;
 import br.com.nhac.backend_nhac.domain.usuario.Papel;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
-import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

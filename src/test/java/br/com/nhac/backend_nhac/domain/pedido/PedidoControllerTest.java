@@ -1,7 +1,7 @@
 package br.com.nhac.backend_nhac.domain.pedido;
 
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
-import br.com.nhac.backend_nhac.services.PedidoService;
+import br.com.nhac.backend_nhac.domain.pedido.PedidoService;
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCreateDTO;
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,7 +54,7 @@ class PedidoControllerTest {
     private br.com.nhac.backend_nhac.infra.security.TokenService tokenService;
 
     @MockitoBean
-    private br.com.nhac.backend_nhac.repositories.UsuarioRepository usuarioRepository;
+    private br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository usuarioRepository;
 
     @BeforeEach
     void setUp() {
@@ -163,13 +163,43 @@ class PedidoControllerTest {
                 """;
 
         br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO dto = new br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO("pedido_gerado_001", null, null, null);
-        when(pedidoService.finalizarPedido(any(PedidoCreateDTO.class), any(Usuario.class), any())).thenReturn(dto);
+        br.com.nhac.backend_nhac.domain.pedido.dto.ResultadoCriacaoPedido resultado = new br.com.nhac.backend_nhac.domain.pedido.dto.ResultadoCriacaoPedido(dto, false);
+        when(pedidoService.finalizarPedido(any(PedidoCreateDTO.class), any(Usuario.class), any())).thenReturn(resultado);
 
         mockMvc.perform(post("/api/v1/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonValido))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.pedidoId").value("pedido_gerado_001"));
+    }
+
+    @Test
+    @DisplayName("Deve devolver 200 quando idempotency-key já existir (replay de pedido)")
+    void deveRetornar200QuandoIdempotencyKeyForReplay() throws Exception {
+        String jsonValido = """
+                {
+                  "lojaId": "loja-001",
+                  "formaPagamento": "PIX",
+                  "enderecoEntrega": {
+                    "rua": "Rua A", "numero": "123", "bairro": "Centro",
+                    "cidade": "SP", "estado": "SP", "cep": "01000-000"
+                  },
+                  "itens": [
+                    { "produtoId": "p1", "nome": "Sushi", "quantidade": 1 }
+                  ]
+                }
+                """;
+
+        br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO dto = new br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO("pedido_existente_001", null, null, null);
+        br.com.nhac.backend_nhac.domain.pedido.dto.ResultadoCriacaoPedido resultado = new br.com.nhac.backend_nhac.domain.pedido.dto.ResultadoCriacaoPedido(dto, true);
+        when(pedidoService.finalizarPedido(any(PedidoCreateDTO.class), any(Usuario.class), any())).thenReturn(resultado);
+
+        mockMvc.perform(post("/api/v1/pedidos")
+                        .header("Idempotency-Key", "idemp-key-123")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonValido))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pedidoId").value("pedido_existente_001"));
     }
 
     @Test
@@ -229,7 +259,7 @@ class PedidoControllerTest {
     void deveRetornar204AoAtualizarStatusComSucesso() throws Exception {
         String jsonBody = "{\"status\": \"PREPARANDO\"}";
 
-        doNothing().when(pedidoService).atualizarStatus(anyString(), any(StatusPedido.class));
+        doNothing().when(pedidoService).atualizarStatus(anyString(), any(StatusPedido.class), any(Usuario.class));
 
         mockMvc.perform(patch("/api/v1/pedidos/pedido_123/status")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -80,6 +80,40 @@ public class ResourceExceptionHandler {
         return ResponseEntity.status(status).body(erro);
     }
 
+    @ExceptionHandler({
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
+            org.springframework.core.convert.ConversionFailedException.class
+    })
+    public ResponseEntity<ErroPadraoDTO> parametroInvalido(Exception e, HttpServletRequest request) {
+        String requestId = UUID.randomUUID().toString();
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        logger.warn("Erro de conversão de parâmetro: {}, RequestId: {}", e.getMessage(), requestId);
+
+        String mensagem = "Parâmetro inválido. Verifique o valor enviado.";
+        if (e instanceof org.springframework.web.method.annotation.MethodArgumentTypeMismatchException mismatch) {
+            Class<?> tipo = mismatch.getRequiredType();
+            if (tipo != null && tipo.isEnum()) {
+                mensagem = "Valor inválido para o parâmetro '" + mismatch.getName()
+                        + "'. Valores aceitos: " + java.util.Arrays.toString(tipo.getEnumConstants());
+            } else {
+                mensagem = "Valor inválido para o parâmetro '" + mismatch.getName() + "'.";
+            }
+        }
+
+        ErroPadraoDTO erro = new ErroPadraoDTO(
+                requestId,
+                Instant.now(),
+                status.value(),
+                ErrorCode.VALIDACAO_FALHOU.getCode(),
+                "Requisição Inválida",
+                mensagem,
+                Collections.emptyMap(),
+                request.getRequestURI(),
+                Collections.singletonList("Verifique os parâmetros da URL e tente novamente.")
+        );
+        return ResponseEntity.status(status).body(erro);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErroPadraoDTO> validacaoDeCampos(MethodArgumentNotValidException e, HttpServletRequest request) {
         String requestId = UUID.randomUUID().toString();
@@ -161,6 +195,7 @@ public class ResourceExceptionHandler {
             case UNPROCESSABLE_ENTITY -> "Entidade Não Processável";
             case TOO_MANY_REQUESTS -> "Muitas Requisições";
             case PAYMENT_REQUIRED -> "Pagamento Recusado";
+            case CONFLICT -> "Conflito";
             default -> "Erro na Requisição";
         };
     }
