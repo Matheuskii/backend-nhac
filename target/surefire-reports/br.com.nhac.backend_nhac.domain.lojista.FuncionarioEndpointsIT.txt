@@ -1,0 +1,12 @@
+-------------------------------------------------------------------------------
+Test set: br.com.nhac.backend_nhac.domain.lojista.FuncionarioEndpointsIT
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 38.57 s <<< FAILURE! -- in br.com.nhac.backend_nhac.domain.lojista.FuncionarioEndpointsIT
+br.com.nhac.backend_nhac.domain.lojista.FuncionarioEndpointsIT.testCriarFuncionario_Sucesso -- Time elapsed: 3.306 s <<< FAILURE!
+java.lang.AssertionError: Status expected:<200> but was:<400>
+	at org.springframework.test.util.AssertionErrors.fail(AssertionErrors.java:62)
+	at org.springframework.test.util.AssertionErrors.assertEquals(AssertionErrors.java:129)
+	at org.springframework.test.web.servlet.result.StatusResultMatchers.lambda$matcher$0(StatusResultMatchers.java:600)
+	at org.springframework.test.web.servlet.MockMvc$1.andExpect(MockMvc.java:212)
+	at br.com.nhac.backend_nhac.domain.lojista.FuncionarioEndpointsIT.setUp(FuncionarioEndpointsIT.java:110)
+

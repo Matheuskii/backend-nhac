@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProdutoCreateDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.produto.dto</a> &gt; <span class="el_source">ProdutoCreateDTO.java</span></div><h1>ProdutoCreateDTO.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.produto.dto;
+
+import br.com.nhac.backend_nhac.domain.loja.Loja;
+import br.com.nhac.backend_nhac.domain.produto.Produto;
+import br.com.nhac.backend_nhac.domain.produto.ProdutoRepository;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.*;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+<span class="fc" id="L12">public record ProdutoCreateDTO(</span>
+
+        @Schema(description = &quot;Nome do produto que vai aparecer no cardápio&quot;, example = &quot;Hossomaki de Salmão&quot;)
+        @NotBlank(message = &quot;O nome do produto não pode estar vazio.&quot;)
+        @Size(max = 100, message = &quot;O nome deve ter no máximo 100 caracteres.&quot;)
+        String nome,
+
+        @Schema(description = &quot;Descrição detalhada dos ingredientes&quot;, example = &quot;Delicioso rolinho de arroz com salmão fresco e alga.&quot;)
+        String descricao,
+
+        @Schema(description = &quot;Preço final do produto&quot;, example = &quot;25.50&quot;)
+        @NotNull(message = &quot;O preço é obrigatório.&quot;)
+        @PositiveOrZero(message = &quot;O preço não pode ser negativo.&quot;)
+        BigDecimal preco,
+
+        @Schema(description = &quot;Categoria para agrupar no menu do Flutter&quot;, example = &quot;Sushi&quot;)
+        @NotBlank(message = &quot;A categoria do menu é obrigatória.&quot;)
+        String categoriaMenu,
+
+        @Schema(description = &quot;URL da imagem no Firebase Storage&quot;, example = &quot;https://firebasestorage.googleapis.com/.../hossomaki.png&quot;)
+        String imagemUrl,
+
+
+        @Schema(description = &quot;Peso ou porção para exibição&quot;, example = &quot;200g&quot;)
+        String peso,
+
+        @Schema(description = &quot;Percentual de desconto ativo (0 a 100)&quot;, example = &quot;10&quot;)
+        @Min(value = 0, message = &quot;O percentual de desconto não pode ser negativo.&quot;)
+        @Max(value = 100, message = &quot;O percentual de desconto não pode ser maior que 100.&quot;)
+        Integer percentualDesconto,
+
+        @Schema(description = &quot;Lista de grupos de adicionais do produto&quot;, example = &quot;[]&quot;)
+        List&lt;GrupoAdicionalDTO&gt; adicionais
+) {
+
+        public Produto toEntity(Loja lojaDaBaseDeDados, ProdutoRepository produtoRepository) {
+<span class="fc" id="L48">                long totalProdutos = produtoRepository.countByLojaId(lojaDaBaseDeDados.getId());</span>
+<span class="fc" id="L49">                String novoId = String.format(&quot;prod_%04d&quot;, totalProdutos + 1);</span>
+
+<span class="fc" id="L51">                Produto produto = new Produto(this, lojaDaBaseDeDados);</span>
+<span class="fc" id="L52">                produto.setId(novoId);</span>
+
+<span class="fc" id="L54">                return produto;</span>
+        }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

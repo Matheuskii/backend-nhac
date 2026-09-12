@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LojaCreateDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.loja.dto</a> &gt; <span class="el_source">LojaCreateDTO.java</span></div><h1>LojaCreateDTO.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.loja.dto;
+
+import br.com.nhac.backend_nhac.domain.loja.*;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+import java.math.BigDecimal;
+
+@Schema(description = &quot;Objeto de transferência para criação ou atualização de uma loja&quot;)
+<span class="fc" id="L13">public record LojaCreateDTO(</span>
+
+        @NotBlank(message = &quot;O nome da loja é obrigatório.&quot;)
+        @Size(min = 3, max = 100, message = &quot;O nome da loja deve ter entre 3 e 100 caracteres.&quot;)
+        @Schema(description = &quot;Nome fantasia da loja&quot;, example = &quot;Mercado Central&quot;)
+        String nome,
+
+        @Size(max = 2000, message = &quot;A descrição não pode passar de 2000 caracteres.&quot;)
+        @Schema(description = &quot;Descrição detalhada da loja&quot;, example = &quot;Filial focada em produtos orgânicos.&quot;)
+        String descricao,
+
+        @Size(max = 50)
+        @Schema(description = &quot;Categoria que a loja se encaixa&quot;, example = &quot;Restaurantes&quot;)
+        String categoria,
+
+        @NotBlank(message = &quot;A url do banner da loja é obrigatória.&quot;)
+        @Size(max = 500, message = &quot;A url do banner da loja não pode passar de 500 caracteres.&quot;)
+        @Schema(description = &quot;URL do banner da loja&quot;, example = &quot;https://amazonaws.com/photo-1579202673506-ca3ce28943ef.jpg&quot;)
+        String imagemUrl,
+
+        @NotNull(message = &quot;O status de abertura da loja deve ser informado.&quot;)
+        @Schema(description = &quot;Indica se a loja está aberta ou fechada no momento&quot;, example = &quot;true&quot;)
+        Boolean isAberto,
+
+        @NotNull(message = &quot;Os dados operacionais são obrigatórios.&quot;)
+        @Valid
+        DadosOperacionaisDTO dadosOperacionais,
+
+        @NotNull(message = &quot;O endereço é obrigatório.&quot;)
+        @Valid
+        EnderecoDTO endereco,
+
+        @NotNull(message = &quot;Os horários de funcionamento são obrigatórios.&quot;)
+        @Valid
+        HorariosDTO horarios,
+
+        @Schema(description = &quot;Formas de pagamento aceitas pela loja (se nulo, usa defaults: todas exceto VA/VR)&quot;)
+        FormasPagamentoDTO formasPagamento
+) {
+    @Schema(description = &quot;Dados de operação logística da loja&quot;)
+<span class="fc" id="L53">    public record DadosOperacionaisDTO(</span>
+            @NotNull(message = &quot;A taxa de entrega base é obrigatória.&quot;)
+            @Schema(description = &quot;Valor base cobrado pela entrega&quot;, example = &quot;5.99&quot;)
+            BigDecimal taxaEntregaBase,
+
+            @Schema(description = &quot;Tempo mínimo estimado para entrega em minutos&quot;, example = &quot;30&quot;)
+            int tempoEntregaMin,
+
+            @Schema(description = &quot;Tempo máximo estimado para entrega em minutos&quot;, example = &quot;45&quot;)
+            int tempoEntregaMax,
+
+            @Schema(description = &quot;Indica se a loja realiza entrega própria&quot;, example = &quot;true&quot;)
+            Boolean entregaPropria,
+
+            @Schema(description = &quot;Indica se a loja permite retirada no local&quot;, example = &quot;false&quot;)
+            Boolean retiradaNoLocal,
+
+            @Schema(description = &quot;Raio de entrega em quilômetros (null = ilimitado)&quot;, example = &quot;10.5&quot;)
+            BigDecimal raioEntregaKm
+    ) {
+    }
+
+    @Schema(description = &quot;Endereço físico da loja&quot;)
+<span class="fc" id="L76">    public record EnderecoDTO(</span>
+            @NotBlank(message = &quot;A rua é obrigatória.&quot;)
+            @Schema(description = &quot;Nome da rua ou avenida&quot;, example = &quot;Avenida Paulista&quot;)
+            String rua,
+
+            @NotBlank(message = &quot;O número é obrigatório.&quot;)
+            @Schema(description = &quot;Número do estabelecimento&quot;, example = &quot;1578&quot;)
+            String numero,
+
+            @NotBlank(message = &quot;A cidade é obrigatória.&quot;)
+            @Schema(description = &quot;Cidade onde a loja está localizada&quot;, example = &quot;São Paulo&quot;)
+            String cidade,
+
+            @NotBlank(message = &quot;O estado é obrigatório.&quot;)
+            @Schema(description = &quot;Sigla do estado&quot;, example = &quot;SP&quot;)
+            String estado,
+
+            @NotBlank(message = &quot;O CEP é obrigatório.&quot;)
+            @Schema(description = &quot;Código postal no formato XXXXX-XXX&quot;, example = &quot;01310-200&quot;)
+            String cep,
+
+            @NotBlank(message = &quot;O bairro é obrigatório.&quot;)
+            @Schema(description = &quot;Bairro onde a loja está localizada&quot;, example = &quot;Bela Vista&quot;)
+            String bairro,
+
+            @Schema(description = &quot;Complemento do endereço (opcional)&quot;, example = &quot;Sala 42&quot;)
+            String complemento
+    ) {
+    }
+
+    @Schema(description = &quot;Horários de funcionamento diários. Usar 'Fechado' para dias sem expediente.&quot;)
+<span class="fc" id="L107">    public record HorariosDTO(</span>
+            @Schema(description = &quot;Horário de Domingo&quot;, example = &quot;18:00 - 23:00&quot;) String domingo,
+            @Schema(description = &quot;Horário de Segunda-feira&quot;, example = &quot;Fechado&quot;) String segunda,
+            @Schema(description = &quot;Horário de Terça-feira&quot;, example = &quot;11:00 - 15:00, 18:00 - 23:00&quot;) String terca,
+            @Schema(description = &quot;Horário de Quarta-feira&quot;, example = &quot;11:00 - 15:00, 18:00 - 23:00&quot;) String quarta,
+            @Schema(description = &quot;Horário de Quinta-feira&quot;, example = &quot;11:00 - 15:00, 18:00 - 23:00&quot;) String quinta,
+            @Schema(description = &quot;Horário de Sexta-feira&quot;, example = &quot;11:00 - 23:59&quot;) String sexta,
+            @Schema(description = &quot;Horário de Sábado&quot;, example = &quot;11:00 - 23:59&quot;) String sabado
+    ) {
+    }
+
+    @Schema(description = &quot;Formas de pagamento aceitas pela loja&quot;)
+<span class="fc" id="L119">    public record FormasPagamentoDTO(</span>
+            @Schema(description = &quot;Aceita dinheiro&quot;, example = &quot;true&quot;) Boolean aceitaDinheiro,
+            @Schema(description = &quot;Aceita cartão de crédito&quot;, example = &quot;true&quot;) Boolean aceitaCredito,
+            @Schema(description = &quot;Aceita cartão de débito&quot;, example = &quot;true&quot;) Boolean aceitaDebito,
+            @Schema(description = &quot;Aceita PIX&quot;, example = &quot;true&quot;) Boolean aceitaPix,
+            @Schema(description = &quot;Aceita vale-refeição&quot;, example = &quot;false&quot;) Boolean aceitaValeRefeicao,
+            @Schema(description = &quot;Aceita vale-alimentação&quot;, example = &quot;false&quot;) Boolean aceitaValeAlimentacao
+    ) {
+    }
+
+
+    public Loja toEntity() {
+<span class="fc" id="L131">        Loja loja = new Loja();</span>
+<span class="fc" id="L132">        loja.setNome(this.nome());</span>
+<span class="fc" id="L133">        loja.setDescricao(this.descricao());</span>
+<span class="fc" id="L134">        loja.setCategoria(this.categoria());</span>
+<span class="fc" id="L135">        loja.setImagemUrl(this.imagemUrl());</span>
+<span class="fc" id="L136">        loja.setAberto(this.isAberto());</span>
+
+<span class="fc" id="L138">        DadosOperacionais dados = new DadosOperacionais();</span>
+<span class="fc" id="L139">        dados.setTaxaEntregaBase(this.dadosOperacionais().taxaEntregaBase());</span>
+<span class="fc" id="L140">        dados.setTempoEntregaMin(this.dadosOperacionais().tempoEntregaMin());</span>
+<span class="fc" id="L141">        dados.setTempoEntregaMax(this.dadosOperacionais().tempoEntregaMax());</span>
+<span class="fc" id="L142">        dados.setAvaliacaoMedia(0.0f);</span>
+<span class="fc" id="L143">        dados.setTotalAvaliacoes(0);</span>
+        // B3 - Defaults para retrocompatibilidade
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">        dados.setEntregaPropria(this.dadosOperacionais().entregaPropria() != null ? this.dadosOperacionais().entregaPropria() : true);</span>
+<span class="pc bpc" id="L146" title="1 of 2 branches missed.">        dados.setRetiradaNoLocal(this.dadosOperacionais().retiradaNoLocal() != null ? this.dadosOperacionais().retiradaNoLocal() : false);</span>
+<span class="fc" id="L147">        dados.setRaioEntregaKm(this.dadosOperacionais().raioEntregaKm());</span>
+<span class="fc" id="L148">        loja.setDadosOperacionais(dados);</span>
+
+<span class="fc" id="L150">        EnderecoLoja end = new EnderecoLoja();</span>
+<span class="fc" id="L151">        end.setRua(this.endereco().rua());</span>
+<span class="fc" id="L152">        end.setNumero(this.endereco().numero());</span>
+<span class="fc" id="L153">        end.setCidade(this.endereco().cidade());</span>
+<span class="fc" id="L154">        end.setEstado(this.endereco().estado());</span>
+<span class="fc" id="L155">        end.setCep(this.endereco().cep());</span>
+        // B2 - Bairro e complemento
+<span class="fc" id="L157">        end.setBairro(this.endereco().bairro());</span>
+<span class="fc" id="L158">        end.setComplemento(this.endereco().complemento());</span>
+<span class="fc" id="L159">        loja.setEndereco(end);</span>
+
+<span class="fc" id="L161">        HorariosFuncionamento h = new HorariosFuncionamento();</span>
+<span class="fc" id="L162">        h.setDomingo(this.horarios().domingo());</span>
+<span class="fc" id="L163">        h.setSegunda(this.horarios().segunda());</span>
+<span class="fc" id="L164">        h.setTerca(this.horarios().terca());</span>
+<span class="fc" id="L165">        h.setQuarta(this.horarios().quarta());</span>
+<span class="fc" id="L166">        h.setQuinta(this.horarios().quinta());</span>
+<span class="fc" id="L167">        h.setSexta(this.horarios().sexta());</span>
+<span class="fc" id="L168">        h.setSabado(this.horarios().sabado());</span>
+<span class="fc" id="L169">        loja.setHorariosFuncionamento(h);</span>
+
+<span class="fc" id="L171">        GeoLocalizacao geo = new GeoLocalizacao();</span>
+<span class="fc" id="L172">        geo.setGeoLat(0.0);</span>
+<span class="fc" id="L173">        geo.setGeoLng(0.0);</span>
+<span class="fc" id="L174">        loja.setGeoLocalizacao(geo);</span>
+
+        // B4 - Formas de pagamento (defaults se nulo)
+<span class="fc bfc" id="L177" title="All 2 branches covered.">        if (this.formasPagamento() != null) {</span>
+<span class="fc" id="L178">            FormasPagamento fp = new FormasPagamento();</span>
+<span class="pc bpc" id="L179" title="1 of 2 branches missed.">            fp.setAceitaDinheiro(this.formasPagamento().aceitaDinheiro() != null ? this.formasPagamento().aceitaDinheiro() : true);</span>
+<span class="pc bpc" id="L180" title="1 of 2 branches missed.">            fp.setAceitaCredito(this.formasPagamento().aceitaCredito() != null ? this.formasPagamento().aceitaCredito() : true);</span>
+<span class="pc bpc" id="L181" title="1 of 2 branches missed.">            fp.setAceitaDebito(this.formasPagamento().aceitaDebito() != null ? this.formasPagamento().aceitaDebito() : true);</span>
+<span class="pc bpc" id="L182" title="1 of 2 branches missed.">            fp.setAceitaPix(this.formasPagamento().aceitaPix() != null ? this.formasPagamento().aceitaPix() : true);</span>
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">            fp.setAceitaValeRefeicao(this.formasPagamento().aceitaValeRefeicao() != null ? this.formasPagamento().aceitaValeRefeicao() : false);</span>
+<span class="pc bpc" id="L184" title="1 of 2 branches missed.">            fp.setAceitaValeAlimentacao(this.formasPagamento().aceitaValeAlimentacao() != null ? this.formasPagamento().aceitaValeAlimentacao() : false);</span>
+<span class="fc" id="L185">            loja.setFormasPagamento(fp);</span>
+        }
+
+<span class="fc" id="L188">        return loja;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

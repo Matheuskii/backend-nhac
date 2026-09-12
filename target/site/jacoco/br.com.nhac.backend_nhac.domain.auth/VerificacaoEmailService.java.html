@@ -1,0 +1,416 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VerificacaoEmailService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.auth</a> &gt; <span class="el_source">VerificacaoEmailService.java</span></div><h1>VerificacaoEmailService.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.auth;
+
+import br.com.nhac.backend_nhac.domain.auth.CodigoVerificacaoEmail;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
+import br.com.nhac.backend_nhac.domain.auth.CodigoVerificacaoEmailRepository;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+
+@Service
+@RequiredArgsConstructor
+public class VerificacaoEmailService {
+
+    private final CodigoVerificacaoEmailRepository codigoRepository;
+    private final EmailService emailService;
+    private final UsuarioRepository usuarioRepository;
+
+    private static final int TEMPO_EXPIRACAO_MINUTOS = 15;
+    private static final int MAX_TENTATIVAS = 3;
+    private static final int TEMPO_VALIDACAO_CADASTRO_MINUTOS = 30;
+
+    @Transactional
+    public void enviarCodigoCadastro(String email) {
+<span class="nc" id="L29">        String finalEmail = email.trim().toLowerCase();</span>
+        
+        // Verifica se e-mail já está cadastrado e ativo
+<span class="nc bnc" id="L32" title="All 2 branches missed.">        if (usuarioRepository.findByEmailIgnoreCase(finalEmail).isPresent()) {</span>
+<span class="nc" id="L33">            throw new RegraDeNegocioException(&quot;Este e-mail já está em uso.&quot;);</span>
+        }
+        
+<span class="nc" id="L36">        CodigoVerificacaoEmail novoCodigo = salvarNovoCodigoCadastro(finalEmail);</span>
+<span class="nc" id="L37">        enviarEmailCadastro(finalEmail, novoCodigo);</span>
+<span class="nc" id="L38">    }</span>
+
+    @Transactional
+    public CodigoVerificacaoEmail salvarNovoCodigoCadastro(String email) {
+<span class="nc" id="L42">        LocalDateTime agora = LocalDateTime.now();</span>
+<span class="nc" id="L43">        codigoRepository.inativarCodigosAtivosPorEmail(email);</span>
+
+<span class="nc" id="L45">        String codigo = String.format(&quot;%06d&quot;, new SecureRandom().nextInt(1_000_000));</span>
+<span class="nc" id="L46">        CodigoVerificacaoEmail novoCodigo = CodigoVerificacaoEmail.builder()</span>
+<span class="nc" id="L47">                .email(email)</span>
+<span class="nc" id="L48">                .codigo(codigo)</span>
+<span class="nc" id="L49">                .dataExpiracao(agora.plusMinutes(TEMPO_EXPIRACAO_MINUTOS))</span>
+<span class="nc" id="L50">                .tentativas(0)</span>
+<span class="nc" id="L51">                .utilizado(false)</span>
+<span class="nc" id="L52">                .tipo(CodigoVerificacaoEmail.TipoCodigo.CADASTRO)</span>
+<span class="nc" id="L53">                .build();</span>
+
+<span class="nc" id="L55">        return codigoRepository.save(novoCodigo);</span>
+    }
+
+    private void enviarEmailCadastro(String email, CodigoVerificacaoEmail novoCodigo) {
+<span class="nc" id="L59">        String codigo = novoCodigo.getCodigo();</span>
+
+<span class="nc" id="L61">        System.out.println(&quot;=================================================&quot;);</span>
+<span class="nc" id="L62">        System.out.println(&quot;[CÓDIGO DE VERIFICAÇÃO DE CADASTRO]&quot;);</span>
+<span class="nc" id="L63">        System.out.println(&quot;Destinatário: &quot; + email);</span>
+<span class="nc" id="L64">        System.out.println(&quot;Código: &quot; + codigo);</span>
+<span class="nc" id="L65">        System.out.println(&quot;=================================================&quot;);</span>
+
+<span class="nc" id="L67">        String assunto = &quot;Confirme seu e-mail - Nhac Delivery&quot;;</span>
+        
+<span class="nc" id="L69">        String htmlConteudo = &quot;&quot;&quot;</span>
+                &lt;!DOCTYPE html&gt;
+                &lt;html lang=&quot;pt-BR&quot; xmlns=&quot;http://www.w3.org/1999/xhtml&quot;&gt;
+                &lt;head&gt;
+                &lt;meta charset=&quot;UTF-8&quot;&gt;
+                &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+                &lt;meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;IE=edge&quot;&gt;
+                &lt;title&gt;Confirme seu e-mail · Nhac&lt;/title&gt;
+                &lt;!--[if mso]&gt;
+                &lt;noscript&gt;
+                &lt;xml&gt;
+                &lt;o:OfficeDocumentSettings&gt;
+                &lt;o:PixelsPerInch&gt;96&lt;/o:PixelsPerInch&gt;
+                &lt;/o:OfficeDocumentSettings&gt;
+                &lt;/xml&gt;
+                &lt;/noscript&gt;
+                &lt;![endif]--&gt;
+                &lt;style&gt;
+                body, table, td { font-family: 'Roboto', Arial, Helvetica, sans-serif; }
+                body { margin:0; padding:0; background-color:#FFE7E5; -webkit-text-size-adjust:100%%; -ms-text-size-adjust:100%%; }
+                table { border-collapse:collapse; }
+                img { border:0; line-height:100%%; outline:none; text-decoration:none; }
+                a { text-decoration:none; }
+                @media screen and (max-width: 600px) {
+                    .email-container { width:100%% !important; }
+                    .fluid-padding { padding-left:20px !important; padding-right:20px !important; }
+                }
+                &lt;/style&gt;
+                &lt;/head&gt;
+                &lt;body style=&quot;margin:0; padding:0; background-color:#FFE7E5;&quot;&gt;
+                &lt;div style=&quot;display:none; max-height:0; overflow:hidden; opacity:0; mso-hide:all;&quot;&gt;
+                Confirme seu e-mail para concluir seu cadastro no Nhac Delivery.
+                &lt;/div&gt;
+                &lt;table role=&quot;presentation&quot; width=&quot;100%%&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;background-color:#FFE7E5;&quot;&gt;
+                &lt;tr&gt;
+                &lt;td align=&quot;center&quot; style=&quot;padding:40px 16px;&quot;&gt;
+                &lt;table role=&quot;presentation&quot; class=&quot;email-container&quot; width=&quot;600&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;width:600px; max-width:600px;&quot;&gt;
+                &lt;tr&gt;
+                &lt;td align=&quot;center&quot; style=&quot;padding-bottom:28px;&quot;&gt;
+                &lt;table role=&quot;presentation&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot;&gt;
+                &lt;tr&gt;
+                &lt;td style=&quot;font-size:26px; font-weight:700; color:#FF6961; font-family:Arial, Helvetica, sans-serif;&quot;&gt;
+                Nhac
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;/table&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;tr&gt;
+                &lt;td style=&quot;background-color:#FFFFFF; border-radius:20px; padding:40px;&quot; class=&quot;fluid-padding&quot;&gt;
+                &lt;table role=&quot;presentation&quot; width=&quot;100%%&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot;&gt;
+                &lt;tr&gt;
+                &lt;td align=&quot;center&quot; style=&quot;padding-bottom:24px;&quot;&gt;
+                &lt;table role=&quot;presentation&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot;&gt;
+                &lt;tr&gt;
+                &lt;td width=&quot;64&quot; height=&quot;64&quot; align=&quot;center&quot; valign=&quot;middle&quot; style=&quot;background-color:#FFEBD9; border-radius:50%%; width:64px; height:64px; font-size:26px; line-height:64px;&quot;&gt;
+                          ✉️
+                        &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;/table&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;tr&gt;
+                &lt;td align=&quot;center&quot; style=&quot;padding-bottom:8px;&quot;&gt;
+                &lt;span style=&quot;font-size:22px; font-weight:700; color:#5D201C; font-family:Arial, Helvetica, sans-serif;&quot;&gt;
+                Confirme seu e-mail
+                    &lt;/span&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;tr&gt;
+                &lt;td align=&quot;center&quot; style=&quot;padding-bottom:28px;&quot;&gt;
+                &lt;span style=&quot;font-size:14px; line-height:22px; color:#8A8A8A; font-family:Arial, Helvetica, sans-serif;&quot;&gt;
+                Olá! Você está quase lá. Utilize o código abaixo&lt;br&gt;
+                para confirmar seu e-mail e concluir seu cadastro no Nhac.
+                    &lt;/span&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;tr&gt;
+                &lt;td align=&quot;center&quot; style=&quot;padding-bottom:24px;&quot;&gt;
+                &lt;table role=&quot;presentation&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot;&gt;
+                &lt;tr&gt;
+                &lt;td align=&quot;center&quot; style=&quot;background-color:#f9f9f9; border: 1px dashed #cccccc; border-radius:8px; padding:20px 40px;&quot;&gt;
+                &lt;span style=&quot;display:inline-block; font-size:32px; font-weight:700; letter-spacing: 4px; color:#FF6961; font-family:monospace, Arial, Helvetica, sans-serif;&quot;&gt;
+                %s
+                &lt;/span&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;/table&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;tr&gt;
+                &lt;td align=&quot;center&quot; style=&quot;padding-bottom:24px;&quot;&gt;
+                &lt;span style=&quot;font-size:12.5px; color:#C9BCBC; font-family:Arial, Helvetica, sans-serif;&quot;&gt;
+                Este código expira em %d minutos
+                &lt;/span&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;/table&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;tr&gt;
+                &lt;td style=&quot;padding:24px 8px 0;&quot;&gt;
+                &lt;table role=&quot;presentation&quot; width=&quot;100%%&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;background-color:#FFF6F5; border-radius:14px;&quot;&gt;
+                &lt;tr&gt;
+                &lt;td style=&quot;padding:16px 20px;&quot;&gt;
+                &lt;span style=&quot;font-size:12.5px; line-height:19px; color:#5D201C; font-family:Arial, Helvetica, sans-serif;&quot;&gt;
+                      ℹ️ &lt;strong&gt;Precisa de ajuda?&lt;/strong&gt; Se você não solicitou este cadastro, pode ignorar este e-mail com segurança.
+                &lt;/span&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;/table&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;tr&gt;
+                &lt;td align=&quot;center&quot; style=&quot;padding:32px 20px 0;&quot;&gt;
+                &lt;span style=&quot;font-size:11.5px; color:#C9BCBC; font-family:Arial, Helvetica, sans-serif;&quot;&gt;
+                Enviado por Nhac · Este é um e-mail automático, não responda.
+                &lt;/span&gt;
+                &lt;br&gt;&lt;br&gt;
+                &lt;span style=&quot;font-size:11.5px; color:#C9BCBC; font-family:Arial, Helvetica, sans-serif;&quot;&gt;
+                © %d Nhac. Todos os direitos reservados.
+              &lt;/span&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;/table&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;/table&gt;
+                &lt;/body&gt;
+                &lt;/html&gt;
+<span class="nc" id="L199">                &quot;&quot;&quot;.formatted(codigo, TEMPO_EXPIRACAO_MINUTOS, java.time.Year.now().getValue());</span>
+<span class="nc" id="L200">        emailService.enviarEmailHtml(email, assunto, htmlConteudo);</span>
+<span class="nc" id="L201">    }</span>
+
+    @Transactional
+    public void verificarCodigoCadastro(String email, String codigoDigitado) {
+<span class="nc" id="L205">        email = email.trim().toLowerCase();</span>
+<span class="nc" id="L206">        LocalDateTime agora = LocalDateTime.now();</span>
+<span class="nc" id="L207">        LocalDateTime dataLimite = agora.minusMinutes(TEMPO_VALIDACAO_CADASTRO_MINUTOS);</span>
+
+<span class="nc" id="L209">        CodigoVerificacaoEmail registro = codigoRepository</span>
+<span class="nc" id="L210">                .findTopByEmailAndTipoAndUtilizadoTrueAndDataExpiracaoAfterOrderByCriadoEmDesc(</span>
+                    email, CodigoVerificacaoEmail.TipoCodigo.CADASTRO, dataLimite)
+<span class="nc" id="L212">                .orElseThrow(() -&gt; new RegraDeNegocioException(&quot;Código de verificação inválido ou expirado.&quot;));</span>
+
+<span class="nc bnc" id="L214" title="All 2 branches missed.">        if (!registro.getCodigo().equals(codigoDigitado.trim())) {</span>
+<span class="nc" id="L215">            throw new RegraDeNegocioException(&quot;Código de verificação inválido.&quot;);</span>
+        }
+<span class="nc" id="L217">    }</span>
+
+    @Transactional(noRollbackFor = RegraDeNegocioException.class)
+    public void verificarCodigoValido(String email, String codigoDigitado) {
+<span class="nc" id="L221">        email = email.trim().toLowerCase();</span>
+<span class="nc" id="L222">        LocalDateTime agora = LocalDateTime.now();</span>
+
+<span class="nc" id="L224">        CodigoVerificacaoEmail registro = codigoRepository</span>
+<span class="nc" id="L225">                .findTopByEmailAndUtilizadoFalseAndDataExpiracaoAfterOrderByCriadoEmDesc(email, agora)</span>
+<span class="nc" id="L226">                .orElseThrow(() -&gt; new RegraDeNegocioException(&quot;Código expirado ou não encontrado. Solicite um novo código.&quot;));</span>
+
+<span class="nc bnc" id="L228" title="All 2 branches missed.">        if (registro.getTentativas() &gt;= MAX_TENTATIVAS) {</span>
+<span class="nc" id="L229">            registro.setUtilizado(true);</span>
+<span class="nc" id="L230">            codigoRepository.save(registro);</span>
+<span class="nc" id="L231">            throw new RegraDeNegocioException(&quot;Limite de tentativas excedido para este código. Solicite um novo.&quot;);</span>
+        }
+
+<span class="nc bnc" id="L234" title="All 2 branches missed.">        if (!registro.getCodigo().equals(codigoDigitado.trim())) {</span>
+<span class="nc" id="L235">            registro.setTentativas(registro.getTentativas() + 1);</span>
+<span class="nc" id="L236">            codigoRepository.save(registro);</span>
+<span class="nc" id="L237">            throw new RegraDeNegocioException(&quot;Código de verificação inválido.&quot;);</span>
+        }
+
+<span class="nc" id="L240">        registro.setUtilizado(true);</span>
+<span class="nc" id="L241">        codigoRepository.save(registro);</span>
+<span class="nc" id="L242">    }</span>
+
+    @Transactional
+    public void enviarCodigoReset(String email) {
+<span class="fc" id="L246">        String finalEmail = email.trim().toLowerCase();</span>
+<span class="fc" id="L247">        CodigoVerificacaoEmail novoCodigo = salvarNovoCodigoReset(finalEmail);</span>
+<span class="fc" id="L248">        enviarEmailReset(finalEmail, novoCodigo);</span>
+<span class="fc" id="L249">    }</span>
+
+    @Transactional
+    public CodigoVerificacaoEmail salvarNovoCodigoReset(String email) {
+<span class="fc" id="L253">        LocalDateTime agora = LocalDateTime.now();</span>
+<span class="fc" id="L254">        codigoRepository.inativarCodigosAtivosPorEmail(email);</span>
+
+<span class="fc" id="L256">        String codigo = String.format(&quot;%06d&quot;, new SecureRandom().nextInt(1_000_000));</span>
+<span class="fc" id="L257">        CodigoVerificacaoEmail novoCodigo = CodigoVerificacaoEmail.builder()</span>
+<span class="fc" id="L258">                .email(email)</span>
+<span class="fc" id="L259">                .codigo(codigo)</span>
+<span class="fc" id="L260">                .dataExpiracao(agora.plusMinutes(TEMPO_EXPIRACAO_MINUTOS))</span>
+<span class="fc" id="L261">                .tentativas(0)</span>
+<span class="fc" id="L262">                .utilizado(false)</span>
+<span class="fc" id="L263">                .tipo(CodigoVerificacaoEmail.TipoCodigo.RESET_SENHA)</span>
+<span class="fc" id="L264">                .build();</span>
+
+<span class="fc" id="L266">        return codigoRepository.save(novoCodigo);</span>
+    }
+
+    private void enviarEmailReset(String email, CodigoVerificacaoEmail novoCodigo) {
+<span class="fc" id="L270">        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(email).orElse(null);</span>
+<span class="pc bpc" id="L271" title="2 of 4 branches missed.">        String nomeUsuario = (usuario != null &amp;&amp; usuario.getNome() != null) ? usuario.getNome() : &quot;Usuário&quot;;</span>
+<span class="fc" id="L272">        String codigo = novoCodigo.getCodigo();</span>
+
+<span class="fc" id="L274">        System.out.println(&quot;=================================================&quot;);</span>
+<span class="fc" id="L275">        System.out.println(&quot;[CÓDIGO DE E-MAIL GERADO]&quot;);</span>
+<span class="fc" id="L276">        System.out.println(&quot;Destinatário: &quot; + email);</span>
+<span class="fc" id="L277">        System.out.println(&quot;Código: &quot; + codigo);</span>
+<span class="fc" id="L278">        System.out.println(&quot;=================================================&quot;);</span>
+
+<span class="fc" id="L280">        String assunto = &quot;Recuperação de Senha - Nhac Delivery&quot;;</span>
+        
+<span class="fc" id="L282">        String htmlConteudo = &quot;&quot;&quot;</span>
+                &lt;!DOCTYPE html&gt;
+                &lt;html lang=&quot;pt-BR&quot; xmlns=&quot;http://www.w3.org/1999/xhtml&quot;&gt;
+                &lt;head&gt;
+                &lt;meta charset=&quot;UTF-8&quot;&gt;
+                &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+                &lt;meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;IE=edge&quot;&gt;
+                &lt;title&gt;Redefinir senha · Nhac&lt;/title&gt;
+                &lt;!--[if mso]&gt;
+                &lt;noscript&gt;
+                &lt;xml&gt;
+                &lt;o:OfficeDocumentSettings&gt;
+                &lt;o:PixelsPerInch&gt;96&lt;/o:PixelsPerInch&gt;
+                &lt;/o:OfficeDocumentSettings&gt;
+                &lt;/xml&gt;
+                &lt;/noscript&gt;
+                &lt;![endif]--&gt;
+                &lt;style&gt;
+                body, table, td { font-family: 'Roboto', Arial, Helvetica, sans-serif; }
+                body { margin:0; padding:0; background-color:#FFE7E5; -webkit-text-size-adjust:100%%; -ms-text-size-adjust:100%%; }
+                table { border-collapse:collapse; }
+                img { border:0; line-height:100%%; outline:none; text-decoration:none; }
+                a { text-decoration:none; }
+                @media screen and (max-width: 600px) {
+                    .email-container { width:100%% !important; }
+                    .fluid-padding { padding-left:20px !important; padding-right:20px !important; }
+                }
+                &lt;/style&gt;
+                &lt;/head&gt;
+                &lt;body style=&quot;margin:0; padding:0; background-color:#FFE7E5;&quot;&gt;
+                &lt;div style=&quot;display:none; max-height:0; overflow:hidden; opacity:0; mso-hide:all;&quot;&gt;
+                Recebemos uma solicitação para redefinir a senha da sua conta Nhac. O código de verificação expira em 15 minutos.
+                &lt;/div&gt;
+                &lt;table role=&quot;presentation&quot; width=&quot;100%%&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;background-color:#FFE7E5;&quot;&gt;
+                &lt;tr&gt;
+                &lt;td align=&quot;center&quot; style=&quot;padding:40px 16px;&quot;&gt;
+                &lt;table role=&quot;presentation&quot; class=&quot;email-container&quot; width=&quot;600&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;width:600px; max-width:600px;&quot;&gt;
+                &lt;tr&gt;
+                &lt;td align=&quot;center&quot; style=&quot;padding-bottom:28px;&quot;&gt;
+                &lt;table role=&quot;presentation&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot;&gt;
+                &lt;tr&gt;
+                &lt;td style=&quot;font-size:26px; font-weight:700; color:#FF6961; font-family:Arial, Helvetica, sans-serif;&quot;&gt;
+                Nhac
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;/table&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;tr&gt;
+                &lt;td style=&quot;background-color:#FFFFFF; border-radius:20px; padding:40px;&quot; class=&quot;fluid-padding&quot;&gt;
+                &lt;table role=&quot;presentation&quot; width=&quot;100%%&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot;&gt;
+                &lt;tr&gt;
+                &lt;td align=&quot;center&quot; style=&quot;padding-bottom:24px;&quot;&gt;
+                &lt;table role=&quot;presentation&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot;&gt;
+                &lt;tr&gt;
+                &lt;td width=&quot;64&quot; height=&quot;64&quot; align=&quot;center&quot; valign=&quot;middle&quot; style=&quot;background-color:#FFEBD9; border-radius:50%%; width:64px; height:64px; font-size:26px; line-height:64px;&quot;&gt;
+                          🔒
+                        &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;/table&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;tr&gt;
+                &lt;td align=&quot;center&quot; style=&quot;padding-bottom:8px;&quot;&gt;
+                &lt;span style=&quot;font-size:22px; font-weight:700; color:#5D201C; font-family:Arial, Helvetica, sans-serif;&quot;&gt;
+                Redefinir sua senha
+                    &lt;/span&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;tr&gt;
+                &lt;td align=&quot;center&quot; style=&quot;padding-bottom:28px;&quot;&gt;
+                &lt;span style=&quot;font-size:14px; line-height:22px; color:#8A8A8A; font-family:Arial, Helvetica, sans-serif;&quot;&gt;
+                Olá, %s. Recebemos uma solicitação para redefinir a&lt;br&gt;
+        senha da sua conta Nhac. Utilize o código abaixo no aplicativo para continuar.
+                    &lt;/span&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;tr&gt;
+                &lt;td align=&quot;center&quot; style=&quot;padding-bottom:24px;&quot;&gt;
+                &lt;table role=&quot;presentation&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot;&gt;
+                &lt;tr&gt;
+                &lt;td align=&quot;center&quot; style=&quot;background-color:#f9f9f9; border: 1px dashed #cccccc; border-radius:8px; padding:20px 40px;&quot;&gt;
+                &lt;span style=&quot;display:inline-block; font-size:32px; font-weight:700; letter-spacing: 4px; color:#FF6961; font-family:monospace, Arial, Helvetica, sans-serif;&quot;&gt;
+                %s
+                &lt;/span&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;/table&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;tr&gt;
+                &lt;td align=&quot;center&quot; style=&quot;padding-bottom:24px;&quot;&gt;
+                &lt;span style=&quot;font-size:12.5px; color:#C9BCBC; font-family:Arial, Helvetica, sans-serif;&quot;&gt;
+                Este código expira em %d minutos
+                &lt;/span&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;/table&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;tr&gt;
+                &lt;td style=&quot;padding:24px 8px 0;&quot;&gt;
+                &lt;table role=&quot;presentation&quot; width=&quot;100%%&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;background-color:#FFF6F5; border-radius:14px;&quot;&gt;
+                &lt;tr&gt;
+                &lt;td style=&quot;padding:16px 20px;&quot;&gt;
+                &lt;span style=&quot;font-size:12.5px; line-height:19px; color:#5D201C; font-family:Arial, Helvetica, sans-serif;&quot;&gt;
+                      🔒 &lt;strong&gt;Não foi você?&lt;/strong&gt; Se você não solicitou a redefinição de senha, pode ignorar este e-mail com segurança — sua senha atual continua válida.
+                &lt;/span&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;/table&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;tr&gt;
+                &lt;td align=&quot;center&quot; style=&quot;padding:32px 20px 0;&quot;&gt;
+                &lt;span style=&quot;font-size:11.5px; color:#C9BCBC; font-family:Arial, Helvetica, sans-serif;&quot;&gt;
+                Enviado por Nhac · Este é um e-mail automático, não responda.
+                &lt;/span&gt;
+                &lt;br&gt;&lt;br&gt;
+                &lt;span style=&quot;font-size:11.5px; color:#C9BCBC; font-family:Arial, Helvetica, sans-serif;&quot;&gt;
+                © %d Nhac. Todos os direitos reservados.
+              &lt;/span&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;/table&gt;
+                &lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;/table&gt;
+                &lt;/body&gt;
+                &lt;/html&gt;
+<span class="fc" id="L412">                &quot;&quot;&quot;.formatted(nomeUsuario, codigo, TEMPO_EXPIRACAO_MINUTOS, java.time.Year.now().getValue());</span>
+<span class="fc" id="L413">        emailService.enviarEmailHtml(email, assunto, htmlConteudo);</span>
+<span class="fc" id="L414">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: br.com.nhac.backend_nhac.domain.loja.LojaControllerTest
+-------------------------------------------------------------------------------
+Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.913 s -- in br.com.nhac.backend_nhac.domain.loja.LojaControllerTest

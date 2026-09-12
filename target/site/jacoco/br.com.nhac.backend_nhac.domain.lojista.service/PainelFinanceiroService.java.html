@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PainelFinanceiroService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.lojista.service</a> &gt; <span class="el_source">PainelFinanceiroService.java</span></div><h1>PainelFinanceiroService.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.lojista.service;
+
+import br.com.nhac.backend_nhac.domain.loja.Loja;
+import br.com.nhac.backend_nhac.domain.lojista.dto.FinanceiroResumoDTO;
+import br.com.nhac.backend_nhac.domain.lojista.dto.PainelResumoDTO;
+import br.com.nhac.backend_nhac.domain.pedido.PedidoRepository;
+import br.com.nhac.backend_nhac.domain.pedido.StatusPedido;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+public class PainelFinanceiroService {
+
+    private final PedidoRepository pedidoRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final LojaAccessService lojaAccessService;
+
+<span class="fc" id="L28">    public PainelFinanceiroService(PedidoRepository pedidoRepository, UsuarioRepository usuarioRepository, LojaAccessService lojaAccessService) {</span>
+<span class="fc" id="L29">        this.pedidoRepository = pedidoRepository;</span>
+<span class="fc" id="L30">        this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L31">        this.lojaAccessService = lojaAccessService;</span>
+<span class="fc" id="L32">    }</span>
+
+    @Cacheable(value = &quot;painel&quot;, key = &quot;#usuarioLogado.id&quot;, unless = &quot;#result == null&quot;)
+    public PainelResumoDTO obterPainelResumo(br.com.nhac.backend_nhac.domain.usuario.Usuario usuarioLogado) {
+<span class="nc" id="L36">        Loja loja = lojaAccessService.obterLojaAcessivel(usuarioLogado);</span>
+<span class="nc bnc" id="L37" title="All 2 branches missed.">        if (loja == null) {</span>
+<span class="nc" id="L38">            return criarPainelVazio();</span>
+        }
+
+<span class="nc" id="L41">        String lojaId = loja.getId();</span>
+<span class="nc" id="L42">        boolean lojaAberta = loja.isAberto();</span>
+
+<span class="nc" id="L44">        BigDecimal faturamentoHoje = pedidoRepository.calcularFaturamentoHoje(lojaId);</span>
+<span class="nc bnc" id="L45" title="All 2 branches missed.">        if (faturamentoHoje == null) faturamentoHoje = BigDecimal.ZERO;</span>
+
+<span class="nc" id="L47">        long pedidosPendentes = pedidoRepository.contarPedidosPorStatus(lojaId, StatusPedido.PENDENTE);</span>
+<span class="nc" id="L48">        long pedidosPagos = pedidoRepository.contarPedidosPorStatus(lojaId, StatusPedido.PAGO);</span>
+<span class="nc" id="L49">        long pedidosPreparando = pedidoRepository.contarPedidosPorStatus(lojaId, StatusPedido.PREPARANDO);</span>
+<span class="nc" id="L50">        long pedidosSaiuEntrega = pedidoRepository.contarPedidosPorStatus(lojaId, StatusPedido.SAIU_ENTREGA);</span>
+<span class="nc" id="L51">        long pedidosEntregues = pedidoRepository.contarPedidosPorStatus(lojaId, StatusPedido.ENTREGUE);</span>
+<span class="nc" id="L52">        long pedidosCancelados = pedidoRepository.contarPedidosPorStatus(lojaId, StatusPedido.CANCELADO);</span>
+
+<span class="nc" id="L54">        Instant seteDiasAtras = Instant.now().minus(7, ChronoUnit.DAYS);</span>
+<span class="nc" id="L55">        BigDecimal faturamentoUltimos7Dias = pedidoRepository.calcularFaturamentoUltimos7Dias(lojaId, seteDiasAtras);</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">        if (faturamentoUltimos7Dias == null) faturamentoUltimos7Dias = BigDecimal.ZERO;</span>
+
+<span class="nc" id="L58">        var pedidosRecentesPage = pedidoRepository.encontrarPedidosRecentes(lojaId, PageRequest.of(0, 5));</span>
+<span class="nc" id="L59">        List&lt;PainelResumoDTO.PedidoRecenteDTO&gt; pedidosRecentes = pedidosRecentesPage.getContent().stream()</span>
+<span class="nc" id="L60">                .map(p -&gt; {</span>
+<span class="nc" id="L61">                    String clienteNome = usuarioRepository.findById(p.getUsuarioId())</span>
+<span class="nc" id="L62">                            .map(u -&gt; u.getNome())</span>
+<span class="nc" id="L63">                            .orElse(&quot;Cliente removido&quot;);</span>
+<span class="nc" id="L64">                    return new PainelResumoDTO.PedidoRecenteDTO(</span>
+<span class="nc" id="L65">                            p.getId(),</span>
+                            clienteNome,
+<span class="nc" id="L67">                            p.getValorTotal(),</span>
+<span class="nc" id="L68">                            p.getStatus().name(),</span>
+<span class="nc" id="L69">                            p.getCriadoEm()</span>
+                    );
+                })
+<span class="nc" id="L72">                .collect(Collectors.toList());</span>
+
+<span class="nc" id="L74">        return new PainelResumoDTO(</span>
+                lojaAberta,
+                faturamentoHoje,
+                pedidosPendentes,
+                pedidosPagos,
+                pedidosPreparando,
+                pedidosSaiuEntrega,
+                pedidosEntregues,
+                pedidosCancelados,
+                faturamentoUltimos7Dias,
+                pedidosRecentes
+        );
+    }
+
+    @Cacheable(value = &quot;financeiro&quot;, key = &quot;#usuarioLogado.id + ':' + #periodoDias&quot;, unless = &quot;#result == null&quot;)
+    public FinanceiroResumoDTO obterFinanceiroResumo(br.com.nhac.backend_nhac.domain.usuario.Usuario usuarioLogado, int periodoDias) {
+<span class="nc" id="L90">        Loja loja = lojaAccessService.obterLojaAcessivel(usuarioLogado);</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">        if (loja == null) {</span>
+<span class="nc" id="L92">            return criarFinanceiroVazio();</span>
+        }
+
+<span class="nc" id="L95">        String lojaId = loja.getId();</span>
+<span class="nc" id="L96">        Instant dataInicio = Instant.now().minus(periodoDias, ChronoUnit.DAYS);</span>
+
+<span class="nc" id="L98">        BigDecimal faturamentoTotal = pedidoRepository.calcularFaturamentoTotal(lojaId);</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">        if (faturamentoTotal == null) faturamentoTotal = BigDecimal.ZERO;</span>
+
+<span class="nc" id="L101">        long totalPedidos = pedidoRepository.contarPedidosEntregues(lojaId);</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">        BigDecimal ticketMedio = totalPedidos &gt; 0 ? faturamentoTotal.divide(BigDecimal.valueOf(totalPedidos), 2, BigDecimal.ROUND_HALF_UP) : BigDecimal.ZERO;</span>
+
+<span class="nc" id="L104">        FinanceiroResumoDTO.ResumoFinanceiro resumo = new FinanceiroResumoDTO.ResumoFinanceiro(faturamentoTotal, totalPedidos, ticketMedio);</span>
+
+<span class="nc" id="L106">        List&lt;Object[]&gt; faturamentoPorDiaRaw = pedidoRepository.calcularFaturamentoPorDia(lojaId, dataInicio);</span>
+<span class="nc" id="L107">        List&lt;FinanceiroResumoDTO.DadoFaturamentoDiario&gt; faturamentoPorDia = faturamentoPorDiaRaw.stream()</span>
+<span class="nc" id="L108">                .map(row -&gt; {</span>
+<span class="nc" id="L109">                    LocalDate data = ((java.sql.Date) row[0]).toLocalDate();</span>
+<span class="nc" id="L110">                    BigDecimal valor = (BigDecimal) row[1];</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">                    return new FinanceiroResumoDTO.DadoFaturamentoDiario(data, valor != null ? valor : BigDecimal.ZERO);</span>
+                })
+<span class="nc" id="L113">                .collect(Collectors.toList());</span>
+
+<span class="nc" id="L115">        List&lt;Object[]&gt; vendasPorCategoriaRaw = pedidoRepository.calcularVendasPorCategoria(lojaId);</span>
+<span class="nc" id="L116">        Map&lt;String, BigDecimal&gt; vendasPorCategoria = vendasPorCategoriaRaw.stream()</span>
+<span class="nc" id="L117">                .collect(Collectors.toMap(</span>
+<span class="nc" id="L118">                        row -&gt; (String) row[0],</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">                        row -&gt; { BigDecimal v = (BigDecimal) row[1]; return v != null ? v : BigDecimal.ZERO; }</span>
+                ));
+
+<span class="nc" id="L122">        List&lt;Object[]&gt; vendasPorFormaPagamentoRaw = pedidoRepository.calcularVendasPorFormaPagamento(lojaId);</span>
+<span class="nc" id="L123">        Map&lt;String, BigDecimal&gt; vendasPorFormaPagamento = vendasPorFormaPagamentoRaw.stream()</span>
+<span class="nc" id="L124">                .collect(Collectors.toMap(</span>
+<span class="nc" id="L125">                        row -&gt; (String) row[0],</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">                        row -&gt; { BigDecimal v = (BigDecimal) row[1]; return v != null ? v : BigDecimal.ZERO; }</span>
+                ));
+
+<span class="nc" id="L129">        FinanceiroResumoDTO.ProdutoMaisVendido produtoMaisVendido = null;</span>
+<span class="nc" id="L130">        List&lt;Object[]&gt; produtoMaisVendidoRaw = pedidoRepository.encontrarProdutoMaisVendido(lojaId, PageRequest.of(0, 1));</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">        if (!produtoMaisVendidoRaw.isEmpty()) {</span>
+<span class="nc" id="L132">            Object[] row = produtoMaisVendidoRaw.get(0);</span>
+<span class="nc" id="L133">            produtoMaisVendido = new FinanceiroResumoDTO.ProdutoMaisVendido(</span>
+                    (String) row[0],
+                    (String) row[1],
+<span class="nc" id="L136">                    ((Number) row[2]).longValue(),</span>
+                    (BigDecimal) row[3]
+            );
+        }
+
+<span class="nc" id="L141">        List&lt;Object[]&gt; faturamentoPorHoraRaw = pedidoRepository.calcularFaturamentoPorHora(lojaId);</span>
+<span class="nc" id="L142">        Map&lt;Integer, BigDecimal&gt; faturamentoPorHora = faturamentoPorHoraRaw.stream()</span>
+<span class="nc" id="L143">                .collect(Collectors.toMap(</span>
+<span class="nc" id="L144">                        row -&gt; ((Number) row[0]).intValue(),</span>
+<span class="nc bnc" id="L145" title="All 2 branches missed.">                        row -&gt; { BigDecimal v = (BigDecimal) row[1]; return v != null ? v : BigDecimal.ZERO; }</span>
+                ));
+
+<span class="nc" id="L148">        return new FinanceiroResumoDTO(</span>
+                resumo,
+                faturamentoPorDia,
+                vendasPorCategoria,
+                vendasPorFormaPagamento,
+                produtoMaisVendido,
+                faturamentoPorHora
+        );
+    }
+
+    private PainelResumoDTO criarPainelVazio() {
+<span class="nc" id="L159">        return new PainelResumoDTO(false, BigDecimal.ZERO, 0, 0, 0, 0, 0, 0, BigDecimal.ZERO, Collections.emptyList());</span>
+    }
+
+    private FinanceiroResumoDTO criarFinanceiroVazio() {
+<span class="nc" id="L163">        return new FinanceiroResumoDTO(</span>
+                new FinanceiroResumoDTO.ResumoFinanceiro(BigDecimal.ZERO, 0, BigDecimal.ZERO),
+<span class="nc" id="L165">                Collections.emptyList(),</span>
+<span class="nc" id="L166">                Collections.emptyMap(),</span>
+<span class="nc" id="L167">                Collections.emptyMap(),</span>
+                null,
+<span class="nc" id="L169">                Collections.emptyMap()</span>
+        );
+    }
+
+    // Records internos para simplificar (apenas DadoFaturamentoDiario e ProdutoMaisVendido foram removidos, pois agora usamos os do DTO)
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

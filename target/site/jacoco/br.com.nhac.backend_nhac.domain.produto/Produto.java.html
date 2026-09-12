@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Produto.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.produto</a> &gt; <span class="el_source">Produto.java</span></div><h1>Produto.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.produto;
+
+import br.com.nhac.backend_nhac.domain.loja.Loja;
+import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoCreateDTO;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = &quot;tb_produtos&quot;)
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(of = &quot;id&quot;)
+public class Produto {
+
+    @Id
+    @Column(updatable = false, nullable = false, length = 50)
+    private String id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;loja_id&quot;, nullable = false)
+    private Loja loja;
+
+    @Column(nullable = false, length = 100)
+    private String nome;
+
+    @Column(columnDefinition = &quot;TEXT&quot;)
+    private String descricao;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal preco;
+
+    @Column(name = &quot;categoria_menu&quot;, nullable = false, length = 50)
+    private String categoriaMenu;
+
+    @Column(name = &quot;imagem_url&quot;, columnDefinition = &quot;TEXT&quot;)
+    private String imagemUrl;
+
+<span class="fc" id="L45">    @Column(name = &quot;is_ativo&quot;, nullable = false)</span>
+    private boolean isAtivo = true;
+
+    @Column(name = &quot;criado_em&quot;)
+    private Instant criadoEm;
+
+    @Column(length = 20)
+    private String peso;
+
+    @Column(name = &quot;percentual_desconto&quot;)
+    private Integer percentualDesconto;
+    
+<span class="fc" id="L57">    @Column(name = &quot;estoque&quot;)</span>
+<span class="fc" id="L58">    private Integer estoque = 100;</span>
+
+<span class="fc" id="L60">    @OneToMany(mappedBy = &quot;produto&quot;, cascade = CascadeType.ALL, orphanRemoval = true)</span>
+    private List&lt;GrupoAdicional&gt; adicionais = new ArrayList&lt;&gt;();
+
+<span class="fc" id="L63">    public Produto(ProdutoCreateDTO dto, Loja loja) {</span>
+<span class="fc" id="L64">        this.loja = loja;</span>
+<span class="fc" id="L65">        this.nome = dto.nome();</span>
+<span class="fc" id="L66">        this.descricao = dto.descricao();</span>
+<span class="fc" id="L67">        this.preco = dto.preco();</span>
+<span class="fc" id="L68">        this.categoriaMenu = dto.categoriaMenu();</span>
+<span class="fc" id="L69">        this.imagemUrl = dto.imagemUrl();</span>
+<span class="fc" id="L70">        this.peso = dto.peso();</span>
+<span class="fc" id="L71">        this.percentualDesconto = dto.percentualDesconto();</span>
+<span class="fc" id="L72">        this.isAtivo = true;</span>
+<span class="fc" id="L73">        this.criadoEm = Instant.now();</span>
+<span class="fc" id="L74">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

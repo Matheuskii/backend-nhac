@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: br.com.nhac.backend_nhac.infra.security.SecurityFilterTest
+-------------------------------------------------------------------------------
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.403 s -- in br.com.nhac.backend_nhac.infra.security.SecurityFilterTest

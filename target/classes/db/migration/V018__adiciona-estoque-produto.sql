@@ -1,0 +1,1 @@
+ALTER TABLE tb_produtos ADD COLUMN estoque INT DEFAULT 100;

@@ -52,6 +52,9 @@ class LojaControllerTest {
     @MockitoBean
     private br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository usuarioRepository;
 
+    @MockitoBean
+    private org.springframework.cache.CacheManager cacheManager;
+
     private Usuario usuarioLogado;
 
     @BeforeEach

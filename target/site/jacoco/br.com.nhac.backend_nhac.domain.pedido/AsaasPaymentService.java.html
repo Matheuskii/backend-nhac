@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AsaasPaymentService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.pedido</a> &gt; <span class="el_source">AsaasPaymentService.java</span></div><h1>AsaasPaymentService.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.pedido;
+
+import br.com.nhac.backend_nhac.domain.pedido.Pedido;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO;
+import br.com.nhac.backend_nhac.domain.pedido.PedidoRepository;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+@Service
+public class AsaasPaymentService {
+
+    @Value(&quot;${asaas.api.key}&quot;)
+    private String asaasApiKey;
+
+    @Value(&quot;${asaas.api.url:https://sandbox.asaas.com/api/v3}&quot;)
+    private String asaasApiUrl;
+
+    private RestTemplate restTemplate;
+<span class="fc" id="L28">    private Gson gson = new Gson();</span>
+    private final PedidoRepository pedidoRepository;
+
+<span class="fc" id="L31">    public AsaasPaymentService(RestTemplate restTemplate, PedidoRepository pedidoRepository) {</span>
+<span class="fc" id="L32">        this.restTemplate = restTemplate;</span>
+<span class="fc" id="L33">        this.pedidoRepository = pedidoRepository;</span>
+<span class="fc" id="L34">    }</span>
+
+    private String obterOuCriarCustomer(String nome, String email, String cpfCnpj) {
+<span class="fc" id="L37">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L38">        headers.setContentType(MediaType.APPLICATION_JSON);</span>
+<span class="fc" id="L39">        headers.set(&quot;access_token&quot;, asaasApiKey);</span>
+
+<span class="fc" id="L41">        JsonObject customerBody = new JsonObject();</span>
+<span class="fc" id="L42">        customerBody.addProperty(&quot;name&quot;, nome);</span>
+<span class="fc" id="L43">        customerBody.addProperty(&quot;email&quot;, email);</span>
+<span class="fc" id="L44">        customerBody.addProperty(&quot;cpfCnpj&quot;, cpfCnpj.replaceAll(&quot;\\D&quot;, &quot;&quot;));</span>
+
+<span class="fc" id="L46">        HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(customerBody.toString(), headers);</span>
+<span class="fc" id="L47">        String url = asaasApiUrl + &quot;/customers&quot;;</span>
+
+<span class="fc" id="L49">        ResponseEntity&lt;String&gt; response = restTemplate.postForEntity(url, entity, String.class);</span>
+
+<span class="pc bpc" id="L51" title="3 of 4 branches missed.">        if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.CREATED) {</span>
+<span class="fc" id="L52">            JsonObject responseBody = gson.fromJson(response.getBody(), JsonObject.class);</span>
+<span class="fc" id="L53">            return responseBody.get(&quot;id&quot;).getAsString();</span>
+        }
+
+<span class="nc" id="L56">        throw new RuntimeException(&quot;Falha ao criar cliente no Asaas: &quot; + response.getStatusCode());</span>
+    }
+
+    /**
+     * @param pedido 
+     * @param nomePagador 
+     * @param emailPagador 
+     * @param cpfPagador 
+     * @return 
+     */
+    public PedidoCriadoDTO criarCobrancaPix(Pedido pedido, String nomePagador, String emailPagador, String cpfPagador) {
+        try {
+<span class="fc" id="L68">            String customerId = obterOuCriarCustomer(nomePagador, emailPagador, cpfPagador);</span>
+
+<span class="fc" id="L70">            HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L71">            headers.setContentType(MediaType.APPLICATION_JSON);</span>
+<span class="fc" id="L72">            headers.set(&quot;access_token&quot;, asaasApiKey);</span>
+
+<span class="fc" id="L74">            String dueDate = LocalDate.now().plusDays(7)</span>
+<span class="fc" id="L75">                    .format(DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd&quot;));</span>
+
+<span class="fc" id="L77">            JsonObject requestBody = new JsonObject();</span>
+<span class="fc" id="L78">            requestBody.addProperty(&quot;customer&quot;, customerId);</span>
+<span class="fc" id="L79">            requestBody.addProperty(&quot;externalReference&quot;, pedido.getId());</span>
+<span class="fc" id="L80">            requestBody.addProperty(&quot;description&quot;, &quot;Pedido #&quot; + pedido.getId());</span>
+<span class="fc" id="L81">            requestBody.addProperty(&quot;billingType&quot;, &quot;PIX&quot;);</span>
+<span class="fc" id="L82">            requestBody.addProperty(&quot;value&quot;, pedido.getValorTotal().doubleValue());</span>
+<span class="fc" id="L83">            requestBody.addProperty(&quot;dueDate&quot;, dueDate);</span>
+
+<span class="fc" id="L85">            HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(requestBody.toString(), headers);</span>
+
+<span class="fc" id="L87">            String url = asaasApiUrl + &quot;/payments&quot;;</span>
+<span class="fc" id="L88">            ResponseEntity&lt;String&gt; response = restTemplate.postForEntity(url, entity, String.class);</span>
+
+<span class="fc bfc" id="L90" title="All 4 branches covered.">            if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.CREATED) {</span>
+<span class="fc" id="L91">                JsonObject responseBody = gson.fromJson(response.getBody(), JsonObject.class);</span>
+                
+<span class="fc" id="L93">                String paymentId = responseBody.get(&quot;id&quot;).getAsString();</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">                String pixQrCode = responseBody.has(&quot;pixQrCode&quot;) ? responseBody.get(&quot;pixQrCode&quot;).getAsString() : null;</span>
+<span class="pc bpc" id="L95" title="1 of 2 branches missed.">                String pixCopyAndPaste = responseBody.has(&quot;pixCopyAndPaste&quot;) ? responseBody.get(&quot;pixCopyAndPaste&quot;).getAsString() : null;</span>
+
+<span class="fc" id="L97">                pedido.setAsaasPaymentId(paymentId);</span>
+<span class="fc" id="L98">                pedidoRepository.save(pedido); // ✅ SALVA O PEDIDO COM O ID DO ASAAS</span>
+
+<span class="fc" id="L100">                System.out.println(&quot;✅ Cobrança PIX criada: &quot; + paymentId);</span>
+<span class="fc" id="L101">                return new PedidoCriadoDTO(pedido.getId(), null, pixCopyAndPaste, pixQrCode);</span>
+            } else {
+<span class="fc" id="L103">                throw new RuntimeException(&quot;Falha ao criar cobrança no Asaas: &quot; + response.getStatusCode());</span>
+            }
+
+<span class="fc" id="L106">        } catch (Exception e) {</span>
+<span class="fc" id="L107">            System.err.println(&quot;❌ Erro Asaas: &quot; + e.getMessage());</span>
+<span class="fc" id="L108">            throw new RuntimeException(&quot;Erro ao comunicar com Asaas para criar cobrança PIX: &quot; + e.getMessage(), e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

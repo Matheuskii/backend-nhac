@@ -56,6 +56,9 @@ class PedidoControllerTest {
     @MockitoBean
     private br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository usuarioRepository;
 
+    @MockitoBean
+    private org.springframework.cache.CacheManager cacheManager;
+
     @BeforeEach
     void setUp() {
         Usuario usuarioMock = new Usuario();

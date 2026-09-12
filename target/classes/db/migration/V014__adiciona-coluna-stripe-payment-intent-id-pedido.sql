@@ -1,0 +1,5 @@
+ALTER TABLE tb_pedidos
+    ADD COLUMN stripe_payment_intent_id VARCHAR(255);
+
+ALTER TABLE tb_pedidos
+    MODIFY COLUMN status ENUM('PENDENTE', 'PAGO', 'PREPARANDO', 'SAIU_ENTREGA', 'ENTREGUE', 'CANCELADO') NOT NULL;

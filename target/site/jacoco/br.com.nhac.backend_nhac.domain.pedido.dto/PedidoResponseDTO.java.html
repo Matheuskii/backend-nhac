@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PedidoResponseDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.pedido.dto</a> &gt; <span class="el_source">PedidoResponseDTO.java</span></div><h1>PedidoResponseDTO.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.pedido.dto;
+
+import br.com.nhac.backend_nhac.domain.pedido.Pedido;
+import br.com.nhac.backend_nhac.domain.pedido.StatusPedido;
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+
+@Schema(description = &quot;Dados detalhados de um pedido&quot;)
+<span class="fc" id="L12">public record PedidoResponseDTO(</span>
+        @Schema(description = &quot;ID do pedido&quot;) String id,
+        @Schema(description = &quot;ID do usuário que fez o pedido&quot;) String usuarioId,
+        @Schema(description = &quot;ID da loja&quot;) String lojaId,
+        @Schema(description = &quot;Nome da loja&quot;) String lojaNome,
+        @Schema(description = &quot;Valor total do pedido&quot;) BigDecimal valorTotal,
+        @Schema(description = &quot;Taxa de frete cobrada&quot;) BigDecimal taxaFrete,
+        @Schema(description = &quot;Forma de pagamento&quot;) String formaPagamento,
+        @Schema(description = &quot;Troco para&quot;) BigDecimal trocoPara,
+        @Schema(description = &quot;Observações&quot;) String observacao,
+        @Schema(description = &quot;Status atual do pedido&quot;) StatusPedido status,
+        @Schema(description = &quot;Data e hora da criação&quot;) Instant criadoEm,
+        @Schema(description = &quot;Endereço onde será entregue&quot;) EnderecoEntregaResponseDTO enderecoEntrega,
+        @Schema(description = &quot;Itens do pedido&quot;) List&lt;ItemPedidoResponseDTO&gt; itens
+) {
+    public PedidoResponseDTO(Pedido pedido) {
+<span class="fc" id="L28">        this(</span>
+<span class="fc" id="L29">                pedido.getId(),</span>
+<span class="fc" id="L30">                pedido.getUsuarioId(),</span>
+<span class="fc" id="L31">                pedido.getLoja().getId(),</span>
+<span class="fc" id="L32">                pedido.getLoja().getNome(),</span>
+<span class="fc" id="L33">                pedido.getValorTotal(),</span>
+<span class="fc" id="L34">                pedido.getTaxaFrete(),</span>
+<span class="fc" id="L35">                pedido.getFormaPagamento(),</span>
+<span class="fc" id="L36">                pedido.getTrocoPara(),</span>
+<span class="fc" id="L37">                pedido.getObservacao(),</span>
+<span class="fc" id="L38">                pedido.getStatus(),</span>
+<span class="fc" id="L39">                pedido.getCriadoEm(),</span>
+<span class="fc bfc" id="L40" title="All 2 branches covered.">                pedido.getEnderecoEntrega() != null ? new EnderecoEntregaResponseDTO(</span>
+<span class="fc" id="L41">                        pedido.getEnderecoEntrega().getRua(),</span>
+<span class="fc" id="L42">                        pedido.getEnderecoEntrega().getNumero(),</span>
+<span class="fc" id="L43">                        pedido.getEnderecoEntrega().getBairro(),</span>
+<span class="fc" id="L44">                        pedido.getEnderecoEntrega().getCidade(),</span>
+<span class="fc" id="L45">                        pedido.getEnderecoEntrega().getEstado(),</span>
+<span class="fc" id="L46">                        pedido.getEnderecoEntrega().getCep(),</span>
+<span class="fc" id="L47">                        pedido.getEnderecoEntrega().getComplemento()</span>
+<span class="fc" id="L48">                ) : null,</span>
+<span class="pc bpc" id="L49" title="1 of 2 branches missed.">                pedido.getItens() != null ? pedido.getItens().stream().map(item -&gt; new ItemPedidoResponseDTO(</span>
+<span class="fc" id="L50">                        item.getId(),</span>
+<span class="fc" id="L51">                        item.getProduto().getId(),</span>
+<span class="fc" id="L52">                        item.getNome(),</span>
+<span class="fc" id="L53">                        item.getImagemUrl(),</span>
+<span class="fc" id="L54">                        item.getPrecoHistorico(),</span>
+<span class="fc" id="L55">                        item.getQuantidade()</span>
+<span class="pc" id="L56">                )).toList() : List.of()</span>
+        );
+<span class="fc" id="L58">    }</span>
+
+    @Schema(description = &quot;Endereço de entrega do pedido&quot;)
+<span class="fc" id="L61">    public record EnderecoEntregaResponseDTO(</span>
+            String rua,
+            String numero,
+            String bairro,
+            String cidade,
+            String estado,
+            String cep,
+            String complemento
+    ) {}
+
+    @Schema(description = &quot;Item individual do pedido&quot;)
+<span class="fc" id="L72">    public record ItemPedidoResponseDTO(</span>
+            String id,
+            String produtoId,
+            String nome,
+            String imagemUrl,
+            BigDecimal preco,
+            Integer quantidade
+    ) {}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

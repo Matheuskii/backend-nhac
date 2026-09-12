@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AvaliacaoResumoDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.avaliacao.dto</a> &gt; <span class="el_source">AvaliacaoResumoDTO.java</span></div><h1>AvaliacaoResumoDTO.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.avaliacao.dto;
+
+import br.com.nhac.backend_nhac.domain.avaliacao.Avaliacao;
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.time.LocalDateTime;
+
+@Schema(description = &quot;DTO de visualização de uma avaliação&quot;)
+<span class="fc" id="L9">public record AvaliacaoResumoDTO(</span>
+
+        @Schema(description = &quot;ID da avaliação&quot;, example = &quot;aval_123&quot;)
+        String id,
+
+        @Schema(description = &quot;Nome do usuário que fez a avaliação&quot;, example = &quot;Maria Silva&quot;)
+        String nomeUsuario,
+
+        @Schema(description = &quot;Nota dada pelo cliente&quot;, example = &quot;5&quot;)
+        Integer nota,
+
+        @Schema(description = &quot;Comentário da avaliação&quot;, example = &quot;Comida maravilhosa!&quot;)
+        String comentario,
+
+        @Schema(description = &quot;Data e hora em que a avaliação foi criada&quot;)
+        LocalDateTime dataCriacao
+) {
+    public AvaliacaoResumoDTO(Avaliacao avaliacao) {
+<span class="fc" id="L27">        this(</span>
+<span class="fc" id="L28">                avaliacao.getId(),</span>
+<span class="pc bpc" id="L29" title="1 of 2 branches missed.">                avaliacao.getUsuario() != null ? avaliacao.getUsuario().getNome() : &quot;Usuário Anônimo&quot;,</span>
+<span class="fc" id="L30">                avaliacao.getNota(),</span>
+<span class="fc" id="L31">                avaliacao.getComentario(),</span>
+<span class="fc" id="L32">                avaliacao.getDataCriacao()</span>
+        );
+<span class="fc" id="L34">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

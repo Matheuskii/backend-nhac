@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: br.com.nhac.backend_nhac.exceptions.ResourceExceptionHandlerTest
+-------------------------------------------------------------------------------
+Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 6.579 s -- in br.com.nhac.backend_nhac.exceptions.ResourceExceptionHandlerTest

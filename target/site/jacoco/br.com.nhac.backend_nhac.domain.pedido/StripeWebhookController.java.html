@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StripeWebhookController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.pedido</a> &gt; <span class="el_source">StripeWebhookController.java</span></div><h1>StripeWebhookController.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.pedido;
+
+import br.com.nhac.backend_nhac.domain.pedido.PedidoService;
+import com.stripe.exception.SignatureVerificationException;
+import com.stripe.model.Event;
+import com.stripe.model.PaymentIntent;
+import com.stripe.model.StripeObject;
+import com.stripe.net.Webhook;
+import java.util.Map;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping(&quot;/api/v1/webhooks/stripe&quot;)
+@Tag(name = &quot;Stripe Webhooks&quot;, description = &quot;Endpoints para recebimento de eventos assíncronos de pagamento do Stripe&quot;)
+public class StripeWebhookController {
+
+    private final PedidoService pedidoService;
+
+    @Value(&quot;${stripe.webhook.secret}&quot;)
+    private String endpointSecret;
+
+<span class="fc" id="L27">    public StripeWebhookController(PedidoService pedidoService) {</span>
+<span class="fc" id="L28">        this.pedidoService = pedidoService;</span>
+<span class="fc" id="L29">    }</span>
+
+    @Operation(summary = &quot;Receber webhooks do Stripe&quot;, description = &quot;Rota aberta chamada pelo Stripe para atualizar o status do pedido&quot;)
+    @PostMapping
+    public ResponseEntity&lt;String&gt; handleStripeEvent(
+            @RequestBody String payload,
+            @RequestHeader(value = &quot;Stripe-Signature&quot;, required = false) String sigHeader) {
+
+<span class="fc bfc" id="L37" title="All 2 branches covered.">        if (sigHeader == null) {</span>
+<span class="fc" id="L38">            System.err.println(&quot;❌ Webhook Stripe: Faltando header Stripe-Signature&quot;);</span>
+<span class="fc" id="L39">            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(&quot;Faltando header Stripe-Signature&quot;);</span>
+        }
+
+<span class="fc" id="L42">        Event event = null;</span>
+
+        try {
+            // Verifica a assinatura e desserializa o evento usando a SDK
+<span class="fc" id="L46">            event = Webhook.constructEvent(payload, sigHeader, endpointSecret);</span>
+<span class="fc" id="L47">        } catch (SignatureVerificationException e) {</span>
+            // Assinatura inválida (pode ser alguém tentando invadir a API)
+<span class="fc" id="L49">            System.err.println(&quot;❌ Webhook Stripe: Assinatura inválida - &quot; + e.getMessage());</span>
+<span class="fc" id="L50">            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(&quot;Invalid signature&quot;);</span>
+<span class="nc" id="L51">        } catch (Exception e) {</span>
+<span class="nc" id="L52">            System.err.println(&quot;❌ Webhook Stripe: Payload inválido - &quot; + e.getMessage());</span>
+<span class="nc" id="L53">            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(&quot;Invalid payload&quot;);</span>
+<span class="fc" id="L54">        }</span>
+
+        // Trata os tipos de eventos suportados
+<span class="pc bpc" id="L57" title="2 of 3 branches missed.">        switch (event.getType()) {</span>
+            case &quot;payment_intent.succeeded&quot;:
+<span class="fc" id="L59">                PaymentIntent paymentIntent = (PaymentIntent) event.getDataObjectDeserializer().getObject().orElse(null);</span>
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">                if (paymentIntent != null) {</span>
+<span class="fc" id="L61">                    System.out.println(&quot;✅ Webhook Stripe: Pagamento bem-sucedido para PaymentIntent: &quot; + paymentIntent.getId());</span>
+                    try {
+<span class="fc" id="L63">                        pedidoService.marcarComoPagoPorPaymentIntentId(paymentIntent.getId());</span>
+<span class="nc" id="L64">                    } catch (br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException e) {</span>
+<span class="nc" id="L65">                        System.out.println(&quot;⚠️ Webhook Stripe ignorado: &quot; + e.getMessage());</span>
+<span class="nc" id="L66">                    } catch (Exception e) {</span>
+<span class="nc" id="L67">                        System.err.println(&quot;❌ Erro no webhook Stripe: &quot; + e.getMessage());</span>
+<span class="nc" id="L68">                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // Força o retry do Stripe</span>
+<span class="pc" id="L69">                    }</span>
+                }
+                break;
+            case &quot;payment_intent.payment_failed&quot;:
+<span class="nc" id="L73">                PaymentIntent failedIntent = (PaymentIntent) event.getDataObjectDeserializer().getObject().orElse(null);</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">                if (failedIntent != null) {</span>
+<span class="nc" id="L75">                    Map&lt;String, String&gt; metadata = failedIntent.getMetadata();</span>
+<span class="nc bnc" id="L76" title="All 4 branches missed.">                    if (metadata != null &amp;&amp; metadata.containsKey(&quot;pedidoId&quot;)) {</span>
+<span class="nc" id="L77">                        String pedidoId = metadata.get(&quot;pedidoId&quot;);</span>
+<span class="nc" id="L78">                        System.out.println(&quot;⚠️ Webhook Stripe: Pagamento falhou para pedido: &quot; + pedidoId);</span>
+                        try {
+<span class="nc" id="L80">                            pedidoService.marcarComoCanceladoPorFalhaDePagamento(pedidoId);</span>
+<span class="nc" id="L81">                        } catch (br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException e) {</span>
+<span class="nc" id="L82">                            System.out.println(&quot;⚠️ Webhook Stripe ignorado: &quot; + e.getMessage());</span>
+<span class="nc" id="L83">                        } catch (Exception e) {</span>
+<span class="nc" id="L84">                            System.err.println(&quot;❌ Erro ao cancelar pedido via webhook: &quot; + e.getMessage());</span>
+<span class="nc" id="L85">                            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();</span>
+<span class="nc" id="L86">                        }</span>
+                    }
+<span class="nc" id="L88">                }</span>
+                break;
+            default:
+<span class="nc" id="L91">                System.out.println(&quot;⚠️ Webhook Stripe: Evento não tratado: &quot; + event.getType());</span>
+        }
+
+<span class="fc" id="L94">        return ResponseEntity.ok(&quot;Success&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

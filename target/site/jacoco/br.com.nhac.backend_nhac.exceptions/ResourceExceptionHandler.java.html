@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResourceExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.exceptions</a> &gt; <span class="el_source">ResourceExceptionHandler.java</span></div><h1>ResourceExceptionHandler.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.exceptions;
+
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.time.Instant;
+import java.util.Collections;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@RestControllerAdvice
+<span class="fc" id="L19">public class ResourceExceptionHandler {</span>
+
+<span class="fc" id="L21">    private static final Logger logger = LoggerFactory.getLogger(ResourceExceptionHandler.class);</span>
+
+    @ExceptionHandler(NhacException.class)
+    public ResponseEntity&lt;ErroPadraoDTO&gt; handleNhacException(NhacException e, HttpServletRequest request) {
+<span class="fc" id="L25">        String requestId = UUID.randomUUID().toString();</span>
+<span class="fc" id="L26">        logger.error(&quot;Erro Nhac: {}, RequestId: {}&quot;, e.getErrorCode(), requestId, e);</span>
+
+<span class="fc" id="L28">        ErroPadraoDTO erro = new ErroPadraoDTO(</span>
+                requestId,
+<span class="fc" id="L30">                Instant.now(),</span>
+<span class="fc" id="L31">                e.getHttpStatus().value(),</span>
+<span class="pc bpc" id="L32" title="1 of 2 branches missed.">                e.getErrorCode() != null ? e.getErrorCode().getCode() : &quot;ERRO_DESCONHECIDO&quot;,</span>
+<span class="fc" id="L33">                getFriendlyTitle(e.getHttpStatus()),</span>
+<span class="fc" id="L34">                e.getMessage(),</span>
+<span class="fc" id="L35">                e.getDetails(),</span>
+<span class="fc" id="L36">                request.getRequestURI(),</span>
+<span class="fc" id="L37">                Collections.emptyList()</span>
+        );
+
+<span class="fc" id="L40">        return ResponseEntity.status(e.getHttpStatus()).body(erro);</span>
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity&lt;ErroPadraoDTO&gt; regraDeNegocio(IllegalArgumentException e, HttpServletRequest request) {
+<span class="fc" id="L45">        String requestId = UUID.randomUUID().toString();</span>
+<span class="fc" id="L46">        HttpStatus status = HttpStatus.BAD_REQUEST;</span>
+<span class="fc" id="L47">        logger.warn(&quot;IllegalArgumentException: {}, RequestId: {}&quot;, e.getMessage(), requestId);</span>
+
+<span class="fc" id="L49">        ErroPadraoDTO erro = new ErroPadraoDTO(</span>
+                requestId,
+<span class="fc" id="L51">                Instant.now(),</span>
+<span class="fc" id="L52">                status.value(),</span>
+<span class="fc" id="L53">                ErrorCode.REGRA_DE_NEGOCIO.getCode(),</span>
+                &quot;Violação de Regra de Negócio&quot;,
+<span class="fc" id="L55">                e.getMessage(),</span>
+<span class="fc" id="L56">                Collections.emptyMap(),</span>
+<span class="fc" id="L57">                request.getRequestURI(),</span>
+<span class="fc" id="L58">                Collections.emptyList()</span>
+        );
+<span class="fc" id="L60">        return ResponseEntity.status(status).body(erro);</span>
+    }
+
+    @ExceptionHandler(org.springframework.dao.CannotAcquireLockException.class)
+    public ResponseEntity&lt;ErroPadraoDTO&gt; handleCannotAcquireLockException(org.springframework.dao.CannotAcquireLockException e, HttpServletRequest request) {
+<span class="nc" id="L65">        String requestId = UUID.randomUUID().toString();</span>
+<span class="nc" id="L66">        HttpStatus status = HttpStatus.CONFLICT;</span>
+<span class="nc" id="L67">        logger.warn(&quot;Conflito de concorrência (Deadlock): {}, RequestId: {}&quot;, e.getMessage(), requestId);</span>
+
+<span class="nc" id="L69">        ErroPadraoDTO erro = new ErroPadraoDTO(</span>
+                requestId,
+<span class="nc" id="L71">                Instant.now(),</span>
+<span class="nc" id="L72">                status.value(),</span>
+<span class="nc" id="L73">                ErrorCode.ERRO_INTERNO_SERVIDOR.getCode(),</span>
+                &quot;Conflito de Concorrência&quot;,
+                &quot;Muitas requisições simultâneas. Por favor, tente novamente.&quot;,
+<span class="nc" id="L76">                Collections.emptyMap(),</span>
+<span class="nc" id="L77">                request.getRequestURI(),</span>
+<span class="nc" id="L78">                Collections.emptyList()</span>
+        );
+<span class="nc" id="L80">        return ResponseEntity.status(status).body(erro);</span>
+    }
+
+    @ExceptionHandler({
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
+            org.springframework.core.convert.ConversionFailedException.class
+    })
+    public ResponseEntity&lt;ErroPadraoDTO&gt; parametroInvalido(Exception e, HttpServletRequest request) {
+<span class="nc" id="L88">        String requestId = UUID.randomUUID().toString();</span>
+<span class="nc" id="L89">        HttpStatus status = HttpStatus.BAD_REQUEST;</span>
+<span class="nc" id="L90">        logger.warn(&quot;Erro de conversão de parâmetro: {}, RequestId: {}&quot;, e.getMessage(), requestId);</span>
+
+<span class="nc" id="L92">        String mensagem = &quot;Parâmetro inválido. Verifique o valor enviado.&quot;;</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">        if (e instanceof org.springframework.web.method.annotation.MethodArgumentTypeMismatchException mismatch) {</span>
+<span class="nc" id="L94">            Class&lt;?&gt; tipo = mismatch.getRequiredType();</span>
+<span class="nc bnc" id="L95" title="All 4 branches missed.">            if (tipo != null &amp;&amp; tipo.isEnum()) {</span>
+<span class="nc" id="L96">                mensagem = &quot;Valor inválido para o parâmetro '&quot; + mismatch.getName()</span>
+<span class="nc" id="L97">                        + &quot;'. Valores aceitos: &quot; + java.util.Arrays.toString(tipo.getEnumConstants());</span>
+            } else {
+<span class="nc" id="L99">                mensagem = &quot;Valor inválido para o parâmetro '&quot; + mismatch.getName() + &quot;'.&quot;;</span>
+            }
+        }
+
+<span class="nc" id="L103">        ErroPadraoDTO erro = new ErroPadraoDTO(</span>
+                requestId,
+<span class="nc" id="L105">                Instant.now(),</span>
+<span class="nc" id="L106">                status.value(),</span>
+<span class="nc" id="L107">                ErrorCode.VALIDACAO_FALHOU.getCode(),</span>
+                &quot;Requisição Inválida&quot;,
+                mensagem,
+<span class="nc" id="L110">                Collections.emptyMap(),</span>
+<span class="nc" id="L111">                request.getRequestURI(),</span>
+<span class="nc" id="L112">                Collections.singletonList(&quot;Verifique os parâmetros da URL e tente novamente.&quot;)</span>
+        );
+<span class="nc" id="L114">        return ResponseEntity.status(status).body(erro);</span>
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity&lt;ErroPadraoDTO&gt; validacaoDeCampos(MethodArgumentNotValidException e, HttpServletRequest request) {
+<span class="fc" id="L119">        String requestId = UUID.randomUUID().toString();</span>
+<span class="fc" id="L120">        HttpStatus status = HttpStatus.BAD_REQUEST;</span>
+<span class="fc" id="L121">        logger.warn(&quot;Validation Error, RequestId: {}&quot;, requestId);</span>
+
+<span class="fc" id="L123">        String mensagensValidacao = e.getBindingResult().getFieldErrors().stream()</span>
+<span class="fc" id="L124">                .map(fieldError -&gt; fieldError.getField() + &quot;: &quot; + fieldError.getDefaultMessage())</span>
+<span class="fc" id="L125">                .collect(Collectors.joining(&quot;; &quot;));</span>
+
+<span class="fc" id="L127">        Map&lt;String, Object&gt; details = e.getBindingResult().getFieldErrors().stream()</span>
+<span class="fc" id="L128">                .collect(Collectors.toMap(</span>
+<span class="fc" id="L129">                    fieldError -&gt; fieldError.getField(),</span>
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">                    fieldError -&gt; fieldError.getDefaultMessage() != null ? fieldError.getDefaultMessage() : &quot;Campo inválido&quot;,</span>
+<span class="fc" id="L131">                    (msg1, msg2) -&gt; msg1 + &quot;; &quot; + msg2</span>
+                ));
+
+<span class="fc" id="L134">        ErroPadraoDTO erro = new ErroPadraoDTO(</span>
+                requestId,
+<span class="fc" id="L136">                Instant.now(),</span>
+<span class="fc" id="L137">                status.value(),</span>
+<span class="fc" id="L138">                ErrorCode.VALIDACAO_FALHOU.getCode(),</span>
+                &quot;Erro de Validação de Dados&quot;,
+                &quot;Alguns campos enviados são inválidos. Verifique os detalhes.&quot;,
+                details,
+<span class="fc" id="L142">                request.getRequestURI(),</span>
+<span class="fc" id="L143">                Collections.singletonList(&quot;Verifique os campos informados e tente novamente.&quot;)</span>
+        );
+<span class="fc" id="L145">        return ResponseEntity.status(status).body(erro);</span>
+    }
+
+
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity&lt;ErroPadraoDTO&gt; noResourceFound(org.springframework.web.servlet.resource.NoResourceFoundException e, HttpServletRequest request) {
+<span class="nc" id="L151">        String requestId = UUID.randomUUID().toString();</span>
+<span class="nc" id="L152">        HttpStatus status = HttpStatus.NOT_FOUND;</span>
+<span class="nc" id="L153">        logger.warn(&quot;Rota não encontrada: {}, RequestId: {}&quot;, request.getRequestURI(), requestId);</span>
+
+<span class="nc" id="L155">        ErroPadraoDTO erro = new ErroPadraoDTO(</span>
+                requestId,
+<span class="nc" id="L157">                Instant.now(),</span>
+<span class="nc" id="L158">                status.value(),</span>
+                &quot;ROTA_NAO_ENCONTRADA&quot;,
+                &quot;Rota Não Encontrada&quot;,
+                &quot;A rota solicitada não existe no servidor.&quot;,
+<span class="nc" id="L162">                Collections.emptyMap(),</span>
+<span class="nc" id="L163">                request.getRequestURI(),</span>
+<span class="nc" id="L164">                Collections.singletonList(&quot;Verifique a URL e o método HTTP solicitados.&quot;)</span>
+        );
+<span class="nc" id="L166">        return ResponseEntity.status(status).body(erro);</span>
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity&lt;ErroPadraoDTO&gt; erroGenerico(Exception e, HttpServletRequest request) {
+<span class="fc" id="L171">        String requestId = UUID.randomUUID().toString();</span>
+<span class="fc" id="L172">        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;</span>
+<span class="fc" id="L173">        logger.error(&quot;Erro Interno não tratado. RequestId: {}&quot;, requestId, e);</span>
+
+<span class="fc" id="L175">        ErroPadraoDTO erro = new ErroPadraoDTO(</span>
+                requestId,
+<span class="fc" id="L177">                Instant.now(),</span>
+<span class="fc" id="L178">                status.value(),</span>
+<span class="fc" id="L179">                ErrorCode.ERRO_INTERNO_SERVIDOR.getCode(),</span>
+                &quot;Erro Interno do Servidor&quot;,
+                &quot;Ocorreu um erro inesperado no servidor. Por favor, tente novamente mais tarde.&quot;,
+<span class="fc" id="L182">                Collections.emptyMap(),</span>
+<span class="fc" id="L183">                request.getRequestURI(),</span>
+<span class="fc" id="L184">                Collections.emptyList()</span>
+        );
+<span class="fc" id="L186">        return ResponseEntity.status(status).body(erro);</span>
+    }
+    
+    private String getFriendlyTitle(HttpStatus status) {
+<span class="pc bpc" id="L190" title="4 of 9 branches missed.">        return switch (status) {</span>
+<span class="fc" id="L191">            case NOT_FOUND -&gt; &quot;Recurso Não Encontrado&quot;;</span>
+<span class="fc" id="L192">            case BAD_REQUEST -&gt; &quot;Requisição Inválida&quot;;</span>
+<span class="fc" id="L193">            case UNAUTHORIZED -&gt; &quot;Não Autorizado&quot;;</span>
+<span class="fc" id="L194">            case FORBIDDEN -&gt; &quot;Acesso Negado&quot;;</span>
+<span class="fc" id="L195">            case UNPROCESSABLE_ENTITY -&gt; &quot;Entidade Não Processável&quot;;</span>
+<span class="nc" id="L196">            case TOO_MANY_REQUESTS -&gt; &quot;Muitas Requisições&quot;;</span>
+<span class="nc" id="L197">            case PAYMENT_REQUIRED -&gt; &quot;Pagamento Recusado&quot;;</span>
+<span class="nc" id="L198">            case CONFLICT -&gt; &quot;Conflito&quot;;</span>
+<span class="nc" id="L199">            default -&gt; &quot;Erro na Requisição&quot;;</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

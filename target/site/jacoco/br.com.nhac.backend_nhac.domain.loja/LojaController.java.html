@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LojaController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.loja</a> &gt; <span class="el_source">LojaController.java</span></div><h1>LojaController.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.loja;
+
+import br.com.nhac.backend_nhac.domain.loja.dto.LojaCreateDTO;
+import br.com.nhac.backend_nhac.domain.loja.dto.LojaDetalhesDTO;
+import br.com.nhac.backend_nhac.domain.loja.dto.LojaResumoDTO;
+import br.com.nhac.backend_nhac.exceptions.ErroPadraoDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping(&quot;/api/v1/lojas&quot;)
+@Tag(name = &quot;Lojas&quot;, description = &quot;Endpoints para listagem e consulta do catálogo de restaurantes&quot;) // Título no Swagger
+public class LojaController {
+
+    private final LojaService lojaService;
+
+<span class="fc" id="L28">    public LojaController(LojaService lojaService) {</span>
+<span class="fc" id="L29">        this.lojaService = lojaService;</span>
+<span class="fc" id="L30">    }</span>
+
+    @Operation(summary = &quot;Listar lojas abertas&quot;, description = &quot;Devolve uma lista paginada de todas as lojas que estão atualmente abertas, utilizando um DTO resumido para otimização de rede.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Lojas encontradas e paginadas com sucesso&quot;)
+    })
+    @GetMapping
+    public ResponseEntity&lt;Page&lt;LojaResumoDTO&gt;&gt; listarLojas(
+            @RequestParam(required = false) String nome,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lng,
+            @RequestParam(required = false) Double raio,
+            @RequestParam(defaultValue = &quot;0&quot;) int page,
+            @RequestParam(defaultValue = &quot;10&quot;) int size
+    ) {
+<span class="fc" id="L45">        return ResponseEntity.ok(lojaService.obterLojasPaginadas(nome, lat, lng, raio, page, size));</span>
+    }
+
+    @Operation(summary = &quot;Detalhes de uma loja&quot;, description = &quot;Busca todos os dados aninhados de uma loja específica através do seu ID, incluindo horários e endereço completo.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Loja encontrada com sucesso&quot;),
+
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Loja não encontrada&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;LojaDetalhesDTO&gt; obterLojaPorId(@PathVariable String id) {
+<span class="fc" id="L57">        return ResponseEntity.ok(lojaService.obterLojaId(id));</span>
+    }
+
+
+    @Operation(summary = &quot;Criar nova loja&quot;, description = &quot;Cadastra um novo restaurante vinculado ao usuário autenticado e promove o papel para LOJISTA. O dono da loja é sempre o usuário do token, nunca um campo do corpo da requisição.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Loja criada com sucesso&quot;),
+            @ApiResponse(responseCode = &quot;401&quot;, description = &quot;Não autenticado&quot;)
+    })
+    @PostMapping
+    public ResponseEntity&lt;LojaResumoDTO&gt; criarLoja(
+            @RequestBody @Valid LojaCreateDTO dto,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+<span class="fc" id="L70">        LojaResumoDTO resumoDTO = lojaService.criarLoja(dto, usuarioLogado);</span>
+<span class="fc" id="L71">        return ResponseEntity.status(HttpStatus.CREATED).body(resumoDTO);</span>
+    }
+
+    @Operation(summary = &quot;Consultar a loja do usuário autenticado&quot;,
+            description = &quot;Retorna a loja vinculada ao token. Rota canônica do painel do lojista; não usa lojaId na URL.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Loja do usuário retornada com sucesso&quot;),
+            @ApiResponse(responseCode = &quot;401&quot;, description = &quot;Não autenticado&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Usuário autenticado ainda não possui loja&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @GetMapping(&quot;/minha-loja&quot;)
+    public ResponseEntity&lt;LojaDetalhesDTO&gt; obterMinhaLoja(@AuthenticationPrincipal Usuario usuarioLogado) {
+<span class="fc" id="L85">        return ResponseEntity.ok(lojaService.obterMinhaLoja(usuarioLogado));</span>
+    }
+
+    @Operation(summary = &quot;Atualizar loja&quot;,
+            description = &quot;Atualização completa da loja (mesmo contrato de criação). Apenas o dono ou ADMIN. O campo usuarioId do corpo, se enviado, é ignorado — o dono não pode ser alterado.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Loja atualizada com sucesso&quot;),
+            @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Payload inválido&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;401&quot;, description = &quot;Não autenticado&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Usuário autenticado não é o dono da loja&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Loja não encontrada&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @PutMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;LojaDetalhesDTO&gt; atualizarLoja(
+            @PathVariable String id,
+            @RequestBody @Valid LojaCreateDTO dto,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+<span class="fc" id="L106">        return ResponseEntity.ok(lojaService.atualizarLoja(id, dto, usuarioLogado));</span>
+    }
+
+    @Operation(summary = &quot;Calcular frete dinâmico&quot;, description = &quot;Calcula o frete e o tempo de entrega com base na localização do cliente.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Cálculo realizado com sucesso&quot;),
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Loja não encontrada ou fechada&quot;)
+    })
+    @PostMapping(&quot;/{id}/calcular-frete&quot;)
+    public ResponseEntity&lt;br.com.nhac.backend_nhac.domain.loja.dto.CalcularFreteResponseDTO&gt; calcularFrete(
+            @PathVariable String id,
+            @RequestBody @Valid br.com.nhac.backend_nhac.domain.loja.dto.CalcularFreteRequestDTO dto) {
+<span class="nc" id="L118">        return ResponseEntity.ok(lojaService.calcularFrete(id, dto));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

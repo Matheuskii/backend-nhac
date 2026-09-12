@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProdutoController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.produto</a> &gt; <span class="el_source">ProdutoController.java</span></div><h1>ProdutoController.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.produto;
+
+import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoCreateDTO;
+import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoResumoDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
+import br.com.nhac.backend_nhac.exceptions.ErroPadraoDTO;
+import br.com.nhac.backend_nhac.domain.produto.ProdutoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+
+@RestController
+@RequestMapping(&quot;/api/v1/produtos&quot;)
+@Tag(name = &quot;Produtos&quot;, description = &quot;Endpoints para gerenciamento do cardápio das lojas&quot;)
+public class ProdutoController {
+
+    private final ProdutoService produtoService;
+
+    @Autowired
+<span class="fc" id="L36">    public ProdutoController(ProdutoService produtoService) {</span>
+<span class="fc" id="L37">        this.produtoService = produtoService;</span>
+<span class="fc" id="L38">    }</span>
+
+    @Operation(summary = &quot;Cadastrar novo produto&quot;, description = &quot;Cria um novo item no cardápio vinculado a uma loja existente.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Produto cadastrado com sucesso no MariaDB.&quot;),
+
+            @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Erro de validação nos dados enviados (ex: preço negativo, nome vazio).&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+
+            @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Acesso negado: usuário não tem permissão para cadastrar produtos.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Loja do usuário não encontrada ou loja fechada.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+
+            @ApiResponse(responseCode = &quot;500&quot;, description = &quot;Erro interno no servidor.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @PostMapping
+    @PreAuthorize(&quot;hasAnyRole('LOJISTA', 'ADMIN')&quot;)
+    public ResponseEntity&lt;ProdutoResumoDTO&gt; cadastrarProduto(@Valid @RequestBody ProdutoCreateDTO dto,
+                                                              @AuthenticationPrincipal Usuario usuarioLogado) {
+
+<span class="fc" id="L61">        br.com.nhac.backend_nhac.domain.produto.Produto produtoSalvo = produtoService.cadastrarProduto(dto, usuarioLogado);</span>
+<span class="fc" id="L62">        ProdutoResumoDTO resumoDTO = new ProdutoResumoDTO(produtoSalvo);</span>
+
+<span class="fc" id="L64">        return ResponseEntity.status(HttpStatus.CREATED).body(resumoDTO);</span>
+    }
+
+    @Operation(summary = &quot;Buscar produto por ID&quot;, description = &quot;Retorna os dados completos de um único produto ativo.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Produto encontrado com sucesso.&quot;),
+
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Produto não encontrado ou inativo.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+
+            @ApiResponse(responseCode = &quot;500&quot;, description = &quot;Erro interno no servidor.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @GetMapping(&quot;/{produtoId}&quot;)
+    public ResponseEntity&lt;ProdutoResumoDTO&gt; buscarProdutoPorId(@PathVariable String produtoId) {
+<span class="fc" id="L79">        ProdutoResumoDTO produto = produtoService.buscarProdutoPorId(produtoId);</span>
+<span class="fc" id="L80">        return ResponseEntity.ok(produto);</span>
+    }
+
+    @Operation(summary = &quot;Listar produtos com filtros dinâmicos&quot;, description = &quot;Aceita filtros opcionais de loja, preço máximo, categoria ou nome. Retorna paginação.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Listagem de produtos retornada com sucesso.&quot;),
+
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;A loja especificada pelo ID não existe.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+
+            @ApiResponse(responseCode = &quot;500&quot;, description = &quot;Erro interno no servidor.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @GetMapping
+    public ResponseEntity&lt;Page&lt;ProdutoResumoDTO&gt;&gt; listarProdutos(
+            @RequestParam(required = false) String lojaId,
+            @RequestParam(required = false) BigDecimal precoMaximo,
+            @RequestParam(required = false) String categoriaMenu,
+            @RequestParam(required = false) String nome,
+            Pageable pageable) {
+
+<span class="fc" id="L101">        Page&lt;ProdutoResumoDTO&gt; page = produtoService.listarProdutos(lojaId, precoMaximo, categoriaMenu, nome, pageable);</span>
+<span class="fc" id="L102">        return ResponseEntity.ok(page);</span>
+    }
+
+    @Operation(summary = &quot;Editar um produto existente&quot;, description = &quot;Atualiza os dados de um produto dado o seu ID. É necessário passar todos os campos obrigatórios.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Produto atualizado com sucesso.&quot;),
+
+            @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Erro de validação nos dados enviados.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+
+            @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Acesso negado: usuário não tem permissão para editar este produto.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Produto não encontrado.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+
+            @ApiResponse(responseCode = &quot;500&quot;, description = &quot;Erro interno no servidor.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @PutMapping(&quot;/{produtoId}&quot;)
+    @PreAuthorize(&quot;hasAnyRole('LOJISTA', 'ADMIN')&quot;)
+    public ResponseEntity&lt;ProdutoResumoDTO&gt; atualizarProduto(
+            @PathVariable String produtoId,
+            @Valid @RequestBody br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+
+<span class="fc" id="L128">        ProdutoResumoDTO produtoAtualizado = produtoService.atualizarProduto(produtoId, dto, usuarioLogado);</span>
+<span class="fc" id="L129">        return ResponseEntity.ok(produtoAtualizado);</span>
+    }
+
+    @Operation(summary = &quot;Desativar um produto (Soft Delete)&quot;, description = &quot;Marca o produto como inativo para que deixe de aparecer para venda. Mantém o histórico no banco de dados.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;204&quot;, description = &quot;Produto desativado com sucesso.&quot;),
+
+            @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Acesso negado: usuário não tem permissão para desativar este produto.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Produto não encontrado.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+
+            @ApiResponse(responseCode = &quot;500&quot;, description = &quot;Erro interno no servidor.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @DeleteMapping(&quot;/{produtoId}&quot;)
+    @PreAuthorize(&quot;hasAnyRole('LOJISTA', 'ADMIN')&quot;)
+    public ResponseEntity&lt;Void&gt; desativarProduto(@PathVariable String produtoId,
+                                                  @AuthenticationPrincipal Usuario usuarioLogado) {
+<span class="fc" id="L149">        produtoService.desativarProduto(produtoId, usuarioLogado);</span>
+<span class="fc" id="L150">        return ResponseEntity.noContent().build();</span>
+    }
+
+    @Operation(summary = &quot;Reativar um produto&quot;, description = &quot;Marca o produto como ativo novamente para voltar a aparecer à venda. Apenas o dono da loja ou ADMIN.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Produto reativado com sucesso.&quot;),
+            @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Acesso negado: usuário não tem permissão para reativar este produto.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Produto não encontrado.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @PatchMapping(&quot;/{produtoId}/ativar&quot;)
+    @PreAuthorize(&quot;hasAnyRole('LOJISTA', 'ADMIN')&quot;)
+    public ResponseEntity&lt;ProdutoResumoDTO&gt; ativarProduto(@PathVariable String produtoId,
+                                                          @AuthenticationPrincipal Usuario usuarioLogado) {
+<span class="fc" id="L165">        return ResponseEntity.ok(produtoService.ativarProduto(produtoId, usuarioLogado));</span>
+    }
+
+    @Operation(summary = &quot;Resumo de avaliações de um produto&quot;, description = &quot;Retorna a média de notas e o total de avaliações de um produto.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Resumo retornado com sucesso.&quot;),
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Produto não encontrado.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;500&quot;, description = &quot;Erro interno no servidor.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @GetMapping(&quot;/{produtoId}/avaliacoes/resumo&quot;)
+    public ResponseEntity&lt;br.com.nhac.backend_nhac.domain.produto.dto.ProdutoAvaliacaoResumoDTO&gt; buscarResumoAvaliacoes(@PathVariable String produtoId) {
+<span class="fc" id="L178">        br.com.nhac.backend_nhac.domain.produto.dto.ProdutoAvaliacaoResumoDTO resumo = produtoService.buscarResumoAvaliacoes(produtoId);</span>
+<span class="fc" id="L179">        return ResponseEntity.ok(resumo);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Pedido.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.pedido</a> &gt; <span class="el_source">Pedido.java</span></div><h1>Pedido.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.pedido;
+
+import br.com.nhac.backend_nhac.domain.loja.Loja;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = &quot;tb_pedidos&quot;)
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@EqualsAndHashCode(of = &quot;id&quot;)
+public class Pedido {
+
+    @Id
+    @Column(updatable = false, nullable = false, length = 50)
+    private String id;
+
+    @Column(name = &quot;usuario_id&quot;, nullable = false)
+    private String usuarioId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;loja_id&quot;, nullable = false)
+    private Loja loja;
+
+    @Column(name = &quot;valor_total&quot;, nullable = false, precision = 10, scale = 2)
+    private BigDecimal valorTotal;
+
+    @Column(name = &quot;taxa_frete&quot;, nullable = false, precision = 10, scale = 2)
+    private BigDecimal taxaFrete;
+
+    @Column(name = &quot;forma_pagamento&quot;, nullable = false)
+    private String formaPagamento;
+
+    @Column(name = &quot;troco_para&quot;, precision = 10, scale = 2)
+    private BigDecimal trocoPara;
+
+    @Column(columnDefinition = &quot;TEXT&quot;)
+    private String observacao;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private StatusPedido status;
+
+    @Embedded
+    private EnderecoEntrega enderecoEntrega;
+
+    @Column(name = &quot;criado_em&quot;)
+    private Instant criadoEm;
+
+    @Column(name = &quot;stripe_payment_intent_id&quot;)
+    private String stripePaymentIntentId;
+
+    @Column(name = &quot;asaas_payment_id&quot;)
+    private String asaasPaymentId;
+    
+    @Column(name = &quot;idempotency_key&quot;, unique = true, length = 100)
+    private String idempotencyKey;
+
+    @Column(name = &quot;cupom_id&quot;)
+    private String cupomId;
+
+    @OneToMany(mappedBy = &quot;pedido&quot;, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List&lt;ItemPedido&gt; itens = new ArrayList&lt;&gt;();
+
+    public void adicionarItem(ItemPedido item) {
+<span class="fc" id="L73">        itens.add(item);</span>
+<span class="fc" id="L74">        item.setPedido(this);</span>
+<span class="fc" id="L75">    }</span>
+    
+    public void alterarStatus(StatusPedido novoStatus) {
+<span class="fc" id="L78">        this.status.podeMudarPara(novoStatus);</span>
+<span class="fc" id="L79">        this.status = novoStatus;</span>
+<span class="fc" id="L80">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

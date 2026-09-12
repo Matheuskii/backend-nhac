@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LojistaController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.lojista</a> &gt; <span class="el_source">LojistaController.java</span></div><h1>LojistaController.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.lojista;
+
+import br.com.nhac.backend_nhac.domain.lojista.dto.FuncionarioCreateDTO;
+import br.com.nhac.backend_nhac.domain.lojista.dto.FuncionarioDTO;
+import br.com.nhac.backend_nhac.domain.lojista.dto.FuncionarioUpdateDTO;
+import br.com.nhac.backend_nhac.domain.lojista.dto.FinanceiroResumoDTO;
+import br.com.nhac.backend_nhac.domain.lojista.dto.PainelResumoDTO;
+import br.com.nhac.backend_nhac.domain.lojista.service.LojaAccessService;
+import br.com.nhac.backend_nhac.domain.lojista.service.PainelFinanceiroService;
+import br.com.nhac.backend_nhac.domain.pedido.StatusPedido;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoDetalheLojistaDTO;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoLojistaDTO;
+import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoLojistaDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
+import br.com.nhac.backend_nhac.exceptions.ErroPadraoDTO;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.UriComponentsBuilder;
+
+@RestController
+@RequestMapping(&quot;/api/v1/lojista&quot;)
+@Tag(name = &quot;Painel do Lojista&quot;, description = &quot;Endpoints do painel para o dono da loja consultar produtos e pedidos recebidos&quot;)
+public class LojistaController {
+
+    private final LojistaService lojistaService;
+    private final LojaAccessService lojaAccessService;
+    private final PainelFinanceiroService painelFinanceiroService;
+
+<span class="fc" id="L52">    public LojistaController(LojistaService lojistaService, LojaAccessService lojaAccessService, PainelFinanceiroService painelFinanceiroService) {</span>
+<span class="fc" id="L53">        this.lojistaService = lojistaService;</span>
+<span class="fc" id="L54">        this.lojaAccessService = lojaAccessService;</span>
+<span class="fc" id="L55">        this.painelFinanceiroService = painelFinanceiroService;</span>
+<span class="fc" id="L56">    }</span>
+
+    @Operation(summary = &quot;Listar produtos da loja&quot;, description = &quot;Lista os produtos das lojas do usuário autenticado, incluindo inativos. A loja é resolvida pelo token, sem lojaId na URL.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Lista paginada de produtos. Vazia se o usuário ainda não tiver loja.&quot;),
+            @ApiResponse(responseCode = &quot;401&quot;, description = &quot;Não autenticado&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @GetMapping(&quot;/produtos&quot;)
+    public ResponseEntity&lt;Page&lt;ProdutoLojistaDTO&gt;&gt; listarProdutos(
+            @AuthenticationPrincipal Usuario usuarioLogado,
+            @RequestParam(required = false) String categoriaMenu,
+            @RequestParam(required = false) String nome,
+            @PageableDefault(size = 20) Pageable pageable) {
+<span class="fc" id="L70">        return ResponseEntity.ok(lojistaService.listarProdutos(usuarioLogado, categoriaMenu, nome, pageable));</span>
+    }
+
+    @Operation(summary = &quot;Listar pedidos recebidos&quot;, description = &quot;Lista os pedidos recebidos pelas lojas do usuário autenticado. Sem status, retorna todos ordenados do mais recente para o mais antigo. O parâmetro status deve ser o valor do enum StatusPedido em maiúsculas (PENDENTE, PAGO, PREPARANDO, SAIU_ENTREGA, ENTREGUE, CANCELADO). Valores inválidos retornam 400.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Lista paginada de pedidos. Vazia se ainda não houver pedidos ou se o usuário não tiver loja.&quot;),
+            @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Valor de status inválido&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;401&quot;, description = &quot;Não autenticado&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @GetMapping(&quot;/pedidos&quot;)
+    public ResponseEntity&lt;Page&lt;PedidoResumoLojistaDTO&gt;&gt; listarPedidos(
+            @AuthenticationPrincipal Usuario usuarioLogado,
+            @RequestParam(required = false) StatusPedido status,
+            @PageableDefault(size = 20, sort = &quot;criadoEm&quot;, direction = Sort.Direction.DESC) Pageable pageable) {
+<span class="fc" id="L86">        return ResponseEntity.ok(lojistaService.listarPedidos(usuarioLogado.getId(), status, pageable));</span>
+    }
+
+    @Operation(summary = &quot;Detalhes de um pedido&quot;, description = &quot;Retorna os detalhes completos de um pedido específico das lojas do usuário autenticado. ADMIN tem acesso a qualquer pedido.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Pedido encontrado e retornado com sucesso.&quot;),
+            @ApiResponse(responseCode = &quot;401&quot;, description = &quot;Usuário não autenticado.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Acesso negado: o pedido não pertence às lojas do usuário logado.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Pedido não encontrado.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @GetMapping(&quot;/pedidos/{id}&quot;)
+    @PreAuthorize(&quot;hasAnyRole('ADMIN', 'LOJISTA', 'FUNCIONARIO')&quot;)
+    public ResponseEntity&lt;PedidoDetalheLojistaDTO&gt; buscarPedidoDetalhe(
+            @PathVariable String id,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+        
+<span class="fc" id="L105">        PedidoDetalheLojistaDTO response = lojistaService.buscarPedidoDetalhe(id, usuarioLogado);</span>
+<span class="fc" id="L106">        return ResponseEntity.ok(response);</span>
+    }
+
+    @Operation(summary = &quot;Listar funcionários da loja&quot;, description = &quot;Lista os funcionários ativos da loja do usuário autenticado (dono ou admin).&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Lista paginada de funcionários.&quot;),
+            @ApiResponse(responseCode = &quot;401&quot;, description = &quot;Não autenticado&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Acesso negado: apenas dono ou admin podem listar funcionários.&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @GetMapping(&quot;/funcionarios&quot;)
+    @PreAuthorize(&quot;hasAnyRole('ADMIN', 'LOJISTA')&quot;)
+    public ResponseEntity&lt;Page&lt;FuncionarioDTO&gt;&gt; listarFuncionarios(
+            @AuthenticationPrincipal Usuario usuarioLogado,
+            @PageableDefault(size = 20) Pageable pageable) {
+<span class="nc" id="L122">        return ResponseEntity.ok(lojistaService.listarFuncionarios(usuarioLogado, pageable));</span>
+    }
+
+    @Operation(summary = &quot;Criar funcionário&quot;, description = &quot;Cria um novo funcionário vinculado à loja do usuário autenticado (apenas dono ou admin).&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Funcionário criado com sucesso.&quot;),
+            @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Dados inválidos ou limite de funcionários atingido.&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;401&quot;, description = &quot;Não autenticado&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Acesso negado: apenas dono pode criar funcionários.&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @PostMapping(&quot;/funcionarios&quot;)
+    @PreAuthorize(&quot;hasAnyRole('ADMIN', 'LOJISTA')&quot;)
+    public ResponseEntity&lt;FuncionarioDTO&gt; criarFuncionario(
+            @RequestBody @Valid FuncionarioCreateDTO dto,
+            @AuthenticationPrincipal Usuario usuarioLogado,
+            UriComponentsBuilder uriBuilder) {
+<span class="nc" id="L141">        Usuario funcionario = lojistaService.criarFuncionario(dto, usuarioLogado);</span>
+<span class="nc" id="L142">        FuncionarioDTO response = new FuncionarioDTO();</span>
+<span class="nc" id="L143">        response.setId(funcionario.getId());</span>
+<span class="nc" id="L144">        response.setNome(funcionario.getNome());</span>
+<span class="nc" id="L145">        response.setEmail(funcionario.getEmail());</span>
+<span class="nc" id="L146">        response.setTelefone(funcionario.getTelefone());</span>
+<span class="nc" id="L147">        response.setCargo(funcionario.getCargo());</span>
+<span class="nc" id="L148">        response.setAtivo(funcionario.isAtivo());</span>
+<span class="nc bnc" id="L149" title="All 2 branches missed.">        if (funcionario.getLojaVinculada() != null) {</span>
+<span class="nc" id="L150">            response.setLojaId(funcionario.getLojaVinculada().getId());</span>
+<span class="nc" id="L151">            response.setLojaNome(funcionario.getLojaVinculada().getNome());</span>
+        }
+<span class="nc" id="L153">        return ResponseEntity.created(uriBuilder.path(&quot;/api/v1/lojista/funcionarios/&quot; + funcionario.getId()).build().toUri()).body(response);</span>
+    }
+
+    @Operation(summary = &quot;Atualizar funcionário&quot;, description = &quot;Atualiza dados de um funcionário (nome, telefone, cargo). Email e senha não podem ser alterados por este endpoint.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Funcionário atualizado com sucesso.&quot;),
+            @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Dados inválidos.&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;401&quot;, description = &quot;Não autenticado&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Acesso negado: apenas dono ou admin podem editar funcionários.&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Funcionário não encontrado.&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @PutMapping(&quot;/funcionarios/{id}&quot;)
+    @PreAuthorize(&quot;hasAnyRole('ADMIN', 'LOJISTA')&quot;)
+    public ResponseEntity&lt;FuncionarioDTO&gt; atualizarFuncionario(
+            @PathVariable String id,
+            @RequestBody @Valid FuncionarioUpdateDTO dto,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+<span class="nc" id="L174">        Usuario funcionario = lojistaService.atualizarFuncionario(id, dto, usuarioLogado);</span>
+<span class="nc" id="L175">        FuncionarioDTO response = new FuncionarioDTO();</span>
+<span class="nc" id="L176">        response.setId(funcionario.getId());</span>
+<span class="nc" id="L177">        response.setNome(funcionario.getNome());</span>
+<span class="nc" id="L178">        response.setEmail(funcionario.getEmail());</span>
+<span class="nc" id="L179">        response.setTelefone(funcionario.getTelefone());</span>
+<span class="nc" id="L180">        response.setCargo(funcionario.getCargo());</span>
+<span class="nc" id="L181">        response.setAtivo(funcionario.isAtivo());</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">        if (funcionario.getLojaVinculada() != null) {</span>
+<span class="nc" id="L183">            response.setLojaId(funcionario.getLojaVinculada().getId());</span>
+<span class="nc" id="L184">            response.setLojaNome(funcionario.getLojaVinculada().getNome());</span>
+        }
+<span class="nc" id="L186">        return ResponseEntity.ok(response);</span>
+    }
+
+    @Operation(summary = &quot;Ativar/Desativar funcionário&quot;, description = &quot;Ativa ou desativa um funcionário (soft delete). Apenas dono ou admin podem executar esta ação.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Status do funcionário atualizado com sucesso.&quot;),
+            @ApiResponse(responseCode = &quot;401&quot;, description = &quot;Não autenticado&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Acesso negado: apenas dono ou admin podem gerenciar funcionários.&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Funcionário não encontrado.&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @PatchMapping(&quot;/funcionarios/{id}/ativar&quot;)
+    @PreAuthorize(&quot;hasAnyRole('ADMIN', 'LOJISTA')&quot;)
+    public ResponseEntity&lt;FuncionarioDTO&gt; ativarOuDesativarFuncionario(
+            @PathVariable String id,
+            @RequestParam boolean ativo,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+<span class="nc" id="L205">        Usuario funcionario = lojistaService.ativarOuDesativarFuncionario(id, ativo, usuarioLogado);</span>
+<span class="nc" id="L206">        FuncionarioDTO response = new FuncionarioDTO();</span>
+<span class="nc" id="L207">        response.setId(funcionario.getId());</span>
+<span class="nc" id="L208">        response.setNome(funcionario.getNome());</span>
+<span class="nc" id="L209">        response.setEmail(funcionario.getEmail());</span>
+<span class="nc" id="L210">        response.setTelefone(funcionario.getTelefone());</span>
+<span class="nc" id="L211">        response.setCargo(funcionario.getCargo());</span>
+<span class="nc" id="L212">        response.setAtivo(funcionario.isAtivo());</span>
+<span class="nc bnc" id="L213" title="All 2 branches missed.">        if (funcionario.getLojaVinculada() != null) {</span>
+<span class="nc" id="L214">            response.setLojaId(funcionario.getLojaVinculada().getId());</span>
+<span class="nc" id="L215">            response.setLojaNome(funcionario.getLojaVinculada().getNome());</span>
+        }
+<span class="nc" id="L217">        return ResponseEntity.ok(response);</span>
+    }
+
+    @Operation(summary = &quot;Excluir funcionário&quot;, description = &quot;Desativa um funcionário (soft delete). Apenas dono ou admin podem executar esta ação.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;204&quot;, description = &quot;Funcionário desativado com sucesso.&quot;),
+            @ApiResponse(responseCode = &quot;401&quot;, description = &quot;Não autenticado&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Acesso negado: apenas dono ou admin podem excluir funcionários.&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Funcionário não encontrado.&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @DeleteMapping(&quot;/funcionarios/{id}&quot;)
+    @PreAuthorize(&quot;hasAnyRole('ADMIN', 'LOJISTA')&quot;)
+    public ResponseEntity&lt;Void&gt; excluirFuncionario(
+            @PathVariable String id,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+<span class="nc" id="L235">        lojistaService.ativarOuDesativarFuncionario(id, false, usuarioLogado);</span>
+<span class="nc" id="L236">        return ResponseEntity.noContent().build();</span>
+    }
+
+    @Operation(summary = &quot;Resumo do Painel&quot;, description = &quot;Retorna dados agregados para o painel do lojista: loja aberta, faturamento hoje, contagem de pedidos por status, faturamento últimos 7 dias e top 5 pedidos recentes.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Painel retornado com sucesso.&quot;),
+            @ApiResponse(responseCode = &quot;401&quot;, description = &quot;Não autenticado&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @GetMapping(&quot;/painel&quot;)
+    @PreAuthorize(&quot;hasAnyRole('ADMIN', 'LOJISTA', 'FUNCIONARIO')&quot;)
+    public ResponseEntity&lt;PainelResumoDTO&gt; obterPainel(@AuthenticationPrincipal Usuario usuarioLogado) {
+<span class="nc" id="L248">        return ResponseEntity.ok(painelFinanceiroService.obterPainelResumo(usuarioLogado));</span>
+    }
+
+    @Operation(summary = &quot;Resumo Financeiro&quot;, description = &quot;Retorna dados financeiros detalhados para o período especificado (em dias). Apenas pedidos ENTREGUE são considerados.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Financeiro retornado com sucesso.&quot;),
+            @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Período inválido&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;401&quot;, description = &quot;Não autenticado&quot;,
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @GetMapping(&quot;/financeiro&quot;)
+    @PreAuthorize(&quot;hasAnyRole('ADMIN', 'LOJISTA', 'FUNCIONARIO')&quot;)
+    public ResponseEntity&lt;FinanceiroResumoDTO&gt; obterFinanceiro(
+            @AuthenticationPrincipal Usuario usuarioLogado,
+            @RequestParam(defaultValue = &quot;30&quot;) int periodo) {
+<span class="nc bnc" id="L264" title="All 4 branches missed.">        if (periodo &lt;= 0 || periodo &gt; 365) {</span>
+<span class="nc" id="L265">            throw new br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException(&quot;Período deve estar entre 1 e 365 dias.&quot;);</span>
+        }
+<span class="nc" id="L267">        return ResponseEntity.ok(painelFinanceiroService.obterFinanceiroResumo(usuarioLogado, periodo));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EnderecoUsuarioDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.usuario.dto</a> &gt; <span class="el_source">EnderecoUsuarioDTO.java</span></div><h1>EnderecoUsuarioDTO.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.usuario.dto;
+
+import br.com.nhac.backend_nhac.domain.usuario.EnderecoUsuario;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import java.util.UUID;
+
+@Schema(description = &quot;Objeto de transferência de dados que representa um endereço de entrega do usuário&quot;)
+<span class="fc" id="L12">public record EnderecoUsuarioDTO(</span>
+        @Schema(description = &quot;ID único do endereço&quot;, example = &quot;end_987654&quot;)
+        String id,
+
+        @Schema(description = &quot;Nome da rua, avenida ou logradouro&quot;, example = &quot;Avenida Paulista&quot;)
+        @NotBlank(message = &quot;A rua é obrigatória.&quot;)
+        String rua,
+
+        @Schema(description = &quot;Número do imóvel&quot;, example = &quot;1000&quot;)
+        @NotBlank(message = &quot;O número é obrigatório.&quot;)
+        String numero,
+
+        @Schema(description = &quot;Bairro da localização&quot;, example = &quot;Bela Vista&quot;)
+        @NotBlank(message = &quot;O bairro é obrigatório.&quot;)
+        String bairro,
+
+        @Schema(description = &quot;Cidade do endereço&quot;, example = &quot;São Paulo&quot;)
+        @NotBlank(message = &quot;A cidade é obrigatória.&quot;)
+        String cidade,
+
+        @Schema(description = &quot;Sigla do estado com 2 caracteres&quot;, example = &quot;SP&quot;)
+        @NotBlank(message = &quot;O estado é obrigatório.&quot;)
+        @Size(min = 2, max = 2, message = &quot;O estado deve ter exatamente 2 caracteres (ex: SP).&quot;)
+        String estado,
+
+        @Schema(description = &quot;CEP formatado&quot;, example = &quot;01310-100&quot;)
+        @NotBlank(message = &quot;O CEP é obrigatório.&quot;)
+        @Pattern(regexp = &quot;\\d{5}-\\d{3}&quot;, message = &quot;O CEP deve estar no formato XXXXX-XXX.&quot;)
+        String cep,
+
+        @Schema(description = &quot;Complemento opcional do endereço&quot;, example = &quot;Apto 42, Bloco B&quot;)
+        String complemento,
+
+        @Schema(description = &quot;Define se este é o endereço padrão de entrega do usuário&quot;, example = &quot;true&quot;)
+        boolean isPadrao
+) {
+
+    public EnderecoUsuario toEntity(Usuario usuario) {
+<span class="pc bpc" id="L50" title="3 of 4 branches missed.">        String idGerado = (this.id() != null &amp;&amp; !this.id().isBlank()) ? this.id() : UUID.randomUUID().toString();</span>
+<span class="fc" id="L51">        return new EnderecoUsuario(</span>
+                idGerado,
+                usuario,
+<span class="fc" id="L54">                this.rua(),</span>
+<span class="fc" id="L55">                this.numero(),</span>
+<span class="fc" id="L56">                this.bairro(),</span>
+<span class="fc" id="L57">                this.cidade(),</span>
+<span class="fc" id="L58">                this.estado(),</span>
+<span class="fc" id="L59">                this.cep(),</span>
+<span class="fc" id="L60">                this.complemento(),</span>
+<span class="fc" id="L61">                this.isPadrao()</span>
+        );
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: br.com.nhac.backend_nhac.domain.pedido.StatusPedidoTransicoesTest
+-------------------------------------------------------------------------------
+Tests run: 36, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.374 s -- in br.com.nhac.backend_nhac.domain.pedido.StatusPedidoTransicoesTest

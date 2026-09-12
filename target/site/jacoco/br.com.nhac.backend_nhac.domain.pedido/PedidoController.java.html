@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PedidoController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.pedido</a> &gt; <span class="el_source">PedidoController.java</span></div><h1>PedidoController.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.pedido;
+
+import br.com.nhac.backend_nhac.domain.pedido.dto.*;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
+import br.com.nhac.backend_nhac.exceptions.ErroPadraoDTO;
+import br.com.nhac.backend_nhac.domain.pedido.PedidoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping(&quot;/api/v1/pedidos&quot;)
+@Tag(name = &quot;Pedidos&quot;, description = &quot;Endpoints para o processamento de compras e gestão do carrinho&quot;)
+public class PedidoController {
+
+    private final PedidoService pedidoService;
+
+<span class="fc" id="L38">    public PedidoController(PedidoService pedidoService) {</span>
+<span class="fc" id="L39">        this.pedidoService = pedidoService;</span>
+<span class="fc" id="L40">    }</span>
+
+
+    @Operation(summary = &quot;Finalizar uma nova compra&quot;, description = &quot;Recebe o carrinho de compras do Flutter, valida os itens, amarra à loja e gera um novo pedido no sistema. Envie o header Idempotency-Key para evitar duplicidade: a mesma chave devolve o pedido já criado com HTTP 200. Status serializado no JSON como string do enum (PENDENTE, PAGO, PREPARANDO, SAIU_ENTREGA, ENTREGUE, CANCELADO).&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Pedido criado com sucesso. Devolve o ID do pedido gerado.&quot;),
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Pedido já existia para a Idempotency-Key enviada; devolve o pedido original sem criar duplicata.&quot;),
+
+            @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Erro de validação no DTO (ex: carrinho vazio, valores negativos, formato de CEP inválido).&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Loja não encontrada ou encontra-se fechada para novos pedidos.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+
+            @ApiResponse(responseCode = &quot;500&quot;, description = &quot;Erro interno no servidor.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @PostMapping
+    public ResponseEntity&lt;PedidoCriadoDTO&gt; criarPedido(
+            @RequestBody @Valid PedidoCreateDTO dto,
+            @AuthenticationPrincipal Usuario usuarioLogado,
+            @org.springframework.web.bind.annotation.RequestHeader(value = &quot;Idempotency-Key&quot;, required = false) String idempotencyKey) {
+
+<span class="fc" id="L63">        ResultadoCriacaoPedido resultado = pedidoService.finalizarPedido(dto, usuarioLogado, idempotencyKey);</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        HttpStatus status = resultado.replay() ? HttpStatus.OK : HttpStatus.CREATED;</span>
+
+<span class="fc" id="L66">        return ResponseEntity.status(status).body(resultado.dto());</span>
+    }
+
+    @Operation(summary = &quot;Consultar um pedido&quot;, description = &quot;Retorna os detalhes de um pedido específico caso pertença ao usuário logado.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Pedido encontrado e retornado com sucesso.&quot;),
+            @ApiResponse(responseCode = &quot;401&quot;, description = &quot;Usuário não autenticado.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Acesso negado: o pedido pertence a outro usuário.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Pedido não encontrado.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;500&quot;, description = &quot;Erro interno no servidor.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;PedidoResponseDTO&gt; buscarPedido(
+            @PathVariable String id,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+
+<span class="fc" id="L86">        PedidoResponseDTO response = pedidoService.buscarPedido(id, usuarioLogado.getId());</span>
+<span class="fc" id="L87">        return ResponseEntity.ok(response);</span>
+    }
+
+    @Operation(summary = &quot;Listar meus pedidos&quot;, description = &quot;Retorna uma lista paginada dos pedidos feitos pelo usuário autenticado, ordenada dos mais recentes para os mais antigos.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Lista de pedidos retornada com sucesso.&quot;),
+            @ApiResponse(responseCode = &quot;401&quot;, description = &quot;Usuário não autenticado.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;500&quot;, description = &quot;Erro interno no servidor.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @GetMapping
+    public ResponseEntity&lt;Page&lt;PedidoResumoDTO&gt;&gt; listarMeusPedidos(
+            @AuthenticationPrincipal Usuario usuarioLogado,
+            @PageableDefault(sort = &quot;criadoEm&quot;, direction = Sort.Direction.DESC) Pageable pageable) {
+
+<span class="fc" id="L103">        Page&lt;PedidoResumoDTO&gt; page = pedidoService.listarMeusPedidos(usuarioLogado.getId(), pageable);</span>
+<span class="fc" id="L104">        return ResponseEntity.ok(page);</span>
+    }
+
+    @Operation(summary = &quot;Atualizar status do pedido (Uso interno/admin)&quot;, description = &quot;Altera o status do pedido (ex: PREPARANDO, SAIU_ENTREGA, ENTREGUE). Restrita aos papéis ADMIN ou LOJISTA.&quot;)
+    @ApiResponses({
+            @ApiResponse(responseCode = &quot;204&quot;, description = &quot;Status atualizado com sucesso&quot;),
+            @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Erro de validação ou regra de negócio&quot;, content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;401&quot;, description = &quot;Usuário não autenticado&quot;, content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Acesso negado: usuário não tem permissão para alterar status deste pedido&quot;, content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Pedido não encontrado&quot;, content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;500&quot;, description = &quot;Erro interno no servidor&quot;, content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @PatchMapping(&quot;/{id}/status&quot;)
+    @PreAuthorize(&quot;hasAnyRole('ADMIN', 'LOJISTA')&quot;)
+    public ResponseEntity&lt;Void&gt; atualizarStatus(
+            @PathVariable String id,
+            @Valid @RequestBody PedidoUpdateStatusDTO dto,
+            @AuthenticationPrincipal Usuario usuarioLogado
+    ) {
+<span class="fc" id="L123">        pedidoService.atualizarStatus(id, dto.status(), usuarioLogado);</span>
+<span class="fc" id="L124">        return ResponseEntity.noContent().build();</span>
+    }
+
+    @Operation(summary = &quot;Cancelar pedido&quot;, description = &quot;Cancela o pedido. Apenas o dono pode cancelar, e apenas se estiver PENDENTE ou PREPARANDO.&quot;)
+    @ApiResponses({
+            @ApiResponse(responseCode = &quot;204&quot;, description = &quot;Pedido cancelado com sucesso&quot;),
+            @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Erro de negócio (ex: status inválido)&quot;),
+            @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Acesso negado&quot;),
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Pedido não encontrado&quot;)
+    })
+    @PatchMapping(&quot;/{id}/cancelar&quot;)
+    public ResponseEntity&lt;Void&gt; cancelarPedido(
+            @PathVariable String id,
+            @AuthenticationPrincipal Usuario usuarioLogado
+    ) {
+<span class="fc" id="L139">        pedidoService.cancelarPedido(id, usuarioLogado.getId());</span>
+<span class="fc" id="L140">        return ResponseEntity.noContent().build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

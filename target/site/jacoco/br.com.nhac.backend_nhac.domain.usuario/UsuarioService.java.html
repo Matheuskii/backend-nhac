@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsuarioService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.usuario</a> &gt; <span class="el_source">UsuarioService.java</span></div><h1>UsuarioService.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.usuario;
+
+import br.com.nhac.backend_nhac.domain.usuario.EnderecoUsuario;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.domain.usuario.dto.EnderecoUsuarioDTO;
+import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioAtualizarDTO;
+import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioCreateDTO;
+import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioResponseDTO;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
+import br.com.nhac.backend_nhac.exceptions.CredenciaisInvalidasException;
+import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
+import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
+import br.com.nhac.backend_nhac.domain.usuario.EnderecoUsuarioRepository;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import org.springframework.security.crypto.password.PasswordEncoder; // 🔴 NOVO IMPORT
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@Service
+public class UsuarioService {
+
+    private final UsuarioRepository usuarioRepository;
+    private final EnderecoUsuarioRepository enderecoRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final br.com.nhac.backend_nhac.domain.pedido.PedidoRepository pedidoRepository;
+    private final br.com.nhac.backend_nhac.domain.favorito.FavoritoRepository favoritoRepository;
+
+    public UsuarioService(UsuarioRepository usuarioRepository,
+                          EnderecoUsuarioRepository enderecoRepository,
+                          PasswordEncoder passwordEncoder,
+                          br.com.nhac.backend_nhac.domain.pedido.PedidoRepository pedidoRepository,
+<span class="fc" id="L36">                          br.com.nhac.backend_nhac.domain.favorito.FavoritoRepository favoritoRepository) {</span>
+<span class="fc" id="L37">        this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L38">        this.enderecoRepository = enderecoRepository;</span>
+<span class="fc" id="L39">        this.passwordEncoder = passwordEncoder;</span>
+<span class="fc" id="L40">        this.pedidoRepository = pedidoRepository;</span>
+<span class="fc" id="L41">        this.favoritoRepository = favoritoRepository;</span>
+<span class="fc" id="L42">    }</span>
+
+    public UsuarioResponseDTO buscarUsuario(String id) {
+<span class="fc" id="L45">        Usuario usuario = usuarioRepository.findById(id)</span>
+<span class="fc" id="L46">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Usuário não encontrado.&quot;));</span>
+<span class="fc" id="L47">        return new UsuarioResponseDTO(usuario);</span>
+    }
+
+    @Transactional
+    public void salvarUsuario(UsuarioCreateDTO dto) {
+<span class="pc bpc" id="L52" title="2 of 4 branches missed.">        if (dto.email() != null &amp;&amp; usuarioRepository.findByEmailIgnoreCase(dto.email()).isPresent()) {</span>
+<span class="nc" id="L53">            throw new RegraDeNegocioException(&quot;Este e-mail já está em uso.&quot;);</span>
+        }
+<span class="pc bpc" id="L55" title="2 of 4 branches missed.">        if (dto.telefone() != null &amp;&amp; usuarioRepository.findByTelefone(dto.telefone()).isPresent()) {</span>
+<span class="nc" id="L56">            throw new RegraDeNegocioException(&quot;Este telefone já está em uso.&quot;);</span>
+        }
+
+<span class="fc" id="L59">        Usuario usuario = dto.toEntity();</span>
+
+<span class="pc bpc" id="L61" title="1 of 4 branches missed.">        if (dto.senha() != null &amp;&amp; !dto.senha().isBlank()) {</span>
+<span class="fc" id="L62">            usuario.setSenha(passwordEncoder.encode(dto.senha()));</span>
+        }
+
+<span class="fc" id="L65">        usuarioRepository.save(usuario);</span>
+<span class="fc" id="L66">    }</span>
+
+    @Transactional
+    public void atualizarUsuarioParcial(String id, UsuarioAtualizarDTO dados) {
+<span class="fc" id="L70">        Usuario usuario = usuarioRepository.findById(id)</span>
+<span class="fc" id="L71">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Usuário não encontrado.&quot;));</span>
+
+<span class="pc bpc" id="L73" title="1 of 2 branches missed.">        if(dados.nome() != null)</span>
+<span class="fc" id="L74">            usuario.setNome(dados.nome());</span>
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">        if(dados.email() != null)</span>
+<span class="nc" id="L76">            usuario.setEmail(dados.email());</span>
+<span class="pc bpc" id="L77" title="1 of 2 branches missed.">        if(dados.telefone() != null)</span>
+<span class="fc" id="L78">            usuario.setTelefone(dados.telefone());</span>
+<span class="pc bpc" id="L79" title="1 of 2 branches missed.">        if(dados.imagemUrl() != null)</span>
+<span class="nc" id="L80">            usuario.setImagemUrl(dados.imagemUrl());</span>
+
+<span class="fc" id="L82">        usuarioRepository.save(usuario);</span>
+<span class="fc" id="L83">    }</span>
+
+    public List&lt;EnderecoUsuarioDTO&gt; listarEnderecos(String usuarioId) {
+<span class="fc" id="L86">        return enderecoRepository.findByUsuarioId(usuarioId).stream()</span>
+<span class="fc" id="L87">                .map(end -&gt; new EnderecoUsuarioDTO(</span>
+<span class="fc" id="L88">                        end.getId(), end.getRua(), end.getNumero(), end.getBairro(),</span>
+<span class="fc" id="L89">                        end.getCidade(), end.getEstado(), end.getCep(), end.getComplemento(), end.isPadrao()</span>
+<span class="fc" id="L90">                )).collect(Collectors.toList());</span>
+    }
+
+
+    private void garantirUnicoEnderecoPadrao(String usuarioId, String enderecoIdApreservar) {
+<span class="fc" id="L95">        List&lt;EnderecoUsuario&gt; enderecos = enderecoRepository.findByUsuarioId(usuarioId);</span>
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">        for (EnderecoUsuario e : enderecos) {</span>
+<span class="nc bnc" id="L97" title="All 4 branches missed.">            if (!e.getId().equals(enderecoIdApreservar) &amp;&amp; e.isPadrao()) {</span>
+<span class="nc" id="L98">                e.setPadrao(false);</span>
+<span class="nc" id="L99">                enderecoRepository.save(e);</span>
+            }
+<span class="nc" id="L101">        }</span>
+<span class="fc" id="L102">    }</span>
+
+    @Transactional
+    public void adicionarEndereco(String usuarioId, EnderecoUsuarioDTO dto) {
+<span class="fc" id="L106">        Usuario usuario = usuarioRepository.findById(usuarioId)</span>
+<span class="fc" id="L107">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Usuário não encontrado.&quot;));</span>
+<span class="fc" id="L108">        EnderecoUsuario endereco = dto.toEntity(usuario);</span>
+
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">        if (endereco.isPadrao()) {</span>
+<span class="fc" id="L111">            garantirUnicoEnderecoPadrao(usuarioId, endereco.getId());</span>
+        }
+
+<span class="fc" id="L114">        enderecoRepository.save(endereco);</span>
+<span class="fc" id="L115">    }</span>
+
+    @Transactional
+    public void atualizarEndereco(String usuarioId, String enderecoId, EnderecoUsuarioDTO dto) {
+<span class="fc" id="L119">        EnderecoUsuario endereco = enderecoRepository.findById(enderecoId)</span>
+<span class="fc" id="L120">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Endereço não encontrado.&quot;));</span>
+
+<span class="fc bfc" id="L122" title="All 2 branches covered.">        if (!endereco.getUsuario().getId().equals(usuarioId)) {</span>
+<span class="fc" id="L123">            throw new CredenciaisInvalidasException(&quot;Acesso negado a este endereço.&quot;);</span>
+        }
+
+<span class="fc" id="L126">        endereco.setRua(dto.rua());</span>
+<span class="fc" id="L127">        endereco.setNumero(dto.numero());</span>
+<span class="fc" id="L128">        endereco.setBairro(dto.bairro());</span>
+<span class="fc" id="L129">        endereco.setCidade(dto.cidade());</span>
+<span class="fc" id="L130">        endereco.setEstado(dto.estado());</span>
+<span class="fc" id="L131">        endereco.setCep(dto.cep());</span>
+<span class="fc" id="L132">        endereco.setComplemento(dto.complemento());</span>
+<span class="fc" id="L133">        endereco.setPadrao(dto.isPadrao());</span>
+
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">        if (endereco.isPadrao()) {</span>
+<span class="fc" id="L136">            garantirUnicoEnderecoPadrao(usuarioId, enderecoId);</span>
+        }
+
+<span class="fc" id="L139">        enderecoRepository.save(endereco);</span>
+<span class="fc" id="L140">    }</span>
+
+    @Transactional
+    public void removerEndereco(String usuarioId, String enderecoId) {
+<span class="fc" id="L144">        EnderecoUsuario endereco = enderecoRepository.findById(enderecoId)</span>
+<span class="fc" id="L145">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Endereço não encontrado.&quot;));</span>
+
+<span class="fc bfc" id="L147" title="All 2 branches covered.">        if (!endereco.getUsuario().getId().equals(usuarioId)) {</span>
+<span class="fc" id="L148">            throw new IllegalArgumentException(&quot;Acesso negado a este endereço.&quot;);</span>
+        }
+
+<span class="fc" id="L151">        enderecoRepository.delete(endereco);</span>
+<span class="fc" id="L152">    }</span>
+
+
+
+    public void validarPropriedade(String idNaUrl, Usuario usuarioLogado) {
+<span class="nc bnc" id="L157" title="All 2 branches missed.">        if (!idNaUrl.equals(usuarioLogado.getId())) {</span>
+<span class="nc" id="L158">            throw new AcessoNegadoException(&quot;Acesso negado: não tem permissão para aceder ou modificar os dados de outro utilizador.&quot;);</span>
+        }
+<span class="nc" id="L160">    }</span>
+
+    @Transactional
+    public void desativarUsuario(String idNaUrl, Usuario usuarioLogado) {
+<span class="fc bfc" id="L164" title="All 4 branches covered.">        if (!usuarioLogado.getPapel().equals(br.com.nhac.backend_nhac.domain.usuario.Papel.ADMIN) &amp;&amp; !idNaUrl.equals(usuarioLogado.getId())) {</span>
+<span class="fc" id="L165">            throw new AcessoNegadoException(&quot;Acesso negado: apenas administradores ou o próprio usuário podem desativar a conta.&quot;);</span>
+        }
+
+<span class="fc" id="L168">        Usuario usuario = usuarioRepository.findById(idNaUrl)</span>
+<span class="pc" id="L169">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Usuário não encontrado.&quot;));</span>
+
+<span class="fc" id="L171">        usuario.setAtivo(false);</span>
+<span class="fc" id="L172">        usuarioRepository.save(usuario);</span>
+<span class="fc" id="L173">    }</span>
+
+    @Transactional
+    public void atualizarSenha(String telefone, String novaSenha) {
+<span class="nc" id="L177">        Usuario usuario = usuarioRepository.findByTelefone(telefone)</span>
+<span class="nc" id="L178">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Nenhum usuário cadastrado com esse telefone.&quot;));</span>
+
+<span class="nc bnc" id="L180" title="All 2 branches missed.">        if (!usuario.isAtivo()) {</span>
+<span class="nc" id="L181">            throw new RegraDeNegocioException(&quot;Usuário inativo. Não é possível alterar a senha.&quot;);</span>
+        }
+
+<span class="nc" id="L184">        usuario.setSenha(passwordEncoder.encode(novaSenha));</span>
+<span class="nc" id="L185">        usuarioRepository.save(usuario);</span>
+<span class="nc" id="L186">    }</span>
+
+    @Transactional
+    public void atualizarSenhaPorEmail(String email, String novaSenha) {
+<span class="nc" id="L190">        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(email)</span>
+<span class="nc" id="L191">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Nenhum usuário cadastrado com esse e-mail.&quot;));</span>
+
+<span class="nc bnc" id="L193" title="All 2 branches missed.">        if (!usuario.isAtivo()) {</span>
+<span class="nc" id="L194">            throw new RegraDeNegocioException(&quot;Usuário inativo. Não é possível alterar a senha.&quot;);</span>
+        }
+
+<span class="nc" id="L197">        usuario.setSenha(passwordEncoder.encode(novaSenha));</span>
+<span class="nc" id="L198">        usuarioRepository.save(usuario);</span>
+<span class="nc" id="L199">    }</span>
+
+    public br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioEstatisticasDTO obterEstatisticas(String id) {
+<span class="pc bpc" id="L202" title="1 of 2 branches missed.">        if (!usuarioRepository.existsById(id)) {</span>
+<span class="nc" id="L203">            throw new IdNaoEncontradoException(&quot;Usuário não encontrado.&quot;);</span>
+        }
+<span class="fc" id="L205">        long totalPedidos = pedidoRepository.countByUsuarioId(id);</span>
+<span class="fc" id="L206">        long lojasFavoritadas = favoritoRepository.countByUsuarioId(id);</span>
+<span class="fc" id="L207">        long cuponsResgatados = pedidoRepository.countByUsuarioIdAndCupomIdIsNotNull(id);</span>
+        
+<span class="fc" id="L209">        return new br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioEstatisticasDTO(totalPedidos, lojasFavoritadas, cuponsResgatados);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

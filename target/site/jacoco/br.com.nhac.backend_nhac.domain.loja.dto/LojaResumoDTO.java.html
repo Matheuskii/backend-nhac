@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LojaResumoDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.loja.dto</a> &gt; <span class="el_source">LojaResumoDTO.java</span></div><h1>LojaResumoDTO.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.loja.dto;
+
+import br.com.nhac.backend_nhac.domain.loja.Loja;
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.math.BigDecimal;
+
+@Schema(description = &quot;Objeto simplificado devolvido na listagem de lojas para otimização de rede&quot;)
+<span class="fc" id="L9">public record LojaResumoDTO(</span>
+
+        @Schema(description = &quot;Identificador único da loja&quot;, example = &quot;loja_japonesa_001&quot;)
+        String id,
+
+        @Schema(description = &quot;Nome fantasia da loja&quot;, example = &quot;Sushi Ken&quot;)
+        String nome,
+
+        @Schema(description = &quot;Breve descrição ou slogan da loja&quot;, example = &quot;O melhor sushi da região.&quot;)
+        String descricao,
+
+        @Schema(description = &quot;Categoria principal para filtros&quot;, example = &quot;Japonesa&quot;)
+        String categoria,
+
+        @Schema(description = &quot;URL do banner da loja no Firebase Storage&quot;, example = &quot;https://firebasestorage.../banner.png&quot;)
+        String imagemUrl,
+
+        @Schema(description = &quot;Métricas principais da loja para exibição no card&quot;)
+        DadosOperacionaisDTO dadosOperacionais,
+
+        @Schema(description = &quot;Formas de pagamento aceitas pela loja&quot;)
+        FormasPagamentoDTO formasPagamento
+) {
+    @Schema(description = &quot;Dados de logística e avaliação resumidos&quot;)
+<span class="fc" id="L33">    public record DadosOperacionaisDTO(</span>
+            @Schema(description = &quot;Média das avaliações (0 a 5)&quot;, example = &quot;4.8&quot;)
+            float avaliacaoMedia,
+
+            @Schema(description = &quot;Taxa de entrega base&quot;, example = &quot;5.99&quot;)
+            BigDecimal taxaEntregaBase,
+
+            @Schema(description = &quot;Tempo mínimo estimado em minutos&quot;, example = &quot;30&quot;)
+            int tempoEntregaMin,
+
+            @Schema(description = &quot;Tempo máximo estimado em minutos&quot;, example = &quot;45&quot;)
+            int tempoEntregaMax,
+
+            @Schema(description = &quot;Quantidade total de avaliações recebidas&quot;, example = &quot;150&quot;)
+            int totalAvaliacoes,
+
+            @Schema(description = &quot;Indica se a loja realiza entrega própria&quot;, example = &quot;true&quot;)
+            Boolean entregaPropria,
+
+            @Schema(description = &quot;Indica se a loja permite retirada no local&quot;, example = &quot;false&quot;)
+            Boolean retiradaNoLocal,
+
+            @Schema(description = &quot;Raio de entrega em quilômetros (null = ilimitado)&quot;, example = &quot;10.5&quot;)
+            BigDecimal raioEntregaKm
+    ) {}
+
+    @Schema(description = &quot;Formas de pagamento aceitas pela loja&quot;)
+<span class="fc" id="L60">    public record FormasPagamentoDTO(</span>
+            @Schema(description = &quot;Aceita dinheiro&quot;, example = &quot;true&quot;) Boolean aceitaDinheiro,
+            @Schema(description = &quot;Aceita cartão de crédito&quot;, example = &quot;true&quot;) Boolean aceitaCredito,
+            @Schema(description = &quot;Aceita cartão de débito&quot;, example = &quot;true&quot;) Boolean aceitaDebito,
+            @Schema(description = &quot;Aceita PIX&quot;, example = &quot;true&quot;) Boolean aceitaPix,
+            @Schema(description = &quot;Aceita vale-refeição&quot;, example = &quot;false&quot;) Boolean aceitaValeRefeicao,
+            @Schema(description = &quot;Aceita vale-alimentação&quot;, example = &quot;false&quot;) Boolean aceitaValeAlimentacao
+    ) {}
+
+    public LojaResumoDTO(Loja loja){
+<span class="fc" id="L70">        this( loja.getId(),</span>
+<span class="fc" id="L71">                loja.getNome(),</span>
+<span class="fc" id="L72">                loja.getDescricao(),</span>
+<span class="fc" id="L73">                loja.getCategoria(),</span>
+<span class="fc" id="L74">                loja.getImagemUrl(),</span>
+                new LojaResumoDTO.DadosOperacionaisDTO(
+<span class="fc" id="L76">                        loja.getDadosOperacionais().getAvaliacaoMedia(),</span>
+<span class="fc" id="L77">                        loja.getDadosOperacionais().getTaxaEntregaBase(),</span>
+<span class="fc" id="L78">                        loja.getDadosOperacionais().getTempoEntregaMin(),</span>
+<span class="fc" id="L79">                        loja.getDadosOperacionais().getTempoEntregaMax(),</span>
+<span class="fc" id="L80">                        loja.getDadosOperacionais().getTotalAvaliacoes(),</span>
+<span class="fc" id="L81">                        loja.getDadosOperacionais().getEntregaPropria(),</span>
+<span class="fc" id="L82">                        loja.getDadosOperacionais().getRetiradaNoLocal(),</span>
+<span class="fc" id="L83">                        loja.getDadosOperacionais().getRaioEntregaKm()</span>
+                ),
+                new LojaResumoDTO.FormasPagamentoDTO(
+<span class="fc" id="L86">                        loja.getFormasPagamento().getAceitaDinheiro(),</span>
+<span class="fc" id="L87">                        loja.getFormasPagamento().getAceitaCredito(),</span>
+<span class="fc" id="L88">                        loja.getFormasPagamento().getAceitaDebito(),</span>
+<span class="fc" id="L89">                        loja.getFormasPagamento().getAceitaPix(),</span>
+<span class="fc" id="L90">                        loja.getFormasPagamento().getAceitaValeRefeicao(),</span>
+<span class="fc" id="L91">                        loja.getFormasPagamento().getAceitaValeAlimentacao()</span>
+                ));
+<span class="fc" id="L93">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BrevoEmailClient.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.infra.email</a> &gt; <span class="el_source">BrevoEmailClient.java</span></div><h1>BrevoEmailClient.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.infra.email;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClient;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+@Component
+public class BrevoEmailClient {
+
+<span class="fc" id="L15">    private static final Logger logger = LoggerFactory.getLogger(BrevoEmailClient.class);</span>
+
+    private final RestClient brevoRestClient;
+    private final BrevoProperties properties;
+
+<span class="fc" id="L20">    public BrevoEmailClient(RestClient brevoRestClient, BrevoProperties properties) {</span>
+<span class="fc" id="L21">        this.brevoRestClient = brevoRestClient;</span>
+<span class="fc" id="L22">        this.properties = properties;</span>
+<span class="fc" id="L23">    }</span>
+
+    public void enviar(String destinatario, String assunto, String htmlConteudo) {
+<span class="fc" id="L26">        BrevoEmailRequest request = new BrevoEmailRequest(</span>
+<span class="fc" id="L27">                new BrevoEmailRequest.Sender(properties.getSenderEmail(), properties.getSenderName()),</span>
+<span class="fc" id="L28">                List.of(new BrevoEmailRequest.Recipient(destinatario)),</span>
+                assunto,
+                htmlConteudo
+        );
+
+        try {
+<span class="fc" id="L34">            BrevoEmailResponse response = brevoRestClient.post()</span>
+<span class="fc" id="L35">                    .uri(&quot;/smtp/email&quot;)</span>
+<span class="fc" id="L36">                    .body(request)</span>
+<span class="fc" id="L37">                    .retrieve()</span>
+<span class="fc" id="L38">                    .onStatus(status -&gt; status.is4xxClientError(), (req, res) -&gt; {</span>
+<span class="fc" id="L39">                        int code = res.getStatusCode().value();</span>
+<span class="fc" id="L40">                        String responseBody = new String(res.getBody().readAllBytes(), StandardCharsets.UTF_8);</span>
+<span class="fc" id="L41">                        logger.error(&quot;Erro 4xx ao enviar e-mail via Brevo (status {}): {}&quot;, code, responseBody);</span>
+<span class="fc bfc" id="L42" title="All 2 branches covered.">                        boolean retryable = (code == 429);</span>
+<span class="fc" id="L43">                        throw new BrevoApiException(retryable, code, &quot;Erro de cliente ao enviar e-mail via Brevo (HTTP &quot; + code + &quot;)&quot;);</span>
+                    })
+<span class="fc" id="L45">                    .onStatus(status -&gt; status.is5xxServerError(), (req, res) -&gt; {</span>
+<span class="fc" id="L46">                        int code = res.getStatusCode().value();</span>
+<span class="fc" id="L47">                        String responseBody = new String(res.getBody().readAllBytes(), StandardCharsets.UTF_8);</span>
+<span class="fc" id="L48">                        logger.error(&quot;Erro 5xx no servidor da Brevo (status {}): {}&quot;, code, responseBody);</span>
+<span class="fc" id="L49">                        throw new BrevoApiException(true, code, &quot;Erro no servidor da Brevo (HTTP &quot; + code + &quot;)&quot;);</span>
+                    })
+<span class="fc" id="L51">                    .body(BrevoEmailResponse.class);</span>
+
+<span class="pc bpc" id="L53" title="2 of 4 branches missed.">            if (response != null &amp;&amp; response.messageId() != null) {</span>
+<span class="fc" id="L54">                logger.info(&quot;E-mail enviado com sucesso via Brevo para {}. MessageId: {}&quot;, destinatario, response.messageId());</span>
+            } else {
+<span class="nc" id="L56">                logger.info(&quot;E-mail enviado com sucesso via Brevo para {}.&quot;, destinatario);</span>
+            }
+<span class="fc" id="L58">        } catch (BrevoApiException e) {</span>
+<span class="fc" id="L59">            throw e;</span>
+<span class="nc" id="L60">        } catch (ResourceAccessException e) {</span>
+<span class="nc" id="L61">            logger.error(&quot;Falha de rede ou timeout ao comunicar com a Brevo para {}: {}&quot;, destinatario, e.getMessage());</span>
+<span class="nc" id="L62">            throw new BrevoApiException(true, 0, &quot;Falha de rede/timeout com o serviço da Brevo&quot;, e);</span>
+<span class="nc" id="L63">        } catch (Exception e) {</span>
+<span class="nc" id="L64">            logger.error(&quot;Erro inesperado ao enviar e-mail via Brevo para {}: {}&quot;, destinatario, e.getMessage());</span>
+<span class="nc" id="L65">            throw new BrevoApiException(true, 0, &quot;Erro inesperado ao comunicar com o serviço da Brevo&quot;, e);</span>
+<span class="fc" id="L66">        }</span>
+<span class="fc" id="L67">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
