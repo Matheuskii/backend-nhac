@@ -1,6 +1,7 @@
 package br.com.nhac.backend_nhac.domain.produto;
 
 import br.com.nhac.backend_nhac.domain.loja.Loja;
+import br.com.nhac.backend_nhac.domain.loja.LojaAccessService;
 import br.com.nhac.backend_nhac.domain.produto.Produto;
 import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoCreateDTO;
 import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoResumoDTO;
@@ -11,6 +12,7 @@ import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
 import br.com.nhac.backend_nhac.domain.produto.ProdutoRepository;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -37,8 +39,25 @@ class ProdutoServiceTest {
     @Mock
     private LojaRepository lojaRepository;
 
+    @Mock
+    private LojaAccessService lojaAccessService;
+
     @InjectMocks
     private ProdutoService produtoService;
+
+    @BeforeEach
+    void configurarAcessoDaLoja() {
+        lenient().when(lojaAccessService.obterLojaAcessivel(any(Usuario.class)))
+                .thenAnswer(invocation -> {
+                    Usuario usuario = invocation.getArgument(0);
+                    return criarLoja("loja_1", usuario.getId(), true);
+                });
+        lenient().when(lojaAccessService.temAcessoALoja(any(Usuario.class), anyString()))
+                .thenAnswer(invocation -> {
+                    Usuario usuario = invocation.getArgument(0);
+                    return "usuario_lojista_1".equals(usuario.getId());
+                });
+    }
 
     private Usuario criarUsuario(String id, String papel) {
         Usuario usuario = new Usuario();
@@ -94,7 +113,7 @@ class ProdutoServiceTest {
         produtoSalvo.setId("produto_gerado_123");
         produtoSalvo.setNome("Hossomaki");
 
-        when(lojaRepository.findByUsuarioId(usuarioLojista.getId())).thenReturn(Optional.of(lojaFalsa));
+        when(lojaAccessService.obterLojaAcessivel(usuarioLojista)).thenReturn(lojaFalsa);
         when(produtoRepository.save(any(Produto.class))).thenReturn(produtoSalvo);
 
         Produto resultado = produtoService.cadastrarProduto(dto, usuarioLojista);
@@ -102,7 +121,7 @@ class ProdutoServiceTest {
         assertNotNull(resultado);
         assertEquals("Hossomaki", resultado.getNome());
 
-        verify(lojaRepository, times(1)).findByUsuarioId(usuarioLojista.getId());
+        verify(lojaAccessService, times(1)).obterLojaAcessivel(usuarioLojista);
         verify(produtoRepository, times(1)).save(any(Produto.class));
     }
 
@@ -116,7 +135,8 @@ class ProdutoServiceTest {
                 "Sushi", "url", "200g", 10, null
         );
 
-        when(lojaRepository.findByUsuarioId(usuarioSemLoja.getId())).thenReturn(Optional.empty());
+        when(lojaAccessService.obterLojaAcessivel(usuarioSemLoja))
+            .thenThrow(new br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException());
 
         Exception excecao = assertThrows(br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException.class,
                 () -> produtoService.cadastrarProduto(dto, usuarioSemLoja));
@@ -136,7 +156,7 @@ class ProdutoServiceTest {
                 "Sushi", "url", "200g", 10, null
         );
 
-        when(lojaRepository.findByUsuarioId(usuarioLojista.getId())).thenReturn(Optional.of(lojaFechada));
+        when(lojaAccessService.obterLojaAcessivel(usuarioLojista)).thenReturn(lojaFechada);
 
         Exception excecao = assertThrows(RegraDeNegocioException.class, () -> produtoService.cadastrarProduto(dto, usuarioLojista));
 
@@ -159,7 +179,7 @@ class ProdutoServiceTest {
         produtoSalvo.setId("produto_gerado_123");
         produtoSalvo.setNome("Hossomaki");
 
-        when(lojaRepository.findByUsuarioId(usuarioAdmin.getId())).thenReturn(Optional.of(lojaFechada));
+        when(lojaAccessService.obterLojaAcessivel(usuarioAdmin)).thenReturn(lojaFechada);
         when(produtoRepository.save(any(Produto.class))).thenReturn(produtoSalvo);
 
         Produto resultado = produtoService.cadastrarProduto(dto, usuarioAdmin);

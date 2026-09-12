@@ -52,21 +52,37 @@ public interface ProdutoRepository extends JpaRepository<Produto, String> {
     );
     @Query(value = """
         SELECT p FROM Produto p
-        WHERE p.loja.usuarioId = :usuarioId
+        WHERE p.loja.id = :lojaId
         AND (:categoriaMenu IS NULL OR LOWER(p.categoriaMenu) = LOWER(:categoriaMenu))
         AND (:nome IS NULL OR LOWER(p.nome) LIKE LOWER(CONCAT('%', :nome, '%')))
         """,
             countQuery = """
         SELECT COUNT(p) FROM Produto p
-        WHERE p.loja.usuarioId = :usuarioId
+        WHERE p.loja.id = :lojaId
         AND (:categoriaMenu IS NULL OR LOWER(p.categoriaMenu) = LOWER(:categoriaMenu))
         AND (:nome IS NULL OR LOWER(p.nome) LIKE LOWER(CONCAT('%', :nome, '%')))
         """)
-    Page<Produto> findByLojista(
-            @Param("usuarioId") String usuarioId,
+    Page<Produto> findByLoja(
+            @Param("lojaId") String lojaId,
             @Param("categoriaMenu") String categoriaMenu,
             @Param("nome") String nome,
             Pageable pageable
+    );
+
+    @Query("""
+        SELECT i.produto.id as produtoId, i.produto.nome as nome, i.produto.categoriaMenu as categoria,
+               SUM(i.quantidade) as quantidadeVendida, SUM(i.precoHistorico * i.quantidade) as faturamento
+        FROM ItemPedido i
+        WHERE i.pedido.loja.id = :lojaId
+        AND i.pedido.criadoEm >= :inicio AND i.pedido.criadoEm <= :fim
+        AND i.pedido.status <> br.com.nhac.backend_nhac.domain.pedido.StatusPedido.CANCELADO
+        GROUP BY i.produto.id, i.produto.nome, i.produto.categoriaMenu
+        ORDER BY SUM(i.quantidade) DESC
+        """)
+    java.util.List<Object[]> rankingProdutosVendidos(
+            @Param("lojaId") String lojaId,
+            @Param("inicio") java.time.Instant inicio,
+            @Param("fim") java.time.Instant fim
     );
 
     Page<Produto> findByLojaIdAndIsAtivoTrue(String lojaId, Pageable pageable);

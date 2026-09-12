@@ -1,9 +1,11 @@
 package br.com.nhac.backend_nhac.domain.pedido;
 
 import br.com.nhac.backend_nhac.domain.loja.Loja;
+import br.com.nhac.backend_nhac.domain.loja.LojaAccessService;
 import br.com.nhac.backend_nhac.domain.pedido.dto.*;
 import br.com.nhac.backend_nhac.domain.produto.Produto;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
 import br.com.nhac.backend_nhac.exceptions.*;
 import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
 import br.com.nhac.backend_nhac.domain.produto.ProdutoRepository;
@@ -21,13 +23,19 @@ public class PedidoService {
     private final PedidoRepository pedidoRepository;
     private final LojaRepository lojaRepository;
     private final ProdutoRepository produtoRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final LojaAccessService lojaAccessService;
     private final StripePaymentService stripePaymentService;
     private final AsaasPaymentService asaasPaymentService;
 
-    public PedidoService(PedidoRepository pedidoRepository, LojaRepository lojaRepository, ProdutoRepository produtoRepository, StripePaymentService stripePaymentService, AsaasPaymentService asaasPaymentService) {
+    public PedidoService(PedidoRepository pedidoRepository, LojaRepository lojaRepository, ProdutoRepository produtoRepository,
+                          UsuarioRepository usuarioRepository, LojaAccessService lojaAccessService,
+                          StripePaymentService stripePaymentService, AsaasPaymentService asaasPaymentService) {
         this.pedidoRepository = pedidoRepository;
         this.lojaRepository = lojaRepository;
         this.produtoRepository = produtoRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.lojaAccessService = lojaAccessService;
         this.stripePaymentService = stripePaymentService;
         this.asaasPaymentService = asaasPaymentService;
     }
@@ -175,18 +183,49 @@ public class PedidoService {
         return page.map(PedidoResumoDTO::new);
     }
 
+    /**
+     * Detalhe de pedido do ponto de vista do lojista (dono ou funcionário da loja).
+     * Diferente de buscarPedido(): autoriza por posse da LOJA (não por ser o
+     * cliente que comprou) e enriquece a resposta com nome/telefone do cliente,
+     * que o lojista precisa pra atender/entregar o pedido.
+     */
+    @Transactional(readOnly = true)
+    public PedidoDetalheLojistaDTO buscarPedidoParaLojista(String id, Usuario usuarioLogado) {
+        Pedido pedido = pedidoRepository.findById(id)
+                .orElseThrow(() -> new IdNaoEncontradoException("Pedido não encontrado."));
+
+        boolean isAdmin = usuarioLogado.getPapel().name().equals("ADMIN");
+        if (!isAdmin && !lojaAccessService.temAcessoALoja(usuarioLogado, pedido.getLoja().getId())) {
+            throw new AcessoNegadoException("Acesso negado: você não tem permissão para visualizar este pedido.");
+        }
+
+        Usuario cliente = usuarioRepository.findById(pedido.getUsuarioId()).orElse(null);
+        String clienteNome = cliente != null ? cliente.getNome() : "Cliente";
+        String clienteTelefone = cliente != null ? cliente.getTelefone() : null;
+
+        return new PedidoDetalheLojistaDTO(pedido, clienteNome, clienteTelefone);
+    }
+
     @Transactional
     public void atualizarStatus(String pedidoId, StatusPedido novoStatus, Usuario usuarioLogado) {
         Pedido pedido = pedidoRepository.findById(pedidoId)
                 .orElseThrow(() -> new IdNaoEncontradoException("Pedido não encontrado."));
 
-        // ADMIN tem bypass na checagem de ownership
+        // ADMIN tem bypass na checagem de ownership; dono ou funcionário da loja também passam
         boolean isAdmin = usuarioLogado.getPapel().name().equals("ADMIN");
-        if (!isAdmin && !pedido.getLoja().getUsuarioId().equals(usuarioLogado.getId())) {
+        if (!isAdmin && !lojaAccessService.temAcessoALoja(usuarioLogado, pedido.getLoja().getId())) {
             throw new AcessoNegadoException("Acesso negado: você não tem permissão para alterar o status deste pedido.");
         }
 
+        boolean estavaCancelado = pedido.getStatus() == StatusPedido.CANCELADO;
         pedido.alterarStatus(novoStatus);
+
+        // Bug corrigido: o painel do lojista cancela pedidos por essa rota (PATCH /status),
+        // não pela rota dedicada /cancelar. Sem isso, o estoque nunca voltava.
+        if (novoStatus == StatusPedido.CANCELADO && !estavaCancelado) {
+            devolverEstoque(pedido);
+        }
+
         pedidoRepository.save(pedido);
     }
 

@@ -2,6 +2,7 @@ package br.com.nhac.backend_nhac.domain.pedido;
 
 import br.com.nhac.backend_nhac.domain.loja.DadosOperacionais;
 import br.com.nhac.backend_nhac.domain.loja.Loja;
+import br.com.nhac.backend_nhac.domain.loja.LojaAccessService;
 import br.com.nhac.backend_nhac.domain.pedido.Pedido;
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCreateDTO;
 import br.com.nhac.backend_nhac.domain.produto.Produto;
@@ -12,6 +13,7 @@ import br.com.nhac.backend_nhac.domain.pedido.PedidoRepository;
 import br.com.nhac.backend_nhac.domain.produto.ProdutoRepository;
 import br.com.nhac.backend_nhac.domain.pedido.StripePaymentService;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -41,8 +43,18 @@ class PedidoServiceTest {
     @Mock private LojaRepository lojaRepository;
     @Mock private StripePaymentService stripePaymentService;
     @Mock private AsaasPaymentService asaasPaymentService;
+    @Mock private LojaAccessService lojaAccessService;
 
     @InjectMocks private PedidoService pedidoService;
+
+    @BeforeEach
+    void configurarAcessoDaLoja() {
+        lenient().when(lojaAccessService.temAcessoALoja(any(Usuario.class), anyString()))
+                .thenAnswer(invocation -> {
+                    Usuario usuario = invocation.getArgument(0);
+                    return "user_001".equals(usuario.getId()) || "dono_loja".equals(usuario.getId());
+                });
+    }
 
     private Usuario usuarioPadrao() {
         Usuario usuario = new Usuario();

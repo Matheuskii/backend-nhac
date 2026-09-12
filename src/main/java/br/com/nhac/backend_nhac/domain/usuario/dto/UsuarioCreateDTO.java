@@ -46,7 +46,10 @@ public record UsuarioCreateDTO(
                 false,
                 br.com.nhac.backend_nhac.domain.usuario.Papel.CLIENTE,
                 true,
-                false
+                false,
+                null,
+                null,
+                java.time.Instant.now()
         );
     }
 }

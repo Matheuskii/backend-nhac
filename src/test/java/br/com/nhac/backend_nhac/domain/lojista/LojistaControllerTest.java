@@ -1,7 +1,8 @@
 package br.com.nhac.backend_nhac.domain.lojista;
 
 import br.com.nhac.backend_nhac.domain.pedido.StatusPedido;
-import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoDTO;
+import br.com.nhac.backend_nhac.domain.pedido.PedidoService;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoLojistaDTO;
 import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoLojistaDTO;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import org.junit.jupiter.api.AfterEach;
@@ -42,6 +43,9 @@ class LojistaControllerTest {
     @MockitoBean
     private LojistaService lojistaService;
 
+        @MockitoBean
+        private PedidoService pedidoService;
+
     @MockitoBean
     private br.com.nhac.backend_nhac.infra.security.TokenService tokenService;
 
@@ -74,7 +78,7 @@ class LojistaControllerTest {
                 new BigDecimal("25.50"), "Sushi", "https://...", "200g", 10, true, 100, null);
         Page<ProdutoLojistaDTO> pagina = new PageImpl<>(List.of(produto), PageRequest.of(0, 20), 1);
 
-        when(lojistaService.listarProdutos(eq("user_123"), eq("Sushi"), eq("salmao"), any()))
+        when(lojistaService.listarProdutos(eq(usuarioLogado), eq("Sushi"), eq("salmao"), any()))
                 .thenReturn(pagina);
 
         mockMvc.perform(get("/api/v1/lojista/produtos")
@@ -93,12 +97,11 @@ class LojistaControllerTest {
     @Test
     @DisplayName("Deve listar pedidos recebidos filtrando por status")
     void deveListarPedidosRecebidos() throws Exception {
-        PedidoResumoDTO pedido = new PedidoResumoDTO(
-                "pedido_1", "loja_1", "Sushi Ken", new BigDecimal("40.00"),
+        PedidoResumoLojistaDTO pedido = new PedidoResumoLojistaDTO("pedido_1", "Cliente 1", 2, new BigDecimal("40.00"),
                 StatusPedido.PENDENTE, Instant.parse("2026-09-09T12:00:00Z"));
-        Page<PedidoResumoDTO> pagina = new PageImpl<>(List.of(pedido), PageRequest.of(0, 20), 1);
+        Page<PedidoResumoLojistaDTO> pagina = new PageImpl<>(List.of(pedido), PageRequest.of(0, 20), 1);
 
-        when(lojistaService.listarPedidos(eq("user_123"), eq(StatusPedido.PENDENTE), any()))
+        when(lojistaService.listarPedidos(eq(usuarioLogado), eq(StatusPedido.PENDENTE), any()))
                 .thenReturn(pagina);
 
         mockMvc.perform(get("/api/v1/lojista/pedidos")
@@ -109,13 +112,13 @@ class LojistaControllerTest {
                 .andExpect(jsonPath("$.content[0].id").value("pedido_1"))
                 .andExpect(jsonPath("$.content[0].status").value("PENDENTE"));
 
-        verify(lojistaService).listarPedidos(eq("user_123"), eq(StatusPedido.PENDENTE), any());
+        verify(lojistaService).listarPedidos(eq(usuarioLogado), eq(StatusPedido.PENDENTE), any());
     }
 
     @Test
     @DisplayName("Deve listar todos os pedidos recebidos quando status não for informado")
     void deveListarTodosOsPedidosQuandoStatusAusente() throws Exception {
-        when(lojistaService.listarPedidos(eq("user_123"), isNull(), any()))
+        when(lojistaService.listarPedidos(eq(usuarioLogado), isNull(), any()))
                 .thenReturn(Page.empty());
 
         mockMvc.perform(get("/api/v1/lojista/pedidos"))

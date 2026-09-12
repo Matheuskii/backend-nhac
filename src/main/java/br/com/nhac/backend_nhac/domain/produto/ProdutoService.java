@@ -1,6 +1,7 @@
 package br.com.nhac.backend_nhac.domain.produto;
 
 import br.com.nhac.backend_nhac.domain.loja.Loja;
+import br.com.nhac.backend_nhac.domain.loja.LojaAccessService;
 import br.com.nhac.backend_nhac.domain.produto.Produto;
 import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoCreateDTO;
 import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoResumoDTO;
@@ -24,19 +25,21 @@ public class ProdutoService {
 
     private final ProdutoRepository produtoRepository;
     private final LojaRepository lojaRepository;
+    private final LojaAccessService lojaAccessService;
 
-    public ProdutoService(ProdutoRepository produtoRepository, LojaRepository lojaRepository) {
+    public ProdutoService(ProdutoRepository produtoRepository, LojaRepository lojaRepository, LojaAccessService lojaAccessService) {
         this.produtoRepository = produtoRepository;
         this.lojaRepository = lojaRepository;
+        this.lojaAccessService = lojaAccessService;
     }
 
     @Transactional
     public Produto cadastrarProduto(ProdutoCreateDTO dto, Usuario usuarioLogado) {
         // ADMIN tem bypass na checagem de ownership, mas ainda precisa de uma loja associada
         boolean isAdmin = usuarioLogado.getPapel().name().equals("ADMIN");
-        
-        Loja lojaDoUsuario = lojaRepository.findByUsuarioId(usuarioLogado.getId())
-                .orElseThrow(br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException::new);
+
+        // obterLojaAcessivel resolve tanto dono (LOJISTA) quanto FUNCIONARIO vinculado à loja
+        Loja lojaDoUsuario = lojaAccessService.obterLojaAcessivel(usuarioLogado);
 
         if (!lojaDoUsuario.isAberto() && !isAdmin) {
             throw new RegraDeNegocioException("Não é possível cadastrar produtos em uma loja fechada.");
@@ -66,9 +69,9 @@ public class ProdutoService {
         Produto produto = produtoRepository.findById(id)
                 .orElseThrow(() -> new IdNaoEncontradoException("O produto com o id: " + id + " não foi encontrado."));
 
-        // ADMIN tem bypass na checagem de ownership
+        // ADMIN tem bypass na checagem de ownership; dono ou funcionário da loja também passam
         boolean isAdmin = usuarioLogado.getPapel().name().equals("ADMIN");
-        if (!isAdmin && !produto.getLoja().getUsuarioId().equals(usuarioLogado.getId())) {
+        if (!isAdmin && !lojaAccessService.temAcessoALoja(usuarioLogado, produto.getLoja().getId())) {
             throw new AcessoNegadoException("Acesso negado: você não tem permissão para editar este produto.");
         }
 
@@ -95,9 +98,9 @@ public class ProdutoService {
         Produto produto = produtoRepository.findById(id)
                 .orElseThrow(() -> new IdNaoEncontradoException("O produto com o id: " + id + " não foi encontrado."));
 
-        // ADMIN tem bypass na checagem de ownership
+        // ADMIN tem bypass na checagem de ownership; dono ou funcionário da loja também passam
         boolean isAdmin = usuarioLogado.getPapel().name().equals("ADMIN");
-        if (!isAdmin && !produto.getLoja().getUsuarioId().equals(usuarioLogado.getId())) {
+        if (!isAdmin && !lojaAccessService.temAcessoALoja(usuarioLogado, produto.getLoja().getId())) {
             throw new AcessoNegadoException("Acesso negado: você não tem permissão para desativar este produto.");
         }
 
@@ -115,7 +118,7 @@ public class ProdutoService {
                 .orElseThrow(() -> new IdNaoEncontradoException("O produto com o id: " + id + " não foi encontrado."));
 
         boolean isAdmin = usuarioLogado.getPapel().name().equals("ADMIN");
-        if (!isAdmin && !produto.getLoja().getUsuarioId().equals(usuarioLogado.getId())) {
+        if (!isAdmin && !lojaAccessService.temAcessoALoja(usuarioLogado, produto.getLoja().getId())) {
             throw new AcessoNegadoException("Acesso negado: você não tem permissão para reativar este produto.");
         }
 

@@ -51,6 +51,7 @@ public class Loja {
     private HorariosFuncionamento horariosFuncionamento;
 
     @Embedded
+    @Builder.Default
     private FormasPagamento formasPagamento = new FormasPagamento();
 
 }

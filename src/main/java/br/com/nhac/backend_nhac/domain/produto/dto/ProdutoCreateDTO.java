@@ -8,6 +8,7 @@ import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 public record ProdutoCreateDTO(
 
@@ -45,8 +46,7 @@ public record ProdutoCreateDTO(
 ) {
 
         public Produto toEntity(Loja lojaDaBaseDeDados, ProdutoRepository produtoRepository) {
-                long totalProdutos = produtoRepository.countByLojaId(lojaDaBaseDeDados.getId());
-                String novoId = String.format("prod_%04d", totalProdutos + 1);
+                String novoId = "prod_" + UUID.randomUUID();
 
                 Produto produto = new Produto(this, lojaDaBaseDeDados);
                 produto.setId(novoId);
