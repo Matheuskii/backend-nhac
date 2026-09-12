@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LojaAccessService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.lojista.service</a> &gt; <span class="el_source">LojaAccessService.java</span></div><h1>LojaAccessService.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.lojista.service;
+
+import br.com.nhac.backend_nhac.domain.loja.Loja;
+import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
+import br.com.nhac.backend_nhac.domain.usuario.Papel;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
+import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
+import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class LojaAccessService {
+
+    private final UsuarioRepository usuarioRepository;
+    private final LojaRepository lojaRepository;
+    private final PasswordEncoder passwordEncoder;
+
+<span class="fc" id="L24">    public LojaAccessService(UsuarioRepository usuarioRepository, LojaRepository lojaRepository, PasswordEncoder passwordEncoder) {</span>
+<span class="fc" id="L25">        this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L26">        this.lojaRepository = lojaRepository;</span>
+<span class="fc" id="L27">        this.passwordEncoder = passwordEncoder;</span>
+<span class="fc" id="L28">    }</span>
+
+    /**
+     * Obtém a loja acessível pelo usuário.
+     * - ADMIN: pode acessar qualquer loja (não usa este método diretamente)
+     * - LOJISTA: retorna a loja onde é dono (usuario_id)
+     * - FUNCIONARIO: retorna a loja vinculada (loja_vinculada_id)
+     */
+    @Transactional(readOnly = true)
+    public Loja obterLojaAcessivel(Usuario usuario) {
+<span class="fc bfc" id="L38" title="All 2 branches covered.">        if (usuario.getPapel() == Papel.ADMIN) {</span>
+<span class="fc" id="L39">            return null; // Admin não tem loja própria, bypass em outros pontos</span>
+        }
+
+<span class="fc bfc" id="L42" title="All 2 branches covered.">        if (usuario.getPapel() == Papel.LOJISTA) {</span>
+<span class="fc" id="L43">            return lojaRepository.findByUsuarioId(usuario.getId())</span>
+<span class="fc" id="L44">                    .orElseThrow(() -&gt; new AcessoNegadoException(&quot;Usuário lojista não possui loja associada.&quot;));</span>
+        }
+
+<span class="pc bpc" id="L47" title="1 of 2 branches missed.">        if (usuario.getPapel() == Papel.FUNCIONARIO) {</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">            if (usuario.getLojaVinculada() == null) {</span>
+<span class="fc" id="L49">                throw new AcessoNegadoException(&quot;Funcionário não possui loja vinculada.&quot;);</span>
+            }
+<span class="fc" id="L51">            return usuario.getLojaVinculada();</span>
+        }
+
+<span class="nc" id="L54">        throw new AcessoNegadoException(&quot;Usuário não tem permissão para acessar loja.&quot;);</span>
+    }
+
+    /**
+     * Valida se o usuário pode gerenciar funcionários da loja.
+     * Apenas DONO ou ADMIN podem criar/gerenciar funcionários.
+     */
+    @Transactional(readOnly = true)
+    public void validarPermissaoGerenciarFuncionarios(Usuario usuario, String lojaId) {
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        if (usuario.getPapel() == Papel.ADMIN) {</span>
+<span class="fc" id="L64">            return;</span>
+        }
+
+<span class="fc" id="L67">        Loja loja = lojaRepository.findById(lojaId)</span>
+<span class="fc" id="L68">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Loja não encontrada.&quot;));</span>
+
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (!loja.getUsuarioId().equals(usuario.getId())) {</span>
+<span class="fc" id="L71">            throw new AcessoNegadoException(&quot;Apenas o dono da loja pode gerenciar funcionários.&quot;);</span>
+        }
+<span class="fc" id="L73">    }</span>
+
+    /**
+     * Cria um funcionário vinculado à loja do usuário logado.
+     */
+    @Transactional
+    public Usuario criarFuncionario(String lojaId, String nome, String email, String senha, 
+                                     String telefone, String cargo, Usuario criador) {
+        // Valida que o criador é dono da loja ou ADMIN
+<span class="fc" id="L82">        validarPermissaoGerenciarFuncionarios(criador, lojaId);</span>
+
+        // Verifica limite de 15 funcionários por loja
+<span class="fc" id="L85">        long funcionariosAtivos = usuarioRepository.countByLojaVinculadaIdAndAtivoTrue(lojaId);</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        if (funcionariosAtivos &gt;= 15) {</span>
+<span class="fc" id="L87">            throw new RegraDeNegocioException(&quot;Limite máximo de 15 funcionários por loja atingido.&quot;);</span>
+        }
+
+        // Verifica se email já existe
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        if (usuarioRepository.findByEmail(email).isPresent()) {</span>
+<span class="fc" id="L92">            throw new RegraDeNegocioException(&quot;Email já cadastrado no sistema.&quot;);</span>
+        }
+
+<span class="fc" id="L95">        Loja loja = lojaRepository.findById(lojaId)</span>
+<span class="pc" id="L96">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Loja não encontrada.&quot;));</span>
+
+<span class="fc" id="L98">        Usuario funcionario = new Usuario();</span>
+<span class="fc" id="L99">        funcionario.setId(java.util.UUID.randomUUID().toString());</span>
+<span class="fc" id="L100">        funcionario.setNome(nome);</span>
+<span class="fc" id="L101">        funcionario.setEmail(email);</span>
+<span class="fc" id="L102">        funcionario.setSenha(passwordEncoder.encode(senha));</span>
+<span class="fc" id="L103">        funcionario.setTelefone(telefone);</span>
+<span class="fc" id="L104">        funcionario.setPapel(Papel.FUNCIONARIO);</span>
+<span class="fc" id="L105">        funcionario.setLojaVinculada(loja);</span>
+<span class="fc" id="L106">        funcionario.setCargo(cargo);</span>
+<span class="fc" id="L107">        funcionario.setAtivo(true);</span>
+
+<span class="fc" id="L109">        return usuarioRepository.save(funcionario);</span>
+    }
+
+    /**
+     * Atualiza dados de um funcionário (exceto email e senha).
+     */
+    @Transactional
+    public Usuario atualizarFuncionario(String funcionarioId, String nome, String telefone, 
+                                         String cargo, Usuario editor) {
+<span class="fc" id="L118">        Usuario funcionario = usuarioRepository.findById(funcionarioId)</span>
+<span class="pc" id="L119">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Funcionário não encontrado.&quot;));</span>
+
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (funcionario.getPapel() != Papel.FUNCIONARIO) {</span>
+<span class="fc" id="L122">            throw new RegraDeNegocioException(&quot;Usuário não é um funcionário.&quot;);</span>
+        }
+
+        // Valida que o editor tem acesso à loja do funcionário
+<span class="fc" id="L126">        validarPermissaoGerenciarFuncionarios(editor, funcionario.getLojaVinculada().getId());</span>
+
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">        if (nome != null) {</span>
+<span class="fc" id="L129">            funcionario.setNome(nome);</span>
+        }
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">        if (telefone != null) {</span>
+<span class="fc" id="L132">            funcionario.setTelefone(telefone);</span>
+        }
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">        if (cargo != null) {</span>
+<span class="fc" id="L135">            funcionario.setCargo(cargo);</span>
+        }
+
+<span class="fc" id="L138">        return usuarioRepository.save(funcionario);</span>
+    }
+
+    /**
+     * Ativa ou desativa um funcionário (soft delete quando ativo=false).
+     */
+    @Transactional
+    public Usuario ativarOuDesativarFuncionario(String funcionarioId, boolean ativo, Usuario editor) {
+<span class="fc" id="L146">        Usuario funcionario = usuarioRepository.findById(funcionarioId)</span>
+<span class="pc" id="L147">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Funcionário não encontrado.&quot;));</span>
+
+<span class="pc bpc" id="L149" title="1 of 2 branches missed.">        if (funcionario.getPapel() != Papel.FUNCIONARIO) {</span>
+<span class="nc" id="L150">            throw new RegraDeNegocioException(&quot;Usuário não é um funcionário.&quot;);</span>
+        }
+
+        // Valida que o editor tem acesso à loja do funcionário
+<span class="fc" id="L154">        validarPermissaoGerenciarFuncionarios(editor, funcionario.getLojaVinculada().getId());</span>
+
+<span class="fc" id="L156">        funcionario.setAtivo(ativo);</span>
+<span class="fc" id="L157">        return usuarioRepository.save(funcionario);</span>
+    }
+
+    /**
+     * Lista funcionários de uma loja.
+     */
+    @Transactional(readOnly = true)
+    public Page&lt;Usuario&gt; listarFuncionariosPorLoja(String lojaId, Pageable pageable) {
+<span class="fc" id="L165">        return usuarioRepository.findByLojaVinculadaId(lojaId, pageable);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

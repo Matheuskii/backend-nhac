@@ -187,6 +187,12 @@ public class PedidoService {
         }
 
         pedido.alterarStatus(novoStatus);
+        
+        // Devolve estoque quando o pedido é cancelado via atualização de status
+        if (novoStatus == StatusPedido.CANCELADO) {
+            devolverEstoque(pedido);
+        }
+        
         pedidoRepository.save(pedido);
     }
 

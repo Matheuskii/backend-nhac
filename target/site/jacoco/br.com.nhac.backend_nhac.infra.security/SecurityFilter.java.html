@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecurityFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.infra.security</a> &gt; <span class="el_source">SecurityFilter.java</span></div><h1>SecurityFilter.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.infra.security;
+
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.Collections;
+
+@Component
+public class SecurityFilter extends OncePerRequestFilter {
+
+    private final TokenService tokenService;
+    private final UsuarioRepository usuarioRepository;
+<span class="fc" id="L22">    public SecurityFilter(TokenService tokenService, UsuarioRepository usuarioRepository){</span>
+<span class="fc" id="L23">        this.tokenService = tokenService;</span>
+<span class="fc" id="L24">        this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L25">    }</span>
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+
+        // Ignorar requisições OPTIONS (CORS preflight)
+<span class="pc bpc" id="L30" title="1 of 2 branches missed.">        if (&quot;OPTIONS&quot;.equalsIgnoreCase(request.getMethod())) {</span>
+<span class="nc" id="L31">            filterChain.doFilter(request, response);</span>
+<span class="nc" id="L32">            return;</span>
+        }
+
+<span class="fc" id="L35">        String token = recuperarToken(request);</span>
+
+<span class="fc bfc" id="L37" title="All 2 branches covered.">        if(token != null){</span>
+<span class="fc" id="L38">            String id = tokenService.validarToken(token);</span>
+
+<span class="fc bfc" id="L40" title="All 2 branches covered.">            if(id != null){</span>
+
+
+<span class="fc" id="L43">                Usuario usuario = usuarioRepository.findById(id).orElse(null);</span>
+
+<span class="fc bfc" id="L45" title="All 2 branches covered.">                if(usuario != null){</span>
+<span class="fc" id="L46">                    var authentication = new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities());</span>
+<span class="fc" id="L47">                    SecurityContextHolder.getContext().setAuthentication(authentication);</span>
+                }
+
+            }
+        }
+
+<span class="fc" id="L53">        filterChain.doFilter(request, response);</span>
+<span class="fc" id="L54">    }</span>
+
+    private String recuperarToken(HttpServletRequest request) {
+<span class="fc" id="L57">        String authHeader = request.getHeader(&quot;Authorization&quot;);</span>
+<span class="fc bfc" id="L58" title="All 4 branches covered.">        if (authHeader == null || !authHeader.startsWith(&quot;Bearer &quot;)) {</span>
+<span class="fc" id="L59">            return null;</span>
+        }
+<span class="fc" id="L61">        return authHeader.replace(&quot;Bearer &quot;, &quot;&quot;);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

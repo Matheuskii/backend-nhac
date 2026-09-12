@@ -36,6 +36,9 @@ public class StripeWebhookControllerTest {
     @MockitoBean
     private br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository usuarioRepository;
 
+    @MockitoBean
+    private org.springframework.cache.CacheManager cacheManager;
+
     // Ignora a segurança apenas para o Webhook no ambiente de teste de Controller
     @TestConfiguration
     static class SecurityConfig {

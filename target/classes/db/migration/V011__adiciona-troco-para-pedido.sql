@@ -1,0 +1,3 @@
+
+ALTER TABLE tb_pedidos
+    ADD COLUMN troco_para DECIMAL(10,2) NULL;

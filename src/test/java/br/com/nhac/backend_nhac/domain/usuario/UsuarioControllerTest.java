@@ -44,6 +44,9 @@ class UsuarioControllerTest {
 
     @MockitoBean
     private br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository usuarioRepository;
+
+    @MockitoBean
+    private org.springframework.cache.CacheManager cacheManager;
     @MockitoBean
     private br.com.nhac.backend_nhac.domain.favorito.FavoritoService favoritoService;
 

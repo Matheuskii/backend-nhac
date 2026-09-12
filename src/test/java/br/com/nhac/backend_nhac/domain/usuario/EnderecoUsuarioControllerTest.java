@@ -44,6 +44,9 @@ class EnderecoUsuarioControllerTest {
     @MockitoBean
     private br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository usuarioRepository;
 
+    @MockitoBean
+    private org.springframework.cache.CacheManager cacheManager;
+
     private static final String USUARIO_LOGADO_ID = "user_123";
 
     @BeforeEach

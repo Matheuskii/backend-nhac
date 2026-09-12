@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GrupoAdicionalDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.produto.dto</a> &gt; <span class="el_source">GrupoAdicionalDTO.java</span></div><h1>GrupoAdicionalDTO.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.produto.dto;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+/**
+ * DTO para grupo de adicionais de um produto.
+ */
+<span class="nc" id="L14">public record GrupoAdicionalDTO(</span>
+
+        @Schema(description = &quot;Nome do grupo de adicionais&quot;, example = &quot;Escolha o molho&quot;)
+        @NotBlank(message = &quot;O nome do grupo de adicionais não pode estar vazio.&quot;)
+        String nome,
+
+        @Schema(description = &quot;Indica se o grupo é obrigatório&quot;, example = &quot;false&quot;)
+        boolean obrigatorio,
+
+        @Schema(description = &quot;Quantidade mínima de itens a selecionar&quot;, example = &quot;1&quot;)
+        Integer minimo,
+
+        @Schema(description = &quot;Quantidade máxima de itens a selecionar&quot;, example = &quot;2&quot;)
+        Integer maximo,
+
+        @Schema(description = &quot;Lista de itens deste grupo de adicionais&quot;)
+        @NotNull(message = &quot;A lista de itens não pode ser nula.&quot;)
+        List&lt;ItemAdicionalDTO&gt; itens
+) {
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

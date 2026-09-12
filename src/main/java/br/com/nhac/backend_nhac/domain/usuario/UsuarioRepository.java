@@ -1,6 +1,8 @@
 package br.com.nhac.backend_nhac.domain.usuario;
 
 import br.com.nhac.backend_nhac.domain.auth.CodigoVerificacaoEmail;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -22,4 +24,12 @@ public interface UsuarioRepository extends JpaRepository<Usuario, String> {
         @Param("tipo") CodigoVerificacaoEmail.TipoCodigo tipo,
         @Param("dataLimite") LocalDateTime dataLimite
     );
+
+    @Query("SELECT u FROM Usuario u WHERE u.lojaVinculada.id = :lojaId AND u.ativo = true")
+    Page<Usuario> findByLojaVinculadaId(@Param("lojaId") String lojaId, Pageable pageable);
+
+    @Query("SELECT COUNT(u) FROM Usuario u WHERE u.lojaVinculada.id = :lojaId AND u.ativo = true")
+    long countByLojaVinculadaIdAndAtivoTrue(@Param("lojaId") String lojaId);
+
+    Optional<Usuario> findByEmail(String email);
 }

@@ -7,6 +7,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import br.com.nhac.backend_nhac.domain.loja.Loja;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -52,6 +54,13 @@ public class Usuario implements UserDetails {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private Papel papel = Papel.CLIENTE;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "loja_vinculada_id")
+    private Loja lojaVinculada;
+
+    @Column(length = 50)
+    private String cargo;
 
     @Column(nullable = false)
     private boolean ativo = true;

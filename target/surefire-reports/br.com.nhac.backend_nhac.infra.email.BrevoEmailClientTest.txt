@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: br.com.nhac.backend_nhac.infra.email.BrevoEmailClientTest
+-------------------------------------------------------------------------------
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 6.009 s -- in br.com.nhac.backend_nhac.infra.email.BrevoEmailClientTest

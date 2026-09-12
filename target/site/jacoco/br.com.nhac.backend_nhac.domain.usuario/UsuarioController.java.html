@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsuarioController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.usuario</a> &gt; <span class="el_source">UsuarioController.java</span></div><h1>UsuarioController.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.usuario;
+
+import br.com.nhac.backend_nhac.domain.auth.dto.LoginResponseDTO;
+import br.com.nhac.backend_nhac.domain.usuario.dto.EnderecoUsuarioDTO;
+import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioAtualizarDTO;
+import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioCreateDTO;
+import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioResponseDTO;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
+import br.com.nhac.backend_nhac.infra.security.TokenService;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping(&quot;/api/v1/usuarios&quot;)
+public class UsuarioController {
+
+    private final UsuarioService usuarioService;
+    private final UsuarioRepository usuarioRepository;
+    private final TokenService tokenService;
+    private final br.com.nhac.backend_nhac.domain.favorito.FavoritoService favoritoService;
+    private final br.com.nhac.backend_nhac.domain.pedido.PedidoService pedidoService;
+
+<span class="fc" id="L31">    public UsuarioController(UsuarioService usuarioService, UsuarioRepository usuarioRepository, TokenService tokenService, br.com.nhac.backend_nhac.domain.favorito.FavoritoService favoritoService, br.com.nhac.backend_nhac.domain.pedido.PedidoService pedidoService) {</span>
+<span class="fc" id="L32">        this.usuarioService = usuarioService;</span>
+<span class="fc" id="L33">        this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L34">        this.tokenService = tokenService;</span>
+<span class="fc" id="L35">        this.favoritoService = favoritoService;</span>
+<span class="fc" id="L36">        this.pedidoService = pedidoService;</span>
+<span class="fc" id="L37">    }</span>
+
+    private void validarPropriedade(String idNaUrl, Usuario usuarioLogado) {
+<span class="fc bfc" id="L40" title="All 2 branches covered.">        if (!idNaUrl.equals(usuarioLogado.getId())) {</span>
+<span class="fc" id="L41">            throw new AcessoNegadoException(&quot;Acesso negado: não tem permissão para aceder ou modificar os dados de outro utilizador.&quot;);</span>
+        }
+<span class="fc" id="L43">    }</span>
+
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;UsuarioResponseDTO&gt; buscarUsuario(
+            @PathVariable String id,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+
+<span class="fc" id="L50">        validarPropriedade(id, usuarioLogado);</span>
+<span class="fc" id="L51">        return ResponseEntity.ok(usuarioService.buscarUsuario(id));</span>
+    }
+
+    @PostMapping
+    public ResponseEntity&lt;Void&gt; criarUsuario(@RequestBody @Valid UsuarioCreateDTO dto) {
+<span class="fc" id="L56">        usuarioService.salvarUsuario(dto);</span>
+<span class="fc" id="L57">        return ResponseEntity.status(HttpStatus.CREATED).build();</span>
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;LoginResponseDTO&gt; atualizarDadosUsuario(
+            @PathVariable String id,
+            @RequestBody @Valid UsuarioAtualizarDTO dados,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+
+<span class="fc" id="L66">        validarPropriedade(id, usuarioLogado);</span>
+<span class="fc" id="L67">        usuarioService.atualizarUsuarioParcial(id, dados);</span>
+<span class="fc" id="L68">        Usuario usuarioAtualizado = usuarioRepository.findById(id).get();</span>
+<span class="fc" id="L69">        String novoToken = tokenService.gerarToken(usuarioAtualizado);</span>
+
+<span class="fc" id="L71">        return ResponseEntity.ok(LoginResponseDTO.from(usuarioAtualizado, novoToken, false));</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;Void&gt; desativarUsuario(
+            @PathVariable String id,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+
+<span class="fc" id="L79">        usuarioService.desativarUsuario(id, usuarioLogado);</span>
+<span class="fc" id="L80">        return ResponseEntity.noContent().build();</span>
+    }
+
+    @PostMapping(&quot;/{id}/seguindo/{lojaId}&quot;)
+    public ResponseEntity&lt;Void&gt; seguirLoja(
+            @PathVariable String id,
+            @PathVariable String lojaId,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+<span class="nc" id="L88">        validarPropriedade(id, usuarioLogado);</span>
+        try {
+<span class="nc" id="L90">            br.com.nhac.backend_nhac.domain.favorito.dto.FavoritoCreateDTO dto = new br.com.nhac.backend_nhac.domain.favorito.dto.FavoritoCreateDTO(lojaId);</span>
+<span class="nc" id="L91">            favoritoService.favoritar(id, dto);</span>
+<span class="nc" id="L92">        } catch (br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException e) {</span>
+            // Ja segue, ignorar silenciosamente
+<span class="nc" id="L94">        }</span>
+<span class="nc" id="L95">        return ResponseEntity.ok().build();</span>
+    }
+
+    @DeleteMapping(&quot;/{id}/seguindo/{lojaId}&quot;)
+    public ResponseEntity&lt;Void&gt; pararDeSeguirLoja(
+            @PathVariable String id,
+            @PathVariable String lojaId,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+<span class="nc" id="L103">        validarPropriedade(id, usuarioLogado);</span>
+        try {
+<span class="nc" id="L105">            favoritoService.removerFavorito(id, lojaId);</span>
+<span class="nc" id="L106">        } catch (Exception e) {}</span>
+<span class="nc" id="L107">        return ResponseEntity.ok().build();</span>
+    }
+
+    @io.swagger.v3.oas.annotations.Operation(summary = &quot;Verificar se usuário segue loja&quot;, description = &quot;Verifica se o usuário favoritou/segue uma determinada loja.&quot;)
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description = &quot;Verificação realizada com sucesso.&quot;),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;404&quot;, description = &quot;Usuário ou loja não encontrados.&quot;)
+    })
+    @GetMapping(&quot;/{id}/seguindo/{lojaId}&quot;)
+    public ResponseEntity&lt;Boolean&gt; verificarSeguindo(
+            @PathVariable String id,
+            @PathVariable String lojaId,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+
+<span class="fc" id="L121">        validarPropriedade(id, usuarioLogado);</span>
+<span class="fc" id="L122">        boolean segue = favoritoService.usuarioSegueLoja(id, lojaId);</span>
+<span class="fc" id="L123">        return ResponseEntity.ok(segue);</span>
+    }
+
+    @io.swagger.v3.oas.annotations.Operation(summary = &quot;Listar pedidos do usuário&quot;, description = &quot;Retorna uma lista paginada dos pedidos feitos pelo usuário.&quot;)
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description = &quot;Lista de pedidos retornada com sucesso.&quot;)
+    })
+    @GetMapping(&quot;/{id}/pedidos&quot;)
+    public ResponseEntity&lt;org.springframework.data.domain.Page&lt;br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoDTO&gt;&gt; listarPedidos(
+            @PathVariable String id,
+            @AuthenticationPrincipal Usuario usuarioLogado,
+            @org.springframework.data.web.PageableDefault(sort = &quot;criadoEm&quot;, direction = org.springframework.data.domain.Sort.Direction.DESC) org.springframework.data.domain.Pageable pageable) {
+
+<span class="fc" id="L136">        validarPropriedade(id, usuarioLogado);</span>
+<span class="fc" id="L137">        org.springframework.data.domain.Page&lt;br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoDTO&gt; page = pedidoService.listarMeusPedidos(id, pageable);</span>
+<span class="fc" id="L138">        return ResponseEntity.ok(page);</span>
+    }
+
+    @io.swagger.v3.oas.annotations.Operation(summary = &quot;Obter estatísticas do usuário&quot;, description = &quot;Retorna os totais de pedidos, lojas favoritas e cupons resgatados do usuário.&quot;)
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description = &quot;Estatísticas obtidas com sucesso.&quot;)
+    })
+    @GetMapping(&quot;/{id}/estatisticas&quot;)
+    public ResponseEntity&lt;br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioEstatisticasDTO&gt; obterEstatisticas(
+            @PathVariable String id,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+        
+<span class="fc" id="L150">        validarPropriedade(id, usuarioLogado);</span>
+<span class="fc" id="L151">        br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioEstatisticasDTO estatisticas = usuarioService.obterEstatisticas(id);</span>
+<span class="fc" id="L152">        return ResponseEntity.ok(estatisticas);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

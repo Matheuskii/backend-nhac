@@ -579,4 +579,42 @@ class PedidoServiceTest {
         verify(pedidoRepository, times(1)).save(pedidoMock);
         assertEquals(StatusPedido.PREPARANDO, pedidoMock.getStatus());
     }
+
+    @Test
+    @DisplayName("Deve devolver estoque ao cancelar pedido via atualizarStatus com status CANCELADO")
+    void deveDevolverEstoqueAoCancelarViaAtualizarStatus() {
+        Loja lojaMock = new Loja();
+        lojaMock.setId("loja_001");
+        lojaMock.setUsuarioId("user_001");
+
+        Usuario lojistaMock = new Usuario();
+        lojistaMock.setId("user_001");
+        lojistaMock.setPapel(br.com.nhac.backend_nhac.domain.usuario.Papel.LOJISTA);
+
+        Produto produtoMock = new Produto();
+        produtoMock.setId("prod_1");
+        produtoMock.setEstoque(50);
+        produtoMock.setLoja(lojaMock);
+
+        ItemPedido itemMock = new ItemPedido();
+        itemMock.setId("item_1");
+        itemMock.setProduto(produtoMock);
+        itemMock.setQuantidade(3);
+
+        Pedido pedidoMock = new Pedido();
+        pedidoMock.setId("pedido_123");
+        pedidoMock.setStatus(StatusPedido.PAGO);
+        pedidoMock.setLoja(lojaMock);
+        pedidoMock.setItens(List.of(itemMock));
+
+        when(pedidoRepository.findById("pedido_123")).thenReturn(Optional.of(pedidoMock));
+        when(produtoRepository.save(any(Produto.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        pedidoService.atualizarStatus("pedido_123", StatusPedido.CANCELADO, lojistaMock);
+
+        verify(pedidoRepository, times(1)).save(pedidoMock);
+        assertEquals(StatusPedido.CANCELADO, pedidoMock.getStatus());
+        assertEquals(53, produtoMock.getEstoque(), "Estoque deve ser incrementado em 3 unidades (50 + 3)");
+        verify(produtoRepository, times(1)).save(produtoMock);
+    }
 }

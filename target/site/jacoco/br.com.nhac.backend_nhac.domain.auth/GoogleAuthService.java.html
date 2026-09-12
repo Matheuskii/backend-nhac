@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GoogleAuthService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.auth</a> &gt; <span class="el_source">GoogleAuthService.java</span></div><h1>GoogleAuthService.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.auth;
+
+
+import br.com.nhac.backend_nhac.domain.auth.dto.LoginResponseDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.exceptions.CredenciaisInvalidasException;
+import br.com.nhac.backend_nhac.infra.security.TokenService;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.util.*;
+
+@Service
+public class GoogleAuthService {
+
+    private final UsuarioRepository usuarioRepository;
+    private final TokenService tokenService;
+
+
+
+<span class="fc" id="L29">    public GoogleAuthService(UsuarioRepository usuarioRepository, TokenService tokenService) {</span>
+<span class="fc" id="L30">        this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L31">        this.tokenService = tokenService;</span>
+<span class="fc" id="L32">    }</span>
+    @Value(&quot;${google.client.id}&quot;)
+    private String googleClientIds;
+
+    @Transactional
+    public LoginResponseDTO autenticarComGoogle(String idTokenString) {
+        try {
+<span class="fc" id="L39">            List&lt;String&gt; clientIds = Arrays.asList(googleClientIds.split(&quot;,&quot;));</span>
+
+<span class="fc" id="L41">            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(</span>
+                    new NetHttpTransport(), new GsonFactory())
+<span class="fc" id="L43">                    .setAudience(clientIds)</span>
+<span class="fc" id="L44">                    .build();</span>
+
+<span class="fc" id="L46">            GoogleIdToken idToken = verifier.verify(idTokenString);</span>
+
+<span class="fc bfc" id="L48" title="All 2 branches covered.">            if (idToken != null) {</span>
+<span class="fc" id="L49">                GoogleIdToken.Payload payload = idToken.getPayload();</span>
+
+<span class="fc" id="L51">                String email = payload.getEmail();</span>
+<span class="fc" id="L52">                String nome = (String) payload.get(&quot;name&quot;);</span>
+<span class="fc" id="L53">                String imagemUrl = (String) payload.get(&quot;picture&quot;);</span>
+
+<span class="fc" id="L55">                Usuario usuario = usuarioRepository.findByEmailIgnoreCase(email)</span>
+<span class="fc" id="L56">                        .orElseGet(() -&gt; registrarNovoUsuarioGoogle(email, nome, imagemUrl));</span>
+
+<span class="fc" id="L58">                String tokenJwt = tokenService.gerarToken(usuario);</span>
+
+<span class="fc" id="L60">                return LoginResponseDTO.from(usuario, tokenJwt, false);</span>
+
+            } else {
+<span class="fc" id="L63">                throw new CredenciaisInvalidasException(&quot;Token do Google inválido ou expirado&quot;);</span>
+            }
+<span class="fc" id="L65">        } catch (Exception e) {</span>
+<span class="fc" id="L66">            throw new CredenciaisInvalidasException(&quot;Erro ao validar token social:&quot; + e.getMessage());</span>
+        }
+    }
+
+
+        private Usuario registrarNovoUsuarioGoogle(String email, String nome, String imagemUrl) {
+<span class="fc" id="L72">            Usuario novoUsuario = new Usuario();</span>
+<span class="fc" id="L73">            novoUsuario.setId(UUID.randomUUID().toString());</span>
+<span class="fc" id="L74">            novoUsuario.setEmail(email);</span>
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">            novoUsuario.setNome(nome != null ? nome : &quot;Usuário Nhac&quot;);</span>
+<span class="fc" id="L76">            novoUsuario.setImagemUrl(imagemUrl);</span>
+<span class="fc" id="L77">            novoUsuario.setEnderecos(new ArrayList&lt;&gt;());</span>
+
+<span class="fc" id="L79">            novoUsuario.setTelefone(&quot;00000000000&quot;);</span>
+
+<span class="fc" id="L81">            novoUsuario.setSenha(null);</span>
+
+<span class="fc" id="L83">            return usuarioRepository.save(novoUsuario);</span>
+
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

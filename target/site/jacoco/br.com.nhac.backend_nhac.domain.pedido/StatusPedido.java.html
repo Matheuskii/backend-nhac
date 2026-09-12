@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StatusPedido.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.pedido</a> &gt; <span class="el_source">StatusPedido.java</span></div><h1>StatusPedido.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.pedido;
+
+import java.util.Set;
+
+<span class="fc" id="L5">public enum StatusPedido {</span>
+<span class="fc" id="L6">    PENDENTE,</span>
+<span class="fc" id="L7">    PAGO,</span>
+<span class="fc" id="L8">    PREPARANDO,</span>
+<span class="fc" id="L9">    SAIU_ENTREGA,</span>
+<span class="fc" id="L10">    ENTREGUE,</span>
+<span class="fc" id="L11">    CANCELADO;</span>
+    
+    public boolean podeMudarPara(StatusPedido novoStatus) {
+<span class="fc bfc" id="L14" title="All 2 branches covered.">        if (this == novoStatus) {</span>
+<span class="fc" id="L15">            throw new br.com.nhac.backend_nhac.exceptions.TransicaoStatusInvalidaException(</span>
+                    &quot;O pedido já está no status &quot; + novoStatus);
+        }
+
+<span class="fc bfc" id="L19" title="All 5 branches covered.">        boolean isValido = switch (this) {</span>
+<span class="fc" id="L20">            case PENDENTE -&gt; Set.of(PAGO, CANCELADO).contains(novoStatus);</span>
+<span class="fc" id="L21">            case PAGO -&gt; Set.of(PREPARANDO, CANCELADO).contains(novoStatus);</span>
+<span class="fc" id="L22">            case PREPARANDO -&gt; Set.of(SAIU_ENTREGA, CANCELADO).contains(novoStatus);</span>
+<span class="fc" id="L23">            case SAIU_ENTREGA -&gt; Set.of(ENTREGUE).contains(novoStatus);</span>
+<span class="fc" id="L24">            case ENTREGUE, CANCELADO -&gt; false;</span>
+        };
+
+<span class="fc bfc" id="L27" title="All 2 branches covered.">        if (!isValido) {</span>
+<span class="fc" id="L28">            throw new br.com.nhac.backend_nhac.exceptions.TransicaoStatusInvalidaException(</span>
+                    &quot;Transição de status inválida de &quot; + this + &quot; para &quot; + novoStatus,
+<span class="fc" id="L30">                    java.util.Map.of(&quot;statusAtual&quot;, this.name(), &quot;statusNovo&quot;, novoStatus.name()));</span>
+        }
+<span class="fc" id="L32">        return true;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

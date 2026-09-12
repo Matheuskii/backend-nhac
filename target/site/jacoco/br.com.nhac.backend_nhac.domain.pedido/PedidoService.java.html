@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PedidoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.pedido</a> &gt; <span class="el_source">PedidoService.java</span></div><h1>PedidoService.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.pedido;
+
+import br.com.nhac.backend_nhac.domain.loja.Loja;
+import br.com.nhac.backend_nhac.domain.pedido.dto.*;
+import br.com.nhac.backend_nhac.domain.produto.Produto;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.exceptions.*;
+import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
+import br.com.nhac.backend_nhac.domain.produto.ProdutoRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.Map;
+
+@Service
+public class PedidoService {
+
+    private final PedidoRepository pedidoRepository;
+    private final LojaRepository lojaRepository;
+    private final ProdutoRepository produtoRepository;
+    private final StripePaymentService stripePaymentService;
+    private final AsaasPaymentService asaasPaymentService;
+
+<span class="fc" id="L27">    public PedidoService(PedidoRepository pedidoRepository, LojaRepository lojaRepository, ProdutoRepository produtoRepository, StripePaymentService stripePaymentService, AsaasPaymentService asaasPaymentService) {</span>
+<span class="fc" id="L28">        this.pedidoRepository = pedidoRepository;</span>
+<span class="fc" id="L29">        this.lojaRepository = lojaRepository;</span>
+<span class="fc" id="L30">        this.produtoRepository = produtoRepository;</span>
+<span class="fc" id="L31">        this.stripePaymentService = stripePaymentService;</span>
+<span class="fc" id="L32">        this.asaasPaymentService = asaasPaymentService;</span>
+<span class="fc" id="L33">    }</span>
+
+    @Transactional
+    public ResultadoCriacaoPedido finalizarPedido(PedidoCreateDTO dto, Usuario usuarioLogado, String idempotencyKey) {
+
+<span class="pc bpc" id="L38" title="3 of 4 branches missed.">        if (idempotencyKey != null &amp;&amp; !idempotencyKey.isBlank()) {</span>
+<span class="nc" id="L39">            var existente = pedidoRepository.findByIdempotencyKey(idempotencyKey);</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">            if (existente.isPresent()) {</span>
+<span class="nc" id="L41">                Pedido pedidoExistente = existente.get();</span>
+<span class="nc" id="L42">                return new ResultadoCriacaoPedido(</span>
+<span class="nc" id="L43">                        new PedidoCriadoDTO(pedidoExistente.getId(), null, null, null),</span>
+                        true);
+            }
+        }
+
+<span class="fc" id="L48">        Loja loja = lojaRepository.findByIdAndIsAbertoTrue(dto.lojaId())</span>
+<span class="fc" id="L49">                .orElseThrow(() -&gt; new LojaFechadaException(dto.lojaId()));</span>
+
+<span class="pc bpc" id="L51" title="1 of 2 branches missed.">        if (!loja.isAberto()) {</span>
+<span class="nc" id="L52">            throw new LojaFechadaException(dto.lojaId());</span>
+        }
+
+<span class="fc" id="L55">        Pedido pedido = dto.toEntity(loja);</span>
+<span class="fc" id="L56">        pedido.setIdempotencyKey(idempotencyKey);</span>
+<span class="fc" id="L57">        pedido.setUsuarioId(usuarioLogado.getId());</span>
+
+<span class="fc" id="L59">        BigDecimal valorTotalItens = BigDecimal.ZERO;</span>
+
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        for (PedidoCreateDTO.ItemPedidoDTO itemDto : dto.itens()) {</span>
+<span class="pc bpc" id="L62" title="1 of 2 branches missed.">            if (itemDto.quantidade() &lt;= 0) {</span>
+<span class="nc" id="L63">                throw new QuantidadeInvalidaException(&quot;A quantidade deve ser maior que zero&quot;, Map.of(&quot;produtoId&quot;, itemDto.produtoId(), &quot;quantidade&quot;, itemDto.quantidade()));</span>
+            }
+
+<span class="fc" id="L66">            Produto produtoReal = produtoRepository.findById(itemDto.produtoId())</span>
+<span class="fc" id="L67">                    .orElseThrow(() -&gt; new ProdutoNaoEncontradoException(itemDto.produtoId(), loja.getId()));</span>
+
+<span class="fc bfc" id="L69" title="All 2 branches covered.">            if (!produtoReal.getLoja().getId().equals(loja.getId())) {</span>
+<span class="fc" id="L70">                throw new RegraDeNegocioException(&quot;O produto '&quot; + produtoReal.getNome() + &quot;' não pertence à loja selecionada.&quot;);</span>
+            }
+
+<span class="pc bpc" id="L73" title="1 of 2 branches missed.">            if (!produtoReal.isAtivo()) {</span>
+<span class="nc" id="L74">                throw new ProdutoInativoException(&quot;O produto '&quot; + produtoReal.getNome() + &quot;' está inativo.&quot;, Map.of(&quot;produtoId&quot;, produtoReal.getId()));</span>
+            }
+
+<span class="pc bpc" id="L77" title="2 of 4 branches missed.">            if (produtoReal.getEstoque() == null || produtoReal.getEstoque() &lt; itemDto.quantidade()) {</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">                throw new EstoqueInsuficienteException(produtoReal.getId(), itemDto.quantidade(), produtoReal.getEstoque() == null ? 0 : produtoReal.getEstoque());</span>
+            }
+
+<span class="fc" id="L81">            int atualizados = produtoRepository.decrementarEstoqueSeDisponivel(produtoReal.getId(), itemDto.quantidade());</span>
+<span class="pc bpc" id="L82" title="1 of 2 branches missed.">            if (atualizados == 0) {</span>
+<span class="nc" id="L83">                throw new EstoqueInsuficienteException(produtoReal.getId(), itemDto.quantidade(), produtoReal.getEstoque());</span>
+            }
+<span class="fc" id="L85">            produtoReal.setEstoque(produtoReal.getEstoque() - itemDto.quantidade());</span>
+
+<span class="fc" id="L87">            ItemPedido novoItem = itemDto.toEntity(produtoReal);</span>
+<span class="fc" id="L88">            BigDecimal precoReal = produtoReal.getPreco();</span>
+<span class="fc" id="L89">            novoItem.setPrecoHistorico(precoReal);</span>
+
+<span class="fc" id="L91">            BigDecimal subtotal = precoReal.multiply(BigDecimal.valueOf(novoItem.getQuantidade()));</span>
+<span class="fc" id="L92">            valorTotalItens = valorTotalItens.add(subtotal);</span>
+
+<span class="fc" id="L94">            pedido.adicionarItem(novoItem);</span>
+<span class="fc" id="L95">        }</span>
+
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">        if (pedido.getEnderecoEntrega() == null) {</span>
+<span class="nc" id="L98">            throw new CampoObrigatorioFaltandoException(&quot;enderecoEntrega&quot;);</span>
+        }
+
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        BigDecimal taxaFrete = loja.getDadosOperacionais() != null</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">                &amp;&amp; loja.getDadosOperacionais().getTaxaEntregaBase() != null</span>
+<span class="fc" id="L103">                ? loja.getDadosOperacionais().getTaxaEntregaBase()</span>
+<span class="fc" id="L104">                : new BigDecimal(&quot;5.00&quot;);</span>
+<span class="fc" id="L105">        pedido.setTaxaFrete(taxaFrete);</span>
+<span class="fc" id="L106">        pedido.setValorTotal(valorTotalItens.add(taxaFrete));</span>
+
+<span class="fc" id="L108">        Pedido pedidoSalvo = pedidoRepository.save(pedido);</span>
+
+        try {
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">            if (&quot;PIX&quot;.equalsIgnoreCase(pedido.getFormaPagamento())) {</span>
+<span class="nc bnc" id="L112" title="All 4 branches missed.">                if (dto.cpfPagador() == null || dto.cpfPagador().isBlank()) {</span>
+<span class="nc" id="L113">                    throw new RegraDeNegocioException(&quot;O CPF do pagador é obrigatório para pagamento via PIX.&quot;);</span>
+                }
+<span class="nc" id="L115">                return new ResultadoCriacaoPedido(</span>
+<span class="nc" id="L116">                        asaasPaymentService.criarCobrancaPix(</span>
+<span class="nc" id="L117">                                pedidoSalvo, usuarioLogado.getNome(), usuarioLogado.getEmail(), dto.cpfPagador()),</span>
+                        false);
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">            } else if (&quot;CARTAO&quot;.equalsIgnoreCase(pedido.getFormaPagamento()) || </span>
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">                       &quot;GOOGLE_PAY&quot;.equalsIgnoreCase(pedido.getFormaPagamento()) ||</span>
+<span class="pc bpc" id="L121" title="1 of 2 branches missed.">                       &quot;STRIPE&quot;.equalsIgnoreCase(pedido.getFormaPagamento())) {</span>
+                
+<span class="nc" id="L123">                return new ResultadoCriacaoPedido(stripePaymentService.criarPaymentIntentCartao(pedidoSalvo), false);</span>
+            }
+            
+<span class="fc" id="L126">            return new ResultadoCriacaoPedido(new PedidoCriadoDTO(pedidoSalvo.getId(), null, null, null), false);</span>
+<span class="nc" id="L127">        } catch (Exception e) {</span>
+<span class="nc" id="L128">            throw new PagamentoRecusadoException(&quot;Não foi possível processar seu pagamento&quot;, e);</span>
+        }
+    }
+
+    @Transactional
+    public void marcarComoPagoPorPaymentIntentId(String paymentIntentId) {
+<span class="nc" id="L134">        Pedido pedido = pedidoRepository.findByStripePaymentIntentId(paymentIntentId)</span>
+<span class="nc" id="L135">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Pedido com PaymentIntent &quot; + paymentIntentId + &quot; não encontrado.&quot;));</span>
+        
+<span class="nc" id="L137">        pedido.alterarStatus(StatusPedido.PAGO);</span>
+<span class="nc" id="L138">        pedidoRepository.save(pedido);</span>
+<span class="nc" id="L139">    }</span>
+
+    @Transactional
+    public void marcarComoPagoPorAsaasPaymentId(String asaasPaymentId) {
+<span class="nc" id="L143">        Pedido pedido = pedidoRepository.findByAsaasPaymentId(asaasPaymentId)</span>
+<span class="nc" id="L144">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Pedido com Asaas Payment ID &quot; + asaasPaymentId + &quot; não encontrado.&quot;));</span>
+        
+<span class="nc" id="L146">        pedido.alterarStatus(StatusPedido.PAGO);</span>
+<span class="nc" id="L147">        pedidoRepository.save(pedido);</span>
+<span class="nc" id="L148">    }</span>
+
+    @Transactional
+    public void cancelarPorFalhaPagamentoAsaas(String pedidoId) {
+<span class="nc" id="L152">        Pedido pedido = pedidoRepository.findById(pedidoId)</span>
+<span class="nc" id="L153">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Pedido não encontrado para cancelamento por falha de pagamento Asaas.&quot;));</span>
+
+<span class="nc" id="L155">        pedido.alterarStatus(StatusPedido.CANCELADO);</span>
+<span class="nc" id="L156">        devolverEstoque(pedido);</span>
+<span class="nc" id="L157">        pedidoRepository.save(pedido);</span>
+<span class="nc" id="L158">    }</span>
+
+    @Transactional(readOnly = true)
+    public PedidoResponseDTO buscarPedido(String id, String usuarioIdLogado) {
+<span class="fc" id="L162">        Pedido pedido = pedidoRepository.findById(id)</span>
+<span class="fc" id="L163">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Pedido não encontrado.&quot;));</span>
+
+<span class="fc bfc" id="L165" title="All 2 branches covered.">        if (!pedido.getUsuarioId().equals(usuarioIdLogado)) {</span>
+<span class="fc" id="L166">            throw new AcessoNegadoException(&quot;Acesso negado: você não tem permissão para visualizar este pedido.&quot;);</span>
+        }
+
+<span class="fc" id="L169">        return new PedidoResponseDTO(pedido);</span>
+    }
+
+    @Transactional(readOnly = true)
+    public Page&lt;PedidoResumoDTO&gt; listarMeusPedidos(String usuarioId, Pageable pageable) {
+<span class="fc" id="L174">        Page&lt;Pedido&gt; page = pedidoRepository.findByUsuarioId(usuarioId, pageable);</span>
+<span class="fc" id="L175">        return page.map(PedidoResumoDTO::new);</span>
+    }
+
+    @Transactional
+    public void atualizarStatus(String pedidoId, StatusPedido novoStatus, Usuario usuarioLogado) {
+<span class="fc" id="L180">        Pedido pedido = pedidoRepository.findById(pedidoId)</span>
+<span class="fc" id="L181">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Pedido não encontrado.&quot;));</span>
+
+        // ADMIN tem bypass na checagem de ownership
+<span class="fc" id="L184">        boolean isAdmin = usuarioLogado.getPapel().name().equals(&quot;ADMIN&quot;);</span>
+<span class="fc bfc" id="L185" title="All 4 branches covered.">        if (!isAdmin &amp;&amp; !pedido.getLoja().getUsuarioId().equals(usuarioLogado.getId())) {</span>
+<span class="fc" id="L186">            throw new AcessoNegadoException(&quot;Acesso negado: você não tem permissão para alterar o status deste pedido.&quot;);</span>
+        }
+
+<span class="fc" id="L189">        pedido.alterarStatus(novoStatus);</span>
+        
+        // Devolve estoque quando o pedido é cancelado via atualização de status
+<span class="fc bfc" id="L192" title="All 2 branches covered.">        if (novoStatus == StatusPedido.CANCELADO) {</span>
+<span class="fc" id="L193">            devolverEstoque(pedido);</span>
+        }
+        
+<span class="fc" id="L196">        pedidoRepository.save(pedido);</span>
+<span class="fc" id="L197">    }</span>
+
+    @Transactional
+    public void cancelarPedido(String pedidoId, String usuarioIdLogado) {
+<span class="fc" id="L201">        Pedido pedido = pedidoRepository.findById(pedidoId)</span>
+<span class="pc" id="L202">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Pedido não encontrado.&quot;));</span>
+
+<span class="fc bfc" id="L204" title="All 2 branches covered.">        if (!pedido.getUsuarioId().equals(usuarioIdLogado)) {</span>
+<span class="fc" id="L205">            throw new AcessoNegadoException(&quot;Acesso negado: você não tem permissão para cancelar este pedido.&quot;);</span>
+        }
+
+<span class="fc" id="L208">        pedido.alterarStatus(StatusPedido.CANCELADO);</span>
+<span class="fc" id="L209">        devolverEstoque(pedido);</span>
+<span class="fc" id="L210">        pedidoRepository.save(pedido);</span>
+<span class="fc" id="L211">    }</span>
+
+    @Transactional
+    public void marcarComoCanceladoPorFalhaDePagamento(String pedidoId) {
+<span class="fc" id="L215">        Pedido pedido = pedidoRepository.findById(pedidoId)</span>
+<span class="pc" id="L216">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Pedido não encontrado para cancelamento por webhook.&quot;));</span>
+
+<span class="fc" id="L218">        pedido.alterarStatus(StatusPedido.CANCELADO);</span>
+<span class="fc" id="L219">        devolverEstoque(pedido);</span>
+<span class="fc" id="L220">        pedidoRepository.save(pedido);</span>
+<span class="fc" id="L221">    }</span>
+    
+    private void devolverEstoque(Pedido pedido) {
+<span class="fc bfc" id="L224" title="All 2 branches covered.">        for (ItemPedido item : pedido.getItens()) {</span>
+<span class="fc" id="L225">            Produto produto = item.getProduto();</span>
+<span class="pc bpc" id="L226" title="1 of 2 branches missed.">            if (produto.getEstoque() != null) {</span>
+<span class="fc" id="L227">                produto.setEstoque(produto.getEstoque() + item.getQuantidade());</span>
+<span class="fc" id="L228">                produtoRepository.save(produto);</span>
+            }
+<span class="fc" id="L230">        }</span>
+<span class="fc" id="L231">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

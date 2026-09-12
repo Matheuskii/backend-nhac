@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RedefinirSenhaEmailDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.auth.dto</a> &gt; <span class="el_source">RedefinirSenhaEmailDTO.java</span></div><h1>RedefinirSenhaEmailDTO.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.auth.dto;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+@Schema(description = &quot;DTO para concluir redefinição de senha via e-mail&quot;)
+<span class="nc" id="L9">public record RedefinirSenhaEmailDTO(</span>
+        @Schema(description = &quot;E-mail do usuário&quot;, example = &quot;usuario@email.com&quot;)
+        @NotBlank(message = &quot;O e-mail é obrigatório.&quot;)
+        @Email(message = &quot;E-mail inválido.&quot;)
+        String email,
+
+        @Schema(description = &quot;Código de verificação recebido por e-mail&quot;, example = &quot;123456&quot;)
+        @NotBlank(message = &quot;O código é obrigatório.&quot;)
+        @Size(min = 6, max = 6, message = &quot;O código deve ter 6 dígitos.&quot;)
+        String codigo,
+
+        @Schema(description = &quot;Nova senha do usuário&quot;, example = &quot;novaSenha123&quot;)
+        @NotBlank(message = &quot;A nova senha é obrigatória.&quot;)
+        @Size(min = 6, message = &quot;A senha deve ter pelo menos 6 caracteres.&quot;)
+        String novaSenha
+) {
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

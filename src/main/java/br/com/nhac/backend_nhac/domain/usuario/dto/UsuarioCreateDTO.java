@@ -45,6 +45,8 @@ public record UsuarioCreateDTO(
                 null,
                 false,
                 br.com.nhac.backend_nhac.domain.usuario.Papel.CLIENTE,
+                null,
+                null,
                 true,
                 false
         );

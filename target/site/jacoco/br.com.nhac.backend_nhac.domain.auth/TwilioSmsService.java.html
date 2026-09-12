@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TwilioSmsService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.auth</a> &gt; <span class="el_source">TwilioSmsService.java</span></div><h1>TwilioSmsService.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.auth;
+
+import com.twilio.Twilio;
+import com.twilio.rest.api.v2010.account.Message;
+import com.twilio.type.PhoneNumber;
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+@Service
+<span class="fc" id="L13">public class TwilioSmsService implements SmsService {</span>
+
+<span class="fc" id="L15">    private static final Logger logger = LoggerFactory.getLogger(TwilioSmsService.class);</span>
+
+    @Value(&quot;${twilio.account-sid:}&quot;)
+    private String accountSid;
+
+    @Value(&quot;${twilio.auth-token:}&quot;)
+    private String authToken;
+
+    @Value(&quot;${twilio.from-number:}&quot;)
+    private String fromNumber;
+
+    @Value(&quot;${nhac.sms.mock-mode:true}&quot;)
+    private boolean mockMode;
+
+    @PostConstruct
+    public void init() {
+<span class="pc bpc" id="L31" title="4 of 10 branches missed.">        if (!mockMode &amp;&amp; accountSid != null &amp;&amp; !accountSid.isBlank() &amp;&amp; authToken != null &amp;&amp; !authToken.isBlank()) {</span>
+<span class="fc" id="L32">            Twilio.init(accountSid, authToken);</span>
+<span class="fc" id="L33">            logger.info(&quot;Twilio SMS Service inicializado com sucesso.&quot;);</span>
+        } else {
+<span class="fc" id="L35">            logger.info(&quot;Twilio SMS operando em modo MOCK / Log no terminal.&quot;);</span>
+        }
+<span class="fc" id="L37">    }</span>
+
+    @Override
+    public void enviarSms(String telefoneDestino, String mensagem) {
+<span class="pc bpc" id="L41" title="2 of 6 branches missed.">        if (mockMode || accountSid == null || accountSid.isBlank()) {</span>
+<span class="fc" id="L42">            logger.info(&quot;=================================================&quot;);</span>
+<span class="fc" id="L43">            logger.info(&quot;[SMS MOCK - NHAC DELIVERY]&quot;);</span>
+<span class="fc" id="L44">            logger.info(&quot;Destinatário: {}&quot;, telefoneDestino);</span>
+<span class="fc" id="L45">            logger.info(&quot;Mensagem: {}&quot;, mensagem);</span>
+<span class="fc" id="L46">            logger.info(&quot;=================================================&quot;);</span>
+<span class="fc" id="L47">            return;</span>
+        }
+
+        try {
+<span class="fc" id="L51">            Message.creator(</span>
+                new PhoneNumber(telefoneDestino),
+                new PhoneNumber(fromNumber),
+                mensagem
+<span class="nc" id="L55">            ).create();</span>
+<span class="nc" id="L56">            logger.info(&quot;SMS enviado com sucesso via Twilio para {}&quot;, telefoneDestino);</span>
+<span class="fc" id="L57">        } catch (Exception e) {</span>
+<span class="fc" id="L58">            logger.error(&quot;Falha ao enviar SMS para {}: {}&quot;, telefoneDestino, e.getMessage(), e);</span>
+<span class="fc" id="L59">            throw new RuntimeException(&quot;Não foi possível enviar o SMS de verificação.&quot;, e);</span>
+<span class="nc" id="L60">        }</span>
+<span class="nc" id="L61">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PedidoCreateDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.pedido.dto</a> &gt; <span class="el_source">PedidoCreateDTO.java</span></div><h1>PedidoCreateDTO.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.pedido.dto;
+
+import br.com.nhac.backend_nhac.domain.loja.Loja;
+import br.com.nhac.backend_nhac.domain.pedido.EnderecoEntrega;
+import br.com.nhac.backend_nhac.domain.pedido.ItemPedido;
+import br.com.nhac.backend_nhac.domain.pedido.Pedido;
+import br.com.nhac.backend_nhac.domain.pedido.StatusPedido;
+import br.com.nhac.backend_nhac.domain.produto.Produto;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+@Schema(description = &quot;Objeto de transferência que representa o Carrinho de Compras finalizado pelo cliente no Flutter&quot;)
+<span class="fc" id="L22">public record PedidoCreateDTO(</span>
+
+
+    @Schema(description = &quot;ID da loja onde o pedido foi feito&quot;, example = &quot;loja-001&quot;)
+    @JsonProperty(required = false)
+    String lojaId,
+
+
+    @Schema(description = &quot;Forma de pagamento escolhida (ex: PIX, CARTAO_CREDITO)&quot;, example = &quot;PIX&quot;)
+    @JsonProperty(required = false)
+    String formaPagamento,
+
+    @Schema(description = &quot;Observação ou instrução especial do cliente&quot;, example = &quot;Tirar a cebola do lanche.&quot;)
+    @Size(max = 500, message = &quot;A observação não pode ter mais de 500 caracteres.&quot;)
+    @JsonProperty(required = false)
+    String observacao,
+
+    @Schema(description = &quot;Valor em dinheiro para calcular o troco (apenas quando formaPagamento = Dinheiro)&quot;, example = &quot;50.00&quot;)
+    @JsonProperty(required = false)
+    BigDecimal trocoPara,
+
+    @Schema(description = &quot;CPF do pagador, obrigatório quando formaPagamento = PIX (necessário para criar o cliente no Asaas)&quot;, example = &quot;12345678901&quot;)
+    @JsonProperty(required = false)
+    String cpfPagador,
+
+    @Schema(description = &quot;Endereço completo e exato para entrega&quot;)
+    @JsonProperty(required = false)
+    @Valid
+    EnderecoEntregaDTO enderecoEntrega,
+
+    @Schema(description = &quot;ID do cupom de desconto aplicado, se houver&quot;, example = &quot;cupom-001&quot;)
+    @JsonProperty(required = false)
+    String cupomId,
+
+    @Schema(description = &quot;Lista de produtos comprados&quot;)
+    @NotNull(message = &quot;O carrinho de compras não pode ser nulo.&quot;)
+    @NotEmpty(message = &quot;O carrinho de compras não pode estar vazio. Adicione pelo menos um item.&quot;)
+    @Size(min = 1, message = &quot;O carrinho deve ter pelo menos um item.&quot;)
+    @Valid
+    List&lt;ItemPedidoDTO&gt; itens
+) {
+
+        public Pedido toEntity(Loja lojaDaBaseDeDados) {
+<span class="fc" id="L65">                Pedido pedido = new Pedido();</span>
+
+<span class="fc" id="L67">                pedido.setId(UUID.randomUUID().toString());</span>
+<span class="fc" id="L68">                pedido.setLoja(lojaDaBaseDeDados);</span>
+<span class="fc" id="L69">                pedido.setCupomId(this.cupomId());</span>
+
+<span class="fc" id="L71">                pedido.setFormaPagamento(this.formaPagamento());</span>
+<span class="fc" id="L72">                pedido.setObservacao(this.observacao());</span>
+<span class="fc" id="L73">                pedido.setTrocoPara(this.trocoPara());</span>
+
+<span class="fc" id="L75">                pedido.setStatus(StatusPedido.PENDENTE);</span>
+<span class="fc" id="L76">                pedido.setCriadoEm(Instant.now());</span>
+
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">                if (this.enderecoEntrega() != null) {</span>
+<span class="fc" id="L79">                        EnderecoEntrega endereco = new EnderecoEntrega(</span>
+<span class="fc" id="L80">                                this.enderecoEntrega().rua(),</span>
+<span class="fc" id="L81">                                this.enderecoEntrega().numero(),</span>
+<span class="fc" id="L82">                                this.enderecoEntrega().bairro(),</span>
+<span class="fc" id="L83">                                this.enderecoEntrega().cidade(),</span>
+<span class="fc" id="L84">                                this.enderecoEntrega().estado(),</span>
+<span class="fc" id="L85">                                this.enderecoEntrega().cep(),</span>
+<span class="fc" id="L86">                                this.enderecoEntrega().complemento()</span>
+                        );
+<span class="fc" id="L88">                        pedido.setEnderecoEntrega(endereco);</span>
+                }
+
+<span class="fc" id="L91">                return pedido;</span>
+        }
+
+
+        @Schema(description = &quot;Dados do endereço de entrega no momento da compra&quot;)
+<span class="fc" id="L96">        public record EnderecoEntregaDTO(</span>
+                @NotBlank(message = &quot;A rua de entrega é obrigatória.&quot;)
+                String rua,
+
+                @NotBlank(message = &quot;O número de entrega é obrigatório.&quot;)
+                String numero,
+
+                @NotBlank(message = &quot;O bairro é obrigatório.&quot;)
+                String bairro,
+
+                @NotBlank(message = &quot;A cidade é obrigatória.&quot;)
+                String cidade,
+
+                @NotBlank(message = &quot;O estado é obrigatório.&quot;)
+                @Size(min = 2, max = 2, message = &quot;O estado deve ter exatamente 2 caracteres (ex: SP).&quot;)
+                String estado,
+
+                @NotBlank(message = &quot;O CEP é obrigatório.&quot;)
+                @Pattern(regexp = &quot;\\d{5}-\\d{3}&quot;, message = &quot;O CEP deve estar no formato XXXXX-XXX.&quot;)
+                String cep,
+
+                String complemento
+        ) {}
+
+
+        @Schema(description = &quot;Item individual que compõe o pedido (Snapshot para histórico)&quot;)
+<span class="fc" id="L122">        public record ItemPedidoDTO(</span>
+
+                @NotBlank(message = &quot;O ID do produto é obrigatório.&quot;)
+                String produtoId,
+
+                @NotBlank(message = &quot;O nome do produto é obrigatório no item.&quot;)
+                String nome,
+
+                String imagemUrl,
+
+
+                @NotNull(message = &quot;A quantidade é obrigatória.&quot;)
+                @Positive(message = &quot;A quantidade deve ser maior que zero.&quot;)
+                Integer quantidade
+        ) {
+
+                public ItemPedido toEntity(Produto produtoReferencia) {
+<span class="fc" id="L139">                        ItemPedido item = new ItemPedido();</span>
+
+<span class="fc" id="L141">                        item.setId(UUID.randomUUID().toString());</span>
+<span class="fc" id="L142">                        item.setProduto(produtoReferencia);</span>
+
+<span class="fc" id="L144">                        item.setNome(this.nome());</span>
+<span class="fc" id="L145">                        item.setImagemUrl(this.imagemUrl());</span>
+<span class="fc" id="L146">                        item.setQuantidade(this.quantidade());</span>
+
+<span class="fc" id="L148">                        return item;</span>
+                }
+        }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

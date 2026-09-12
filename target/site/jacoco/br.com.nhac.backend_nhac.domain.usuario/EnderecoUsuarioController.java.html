@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EnderecoUsuarioController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.usuario</a> &gt; <span class="el_source">EnderecoUsuarioController.java</span></div><h1>EnderecoUsuarioController.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.usuario;
+
+import br.com.nhac.backend_nhac.domain.usuario.dto.EnderecoUsuarioDTO;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping(&quot;api/v1/usuarios&quot;)
+public class EnderecoUsuarioController {
+
+    private final UsuarioService usuarioService;
+
+<span class="fc" id="L20">    public EnderecoUsuarioController(UsuarioService usuarioService) {</span>
+<span class="fc" id="L21">        this.usuarioService = usuarioService;</span>
+<span class="fc" id="L22">    }</span>
+
+    private void validarPropriedade(String idNaUrl, Usuario usuarioLogado) {
+<span class="fc bfc" id="L25" title="All 2 branches covered.">        if (!idNaUrl.equals(usuarioLogado.getId())) {</span>
+<span class="fc" id="L26">            throw new AcessoNegadoException(&quot;Acesso negado: não tem permissão para aceder ou modificar os dados de outro utilizador.&quot;);</span>
+        }
+<span class="fc" id="L28">    }</span>
+
+
+
+    @GetMapping(&quot;/{usuarioId}/enderecos&quot;)
+    public ResponseEntity&lt;List&lt;EnderecoUsuarioDTO&gt;&gt; buscarEnderecos(
+            @PathVariable String usuarioId,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+
+<span class="fc" id="L37">        usuarioService.validarPropriedade(usuarioId, usuarioLogado);</span>
+<span class="fc" id="L38">        return ResponseEntity.ok(usuarioService.listarEnderecos(usuarioId));</span>
+    }
+
+    @PostMapping(&quot;/{usuarioId}/enderecos&quot;)
+    public ResponseEntity&lt;Void&gt; adicionarEndereco(
+            @PathVariable String usuarioId,
+            @RequestBody @Valid EnderecoUsuarioDTO dto,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+
+<span class="fc" id="L47">        validarPropriedade(usuarioId, usuarioLogado);</span>
+<span class="fc" id="L48">        usuarioService.adicionarEndereco(usuarioId, dto);</span>
+<span class="fc" id="L49">        return ResponseEntity.status(HttpStatus.CREATED).build();</span>
+    }
+
+    @PutMapping(&quot;/{usuarioId}/enderecos/{enderecoId}&quot;)
+    public ResponseEntity&lt;Void&gt; atualizarEndereco(
+            @PathVariable String usuarioId,
+            @PathVariable String enderecoId,
+            @RequestBody @Valid EnderecoUsuarioDTO dto,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+
+<span class="fc" id="L59">        validarPropriedade(usuarioId, usuarioLogado);</span>
+<span class="fc" id="L60">        usuarioService.atualizarEndereco(usuarioId, enderecoId, dto);</span>
+<span class="fc" id="L61">        return ResponseEntity.noContent().build();</span>
+    }
+
+    @DeleteMapping(&quot;/{usuarioId}/enderecos/{enderecoId}&quot;)
+    public ResponseEntity&lt;Void&gt; removerEndereco(
+            @PathVariable String usuarioId,
+            @PathVariable String enderecoId,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+
+<span class="fc" id="L70">        validarPropriedade(usuarioId, usuarioLogado);</span>
+<span class="fc" id="L71">        usuarioService.removerEndereco(usuarioId, enderecoId);</span>
+<span class="fc" id="L72">        return ResponseEntity.noContent().build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

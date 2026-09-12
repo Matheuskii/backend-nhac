@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: br.com.nhac.backend_nhac.domain.pedido.PedidoControllerTest
+-------------------------------------------------------------------------------
+Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.898 s -- in br.com.nhac.backend_nhac.domain.pedido.PedidoControllerTest

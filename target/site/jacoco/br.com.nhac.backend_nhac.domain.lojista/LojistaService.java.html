@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LojistaService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.lojista</a> &gt; <span class="el_source">LojistaService.java</span></div><h1>LojistaService.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.lojista;
+
+import br.com.nhac.backend_nhac.domain.loja.Loja;
+import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
+import br.com.nhac.backend_nhac.domain.lojista.dto.FuncionarioCreateDTO;
+import br.com.nhac.backend_nhac.domain.lojista.dto.FuncionarioDTO;
+import br.com.nhac.backend_nhac.domain.lojista.dto.FuncionarioUpdateDTO;
+import br.com.nhac.backend_nhac.domain.lojista.service.LojaAccessService;
+import br.com.nhac.backend_nhac.domain.pedido.PedidoRepository;
+import br.com.nhac.backend_nhac.domain.pedido.StatusPedido;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoDetalheLojistaDTO;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoDTO;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoLojistaDTO;
+import br.com.nhac.backend_nhac.domain.produto.ProdutoRepository;
+import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoLojistaDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Papel;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
+import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+@Service
+public class LojistaService {
+
+    static final int TAMANHO_MAXIMO_PAGINA = 100;
+
+    private final ProdutoRepository produtoRepository;
+    private final PedidoRepository pedidoRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final LojaRepository lojaRepository;
+    private final LojaAccessService lojaAccessService;
+
+    public LojistaService(ProdutoRepository produtoRepository, PedidoRepository pedidoRepository, 
+                          UsuarioRepository usuarioRepository, LojaRepository lojaRepository,
+<span class="fc" id="L41">                          LojaAccessService lojaAccessService) {</span>
+<span class="fc" id="L42">        this.produtoRepository = produtoRepository;</span>
+<span class="fc" id="L43">        this.pedidoRepository = pedidoRepository;</span>
+<span class="fc" id="L44">        this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L45">        this.lojaRepository = lojaRepository;</span>
+<span class="fc" id="L46">        this.lojaAccessService = lojaAccessService;</span>
+<span class="fc" id="L47">    }</span>
+
+    @Transactional(readOnly = true)
+    public Page&lt;ProdutoLojistaDTO&gt; listarProdutos(Usuario usuarioLogado, String categoriaMenu, String nome, Pageable pageable) {
+<span class="fc" id="L51">        Loja loja = lojaAccessService.obterLojaAcessivel(usuarioLogado);</span>
+<span class="pc bpc" id="L52" title="1 of 2 branches missed.">        if (loja == null) {</span>
+            // ADMIN não tem loja própria, retorna página vazia
+<span class="nc" id="L54">            return Page.empty(pageable);</span>
+        }
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        String categoriaFiltro = StringUtils.hasText(categoriaMenu) ? categoriaMenu : null;</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">        String nomeFiltro = StringUtils.hasText(nome) ? nome : null;</span>
+<span class="fc" id="L58">        return produtoRepository.findByLojaIdAndIsAtivoTrue(loja.getId(), limitarPagina(pageable))</span>
+<span class="fc" id="L59">                .map(ProdutoLojistaDTO::new);</span>
+    }
+
+    @Transactional(readOnly = true)
+    public Page&lt;PedidoResumoLojistaDTO&gt; listarPedidos(String usuarioId, StatusPedido status, Pageable pageable) {
+<span class="fc" id="L64">        return pedidoRepository.findByLojista(usuarioId, status, limitarPagina(pageable))</span>
+<span class="fc" id="L65">                .map(pedido -&gt; {</span>
+<span class="fc" id="L66">                    String clienteNome = usuarioRepository.findById(pedido.getUsuarioId())</span>
+<span class="fc" id="L67">                            .map(u -&gt; u.getNome())</span>
+<span class="fc" id="L68">                            .orElse(&quot;Cliente removido&quot;);</span>
+<span class="fc" id="L69">                    return new PedidoResumoLojistaDTO(pedido, clienteNome);</span>
+                });
+    }
+
+    @Transactional(readOnly = true)
+    public PedidoDetalheLojistaDTO buscarPedidoDetalhe(String pedidoId, Usuario usuarioLogado) {
+<span class="nc" id="L75">        var pedido = pedidoRepository.findById(pedidoId)</span>
+<span class="nc" id="L76">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;Pedido não encontrado.&quot;));</span>
+
+        // Valida acesso: ADMIN pode tudo, LOJISTA/FUNCIONARIO precisam pertencer à loja do pedido
+<span class="nc bnc" id="L79" title="All 2 branches missed.">        if (usuarioLogado.getPapel() != Papel.ADMIN) {</span>
+<span class="nc" id="L80">            Loja lojaAcessivel = lojaAccessService.obterLojaAcessivel(usuarioLogado);</span>
+<span class="nc bnc" id="L81" title="All 4 branches missed.">            if (lojaAcessivel == null || !lojaAcessivel.getId().equals(pedido.getLoja().getId())) {</span>
+<span class="nc" id="L82">                throw new AcessoNegadoException(&quot;Acesso negado: você não tem permissão para visualizar este pedido.&quot;);</span>
+            }
+        }
+
+<span class="nc" id="L86">        String clienteNome = usuarioRepository.findById(pedido.getUsuarioId())</span>
+<span class="nc" id="L87">                .map(u -&gt; u.getNome())</span>
+<span class="nc" id="L88">                .orElse(&quot;Cliente removido&quot;);</span>
+<span class="nc" id="L89">        String clienteTelefone = usuarioRepository.findById(pedido.getUsuarioId())</span>
+<span class="nc" id="L90">                .map(u -&gt; u.getTelefone())</span>
+<span class="nc" id="L91">                .orElse(&quot;N/A&quot;);</span>
+
+<span class="nc" id="L93">        return new PedidoDetalheLojistaDTO(pedido, clienteNome, clienteTelefone);</span>
+    }
+
+    @Transactional(readOnly = true)
+    public Page&lt;FuncionarioDTO&gt; listarFuncionarios(Usuario usuarioLogado, Pageable pageable) {
+<span class="nc" id="L98">        Loja loja = lojaAccessService.obterLojaAcessivel(usuarioLogado);</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">        if (loja == null) {</span>
+<span class="nc" id="L100">            throw new AcessoNegadoException(&quot;Usuário não possui loja associada.&quot;);</span>
+        }
+<span class="nc" id="L102">        return usuarioRepository.findByLojaVinculadaId(loja.getId(), pageable)</span>
+<span class="nc" id="L103">                .map(u -&gt; {</span>
+<span class="nc" id="L104">                    FuncionarioDTO dto = new FuncionarioDTO();</span>
+<span class="nc" id="L105">                    dto.setId(u.getId());</span>
+<span class="nc" id="L106">                    dto.setNome(u.getNome());</span>
+<span class="nc" id="L107">                    dto.setEmail(u.getEmail());</span>
+<span class="nc" id="L108">                    dto.setTelefone(u.getTelefone());</span>
+<span class="nc" id="L109">                    dto.setCargo(u.getCargo());</span>
+<span class="nc" id="L110">                    dto.setAtivo(u.isAtivo());</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">                    if (u.getLojaVinculada() != null) {</span>
+<span class="nc" id="L112">                        dto.setLojaId(u.getLojaVinculada().getId());</span>
+<span class="nc" id="L113">                        dto.setLojaNome(u.getLojaVinculada().getNome());</span>
+                    }
+<span class="nc" id="L115">                    return dto;</span>
+                });
+    }
+
+    @Transactional
+    public Usuario criarFuncionario(FuncionarioCreateDTO dto, Usuario criador) {
+<span class="nc" id="L121">        Loja loja = lojaAccessService.obterLojaAcessivel(criador);</span>
+<span class="nc bnc" id="L122" title="All 2 branches missed.">        if (loja == null) {</span>
+<span class="nc" id="L123">            throw new AcessoNegadoException(&quot;Usuário não possui loja associada.&quot;);</span>
+        }
+<span class="nc" id="L125">        return lojaAccessService.criarFuncionario(loja.getId(), dto.getNome(), dto.getEmail(), </span>
+<span class="nc" id="L126">                                                   dto.getSenha(), dto.getTelefone(), dto.getCargo(), criador);</span>
+    }
+
+    @Transactional
+    public Usuario atualizarFuncionario(String funcionarioId, FuncionarioUpdateDTO dto, Usuario editor) {
+<span class="nc" id="L131">        return lojaAccessService.atualizarFuncionario(funcionarioId, dto.getNome(), </span>
+<span class="nc" id="L132">                                                       dto.getTelefone(), dto.getCargo(), editor);</span>
+    }
+
+    @Transactional
+    public Usuario ativarOuDesativarFuncionario(String funcionarioId, boolean ativo, Usuario editor) {
+<span class="nc" id="L137">        return lojaAccessService.ativarOuDesativarFuncionario(funcionarioId, ativo, editor);</span>
+    }
+
+    Pageable limitarPagina(Pageable pageable) {
+<span class="fc" id="L141">        int size = Math.min(Math.max(pageable.getPageSize(), 1), TAMANHO_MAXIMO_PAGINA);</span>
+<span class="pc bpc" id="L142" title="1 of 2 branches missed.">        if (size == pageable.getPageSize()) {</span>
+<span class="fc" id="L143">            return pageable;</span>
+        }
+<span class="nc" id="L145">        return PageRequest.of(pageable.getPageNumber(), size, pageable.getSort());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

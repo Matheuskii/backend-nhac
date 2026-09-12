@@ -1,7 +1,8 @@
 package br.com.nhac.backend_nhac.domain.lojista;
 
 import br.com.nhac.backend_nhac.domain.pedido.StatusPedido;
-import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoDTO;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoDetalheLojistaDTO;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoLojistaDTO;
 import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoLojistaDTO;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import org.junit.jupiter.api.AfterEach;
@@ -18,6 +19,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.cache.CacheManager;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -43,10 +45,19 @@ class LojistaControllerTest {
     private LojistaService lojistaService;
 
     @MockitoBean
+    private br.com.nhac.backend_nhac.domain.lojista.service.LojaAccessService lojaAccessService;
+
+    @MockitoBean
     private br.com.nhac.backend_nhac.infra.security.TokenService tokenService;
 
     @MockitoBean
     private br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository usuarioRepository;
+
+    @MockitoBean
+    private br.com.nhac.backend_nhac.domain.lojista.service.PainelFinanceiroService painelFinanceiroService;
+
+    @MockitoBean
+    private CacheManager cacheManager;
 
     private Usuario usuarioLogado;
 
@@ -74,7 +85,7 @@ class LojistaControllerTest {
                 new BigDecimal("25.50"), "Sushi", "https://...", "200g", 10, true, 100, null);
         Page<ProdutoLojistaDTO> pagina = new PageImpl<>(List.of(produto), PageRequest.of(0, 20), 1);
 
-        when(lojistaService.listarProdutos(eq("user_123"), eq("Sushi"), eq("salmao"), any()))
+        when(lojistaService.listarProdutos(any(Usuario.class), eq("Sushi"), eq("salmao"), any()))
                 .thenReturn(pagina);
 
         mockMvc.perform(get("/api/v1/lojista/produtos")
@@ -91,12 +102,12 @@ class LojistaControllerTest {
     }
 
     @Test
-    @DisplayName("Deve listar pedidos recebidos filtrando por status")
-    void deveListarPedidosRecebidos() throws Exception {
-        PedidoResumoDTO pedido = new PedidoResumoDTO(
-                "pedido_1", "loja_1", "Sushi Ken", new BigDecimal("40.00"),
-                StatusPedido.PENDENTE, Instant.parse("2026-09-09T12:00:00Z"));
-        Page<PedidoResumoDTO> pagina = new PageImpl<>(List.of(pedido), PageRequest.of(0, 20), 1);
+    @DisplayName("Deve listar pedidos recebidos com clienteNome e quantidadeItens (PedidoResumoLojistaDTO)")
+    void deveListarPedidosRecebidosComClienteNome() throws Exception {
+        PedidoResumoLojistaDTO pedido = new PedidoResumoLojistaDTO(
+                "pedido_1", "João Silva", 3,
+                new BigDecimal("40.00"), StatusPedido.PENDENTE, Instant.parse("2026-09-09T12:00:00Z"));
+        Page<PedidoResumoLojistaDTO> pagina = new PageImpl<>(List.of(pedido), PageRequest.of(0, 20), 1);
 
         when(lojistaService.listarPedidos(eq("user_123"), eq(StatusPedido.PENDENTE), any()))
                 .thenReturn(pagina);
@@ -107,7 +118,11 @@ class LojistaControllerTest {
                         .param("size", "20"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value("pedido_1"))
-                .andExpect(jsonPath("$.content[0].status").value("PENDENTE"));
+                .andExpect(jsonPath("$.content[0].clienteNome").value("João Silva"))
+                .andExpect(jsonPath("$.content[0].quantidadeItens").value(3))
+                .andExpect(jsonPath("$.content[0].status").value("PENDENTE"))
+                .andExpect(jsonPath("$.content[0].lojaId").doesNotExist())
+                .andExpect(jsonPath("$.content[0].lojaNome").doesNotExist());
 
         verify(lojistaService).listarPedidos(eq("user_123"), eq(StatusPedido.PENDENTE), any());
     }
@@ -121,5 +136,27 @@ class LojistaControllerTest {
         mockMvc.perform(get("/api/v1/lojista/pedidos"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isEmpty());
+    }
+
+    @Test
+    @DisplayName("Deve retornar detalhe do pedido com dados do cliente para lojista autorizado")
+    void deveRetornarDetalheDoPedidoComDadosDoCliente() throws Exception {
+        PedidoDetalheLojistaDTO pedidoDetalhe = new PedidoDetalheLojistaDTO(
+                "pedido_1", "João Silva", "(11) 98765-4321",
+                new BigDecimal("40.00"), new BigDecimal("5.00"), "PIX", null, "Entregar na portaria",
+                StatusPedido.PENDENTE, Instant.parse("2026-09-09T12:00:00Z"),
+                new PedidoDetalheLojistaDTO.EnderecoEntregaResponseDTO("Rua A", "100", "Centro", "São Paulo", "SP", "01000-000", "Apto 10"),
+                List.of(new PedidoDetalheLojistaDTO.ItemPedidoResponseDTO("item_1", "prod_1", "Hossomaki", "https://...", new BigDecimal("20.00"), 2)));
+
+        when(lojistaService.buscarPedidoDetalhe(eq("pedido_1"), any(Usuario.class)))
+                .thenReturn(pedidoDetalhe);
+
+        mockMvc.perform(get("/api/v1/lojista/pedidos/pedido_1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("pedido_1"))
+                .andExpect(jsonPath("$.clienteNome").value("João Silva"))
+                .andExpect(jsonPath("$.clienteTelefone").value("(11) 98765-4321"))
+                .andExpect(jsonPath("$.observacao").value("Entregar na portaria"))
+                .andExpect(jsonPath("$.enderecoEntrega.rua").value("Rua A"));
     }
 }

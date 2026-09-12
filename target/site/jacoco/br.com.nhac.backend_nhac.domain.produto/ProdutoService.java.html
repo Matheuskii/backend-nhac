@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProdutoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.produto</a> &gt; <span class="el_source">ProdutoService.java</span></div><h1>ProdutoService.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.produto;
+
+import br.com.nhac.backend_nhac.domain.loja.Loja;
+import br.com.nhac.backend_nhac.domain.produto.Produto;
+import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoCreateDTO;
+import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoResumoDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
+import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
+import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
+import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
+import br.com.nhac.backend_nhac.domain.produto.ProdutoRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.Optional;
+
+
+@Service
+public class ProdutoService {
+
+    private final ProdutoRepository produtoRepository;
+    private final LojaRepository lojaRepository;
+
+<span class="fc" id="L28">    public ProdutoService(ProdutoRepository produtoRepository, LojaRepository lojaRepository) {</span>
+<span class="fc" id="L29">        this.produtoRepository = produtoRepository;</span>
+<span class="fc" id="L30">        this.lojaRepository = lojaRepository;</span>
+<span class="fc" id="L31">    }</span>
+
+    @Transactional
+    public Produto cadastrarProduto(ProdutoCreateDTO dto, Usuario usuarioLogado) {
+        // ADMIN tem bypass na checagem de ownership, mas ainda precisa de uma loja associada
+<span class="fc" id="L36">        boolean isAdmin = usuarioLogado.getPapel().name().equals(&quot;ADMIN&quot;);</span>
+        
+<span class="fc" id="L38">        Loja lojaDoUsuario = lojaRepository.findByUsuarioId(usuarioLogado.getId())</span>
+<span class="fc" id="L39">                .orElseThrow(br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException::new);</span>
+
+<span class="fc bfc" id="L41" title="All 4 branches covered.">        if (!lojaDoUsuario.isAberto() &amp;&amp; !isAdmin) {</span>
+<span class="fc" id="L42">            throw new RegraDeNegocioException(&quot;Não é possível cadastrar produtos em uma loja fechada.&quot;);</span>
+        }
+
+<span class="fc" id="L45">        Produto novoProduto = dto.toEntity(lojaDoUsuario, produtoRepository);</span>
+<span class="fc" id="L46">        return produtoRepository.save(novoProduto);</span>
+    }
+
+    @Transactional(readOnly = true)
+    public ProdutoResumoDTO buscarProdutoPorId(String produtoId) {
+<span class="fc" id="L51">        Produto produto = produtoRepository.findByIdAndIsAtivoTrue(produtoId)</span>
+<span class="fc" id="L52">                .orElseThrow(() -&gt; new IdNaoEncontradoException(</span>
+                        &quot;O produto com o id: &quot; + produtoId + &quot; não foi encontrado.&quot;));
+
+<span class="fc" id="L55">        return new ProdutoResumoDTO(produto);</span>
+    }
+
+    @Transactional(readOnly = true)
+    public Page&lt;ProdutoResumoDTO&gt; listarProdutos(String lojaId, BigDecimal precoMaximo, String categoriaMenu, String nome, Pageable pageable) {
+<span class="fc" id="L60">        Page&lt;Produto&gt; produtos = produtoRepository.findAllWithFilters(lojaId, categoriaMenu, nome, precoMaximo, pageable);</span>
+<span class="fc" id="L61">        return produtos.map(ProdutoResumoDTO::new);</span>
+    }
+
+    @Transactional
+    public ProdutoResumoDTO atualizarProduto(String id, br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto, Usuario usuarioLogado) {
+<span class="fc" id="L66">        Produto produto = produtoRepository.findById(id)</span>
+<span class="fc" id="L67">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;O produto com o id: &quot; + id + &quot; não foi encontrado.&quot;));</span>
+
+        // ADMIN tem bypass na checagem de ownership
+<span class="fc" id="L70">        boolean isAdmin = usuarioLogado.getPapel().name().equals(&quot;ADMIN&quot;);</span>
+<span class="fc bfc" id="L71" title="All 4 branches covered.">        if (!isAdmin &amp;&amp; !produto.getLoja().getUsuarioId().equals(usuarioLogado.getId())) {</span>
+<span class="fc" id="L72">            throw new AcessoNegadoException(&quot;Acesso negado: você não tem permissão para editar este produto.&quot;);</span>
+        }
+
+<span class="pc bpc" id="L75" title="1 of 4 branches missed.">        if (!produto.getLoja().isAberto() &amp;&amp; !isAdmin) {</span>
+<span class="fc" id="L76">            throw new RegraDeNegocioException(&quot;Não é possível editar produtos de uma loja fechada.&quot;);</span>
+        }
+
+<span class="fc" id="L79">        produto.setNome(dto.nome());</span>
+<span class="fc" id="L80">        produto.setDescricao(dto.descricao());</span>
+<span class="fc" id="L81">        produto.setPreco(dto.preco());</span>
+<span class="fc" id="L82">        produto.setCategoriaMenu(dto.categoriaMenu());</span>
+<span class="fc" id="L83">        produto.setImagemUrl(dto.imagemUrl());</span>
+<span class="fc" id="L84">        produto.setPeso(dto.peso());</span>
+<span class="fc" id="L85">        produto.setPercentualDesconto(dto.percentualDesconto());</span>
+<span class="fc" id="L86">        produto.setAtivo(dto.isAtivo());</span>
+
+<span class="fc" id="L88">        produtoRepository.save(produto);</span>
+
+<span class="fc" id="L90">        return new ProdutoResumoDTO(produto);</span>
+    }
+
+    @Transactional
+    public void desativarProduto(String id, Usuario usuarioLogado) {
+<span class="fc" id="L95">        Produto produto = produtoRepository.findById(id)</span>
+<span class="fc" id="L96">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;O produto com o id: &quot; + id + &quot; não foi encontrado.&quot;));</span>
+
+        // ADMIN tem bypass na checagem de ownership
+<span class="fc" id="L99">        boolean isAdmin = usuarioLogado.getPapel().name().equals(&quot;ADMIN&quot;);</span>
+<span class="fc bfc" id="L100" title="All 4 branches covered.">        if (!isAdmin &amp;&amp; !produto.getLoja().getUsuarioId().equals(usuarioLogado.getId())) {</span>
+<span class="fc" id="L101">            throw new AcessoNegadoException(&quot;Acesso negado: você não tem permissão para desativar este produto.&quot;);</span>
+        }
+
+<span class="fc bfc" id="L104" title="All 4 branches covered.">        if (!produto.getLoja().isAberto() &amp;&amp; !isAdmin) {</span>
+<span class="fc" id="L105">            throw new RegraDeNegocioException(&quot;Não é possível desativar produtos de uma loja fechada.&quot;);</span>
+        }
+
+<span class="fc" id="L108">        produto.setAtivo(false);</span>
+<span class="fc" id="L109">        produtoRepository.save(produto);</span>
+<span class="fc" id="L110">    }</span>
+
+    @Transactional
+    public ProdutoResumoDTO ativarProduto(String id, Usuario usuarioLogado) {
+<span class="fc" id="L114">        Produto produto = produtoRepository.findById(id)</span>
+<span class="pc" id="L115">                .orElseThrow(() -&gt; new IdNaoEncontradoException(&quot;O produto com o id: &quot; + id + &quot; não foi encontrado.&quot;));</span>
+
+<span class="fc" id="L117">        boolean isAdmin = usuarioLogado.getPapel().name().equals(&quot;ADMIN&quot;);</span>
+<span class="fc bfc" id="L118" title="All 4 branches covered.">        if (!isAdmin &amp;&amp; !produto.getLoja().getUsuarioId().equals(usuarioLogado.getId())) {</span>
+<span class="fc" id="L119">            throw new AcessoNegadoException(&quot;Acesso negado: você não tem permissão para reativar este produto.&quot;);</span>
+        }
+
+<span class="pc bpc" id="L122" title="1 of 4 branches missed.">        if (!produto.getLoja().isAberto() &amp;&amp; !isAdmin) {</span>
+<span class="fc" id="L123">            throw new RegraDeNegocioException(&quot;Não é possível reativar produtos de uma loja fechada.&quot;);</span>
+        }
+
+<span class="fc" id="L126">        produto.setAtivo(true);</span>
+<span class="fc" id="L127">        produtoRepository.save(produto);</span>
+<span class="fc" id="L128">        return new ProdutoResumoDTO(produto);</span>
+    }
+
+    @Transactional(readOnly = true)
+    public br.com.nhac.backend_nhac.domain.produto.dto.ProdutoAvaliacaoResumoDTO buscarResumoAvaliacoes(String produtoId) {
+<span class="fc bfc" id="L133" title="All 2 branches covered.">        if (!produtoRepository.existsById(produtoId)) {</span>
+<span class="fc" id="L134">            throw new IdNaoEncontradoException(&quot;O produto com o id: &quot; + produtoId + &quot; nǜo foi encontrado.&quot;);</span>
+        }
+<span class="fc" id="L136">        return produtoRepository.getResumoAvaliacoesPorProdutoId(produtoId);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

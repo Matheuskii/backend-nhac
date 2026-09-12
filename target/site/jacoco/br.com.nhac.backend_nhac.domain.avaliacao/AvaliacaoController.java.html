@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AvaliacaoController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.avaliacao</a> &gt; <span class="el_source">AvaliacaoController.java</span></div><h1>AvaliacaoController.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.avaliacao;
+
+import br.com.nhac.backend_nhac.domain.avaliacao.dto.AvaliacaoCreateDTO;
+import br.com.nhac.backend_nhac.domain.avaliacao.dto.AvaliacaoResumoDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.exceptions.ErroPadraoDTO;
+import br.com.nhac.backend_nhac.domain.avaliacao.AvaliacaoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
+
+@RestController
+@RequestMapping(&quot;/api/v1&quot;)
+@Tag(name = &quot;Avaliações&quot;, description = &quot;Endpoints para gerenciamento de avaliações de lojas e pedidos&quot;)
+public class AvaliacaoController {
+
+    private final AvaliacaoService avaliacaoService;
+
+<span class="fc" id="L31">    public AvaliacaoController(AvaliacaoService avaliacaoService) {</span>
+<span class="fc" id="L32">        this.avaliacaoService = avaliacaoService;</span>
+<span class="fc" id="L33">    }</span>
+
+    @Operation(summary = &quot;Criar uma avaliação para um pedido&quot;, description = &quot;Permite que o usuário logado avalie um pedido que ele mesmo realizou (deve estar ENTREGUE ou CONCLUIDO).&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Avaliação criada com sucesso.&quot;),
+            @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Erro de validação nos dados ou regra de negócio (pedido não entregue, já avaliado, etc).&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Pedido ou usuário não encontrado.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @PostMapping(&quot;/avaliacoes&quot;)
+    public ResponseEntity&lt;AvaliacaoResumoDTO&gt; criarAvaliacao(
+            @AuthenticationPrincipal Usuario usuario,
+            @Valid @RequestBody AvaliacaoCreateDTO dto) {
+
+<span class="fc" id="L48">        AvaliacaoResumoDTO novaAvaliacao = avaliacaoService.criarAvaliacao(usuario.getId(), dto);</span>
+
+<span class="fc" id="L50">        URI uri = ServletUriComponentsBuilder.fromCurrentRequest()</span>
+<span class="fc" id="L51">                .path(&quot;/{id}&quot;)</span>
+<span class="fc" id="L52">                .buildAndExpand(novaAvaliacao.id())</span>
+<span class="fc" id="L53">                .toUri();</span>
+
+<span class="fc" id="L55">        return ResponseEntity.created(uri).body(novaAvaliacao);</span>
+    }
+
+    @Operation(summary = &quot;Listar avaliações de uma loja&quot;, description = &quot;Retorna uma lista paginada com as avaliações feitas para uma loja específica.&quot;)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Listagem realizada com sucesso.&quot;),
+            @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Loja não encontrada.&quot;,
+                    content = @Content(mediaType = &quot;application/json&quot;, schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @GetMapping(&quot;/lojas/{lojaId}/avaliacoes&quot;)
+    public ResponseEntity&lt;Page&lt;AvaliacaoResumoDTO&gt;&gt; listarAvaliacoesPorLoja(
+            @PathVariable String lojaId,
+            Pageable pageable) {
+
+<span class="fc" id="L69">        Page&lt;AvaliacaoResumoDTO&gt; avaliacoes = avaliacaoService.listarAvaliacoesPorLoja(lojaId, pageable);</span>
+<span class="fc" id="L70">        return ResponseEntity.ok(avaliacoes);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

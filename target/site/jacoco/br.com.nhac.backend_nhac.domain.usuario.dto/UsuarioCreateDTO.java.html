@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsuarioCreateDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">br.com.nhac.backend_nhac.domain.usuario.dto</a> &gt; <span class="el_source">UsuarioCreateDTO.java</span></div><h1>UsuarioCreateDTO.java</h1><pre class="source lang-java linenums">package br.com.nhac.backend_nhac.domain.usuario.dto;
+
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import java.util.ArrayList;
+
+@Schema(description = &quot;Objeto de entrada para criação ou registo de um novo utilizador&quot;)
+<span class="fc" id="L10">public record UsuarioCreateDTO(</span>
+        @Schema(description = &quot;ID único do utilizador (UID do Firebase ou Auth)&quot;, example = &quot;usr_abc123xyz&quot;)
+        @NotBlank(message = &quot;O ID do usuário é obrigatório.&quot;)
+        String id,
+
+        @Schema(description = &quot;Nome completo do utilizador&quot;, example = &quot;Matheus Alves&quot;)
+        @NotBlank(message = &quot;O nome é obrigatório.&quot;)
+        String nome,
+
+        @Schema(description = &quot;Endereço de e-mail&quot;, example = &quot;matheus@nhac.com&quot;)
+        @NotBlank(message = &quot;O e-mail é obrigatório.&quot;)
+        @Email(message = &quot;O e-mail informado é inválido.&quot;)
+        String email,
+
+        @Schema(description = &quot;Número de telefone&quot;, example = &quot;11999998888&quot;)
+        @NotBlank(message = &quot;O telefone é obrigatório.&quot;)
+        String telefone,
+
+        @Schema(description = &quot;URL da foto de perfil&quot;, example = &quot;https://images.nhac.com/profiles/usr_abc.jpg&quot;)
+        String imagemUrl,
+
+        @Schema(description = &quot;Senha em texto limpo para ser encriptada pelo servidor&quot;, example = &quot;senhaSegura123&quot;)
+        @jakarta.validation.constraints.Size(min = 8, message = &quot;A senha deve ter pelo menos 8 caracteres.&quot;)
+        @jakarta.validation.constraints.Pattern(regexp = &quot;^(?=.*[0-9])(?=.*[a-zA-Z]).*$&quot;, message = &quot;A senha deve conter pelo menos uma letra e um número.&quot;)
+        String senha
+) {
+    public Usuario toEntity() {
+<span class="fc" id="L37">        return new Usuario(</span>
+<span class="fc" id="L38">                this.id(),</span>
+<span class="fc" id="L39">                this.nome(),</span>
+<span class="fc" id="L40">                this.email(),</span>
+<span class="fc" id="L41">                this.telefone(),</span>
+<span class="fc" id="L42">                this.imagemUrl(),</span>
+                new ArrayList&lt;&gt;(),
+<span class="fc" id="L44">                this.senha(),</span>
+                null,
+                false,
+                br.com.nhac.backend_nhac.domain.usuario.Papel.CLIENTE,
+                null,
+                null,
+                true,
+                false
+        );
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
