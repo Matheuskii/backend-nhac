@@ -1,28 +1,24 @@
 package br.com.nhac.backend_nhac.domain.lojista;
 
-import br.com.nhac.backend_nhac.AbstractIntegrationTest;
-import br.com.nhac.backend_nhac.domain.auth.dto.LoginRequestDTO;
-import br.com.nhac.backend_nhac.domain.auth.dto.RegistroRequestDTO;
-import br.com.nhac.backend_nhac.domain.loja.Loja;
-import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
-import br.com.nhac.backend_nhac.domain.produto.Produto;
-import br.com.nhac.backend_nhac.domain.produto.ProdutoRepository;
-import br.com.nhac.backend_nhac.domain.pedido.Pedido;
-import br.com.nhac.backend_nhac.domain.pedido.PedidoRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-
-import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import br.com.nhac.backend_nhac.AbstractIntegrationTest;
+import br.com.nhac.backend_nhac.domain.auth.dto.LoginRequestDTO;
+import br.com.nhac.backend_nhac.domain.auth.dto.RegistroRequestDTO;
+import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
+import br.com.nhac.backend_nhac.domain.pedido.PedidoRepository;
+import br.com.nhac.backend_nhac.domain.produto.ProdutoRepository;
 
 class LojistaEndpointsIT extends AbstractIntegrationTest {
 

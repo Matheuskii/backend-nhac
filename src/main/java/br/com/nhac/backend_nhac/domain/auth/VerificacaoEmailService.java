@@ -198,22 +198,28 @@ public class VerificacaoEmailService {
                 """.formatted(codigo, TEMPO_EXPIRACAO_MINUTOS, java.time.Year.now().getValue());
         emailService.enviarEmailHtml(email, assunto, htmlConteudo);
     }
+@Transactional
+public void verificarCodigoCadastro(String email, String codigoDigitado) {
+    String emailFormatado = email.trim().toLowerCase();
+    LocalDateTime agora = LocalDateTime.now();
 
-    @Transactional
-    public void verificarCodigoCadastro(String email, String codigoDigitado) {
-        email = email.trim().toLowerCase();
-        LocalDateTime agora = LocalDateTime.now();
-        LocalDateTime dataLimite = agora.minusMinutes(TEMPO_VALIDACAO_CADASTRO_MINUTOS);
+    CodigoVerificacaoEmail codigoBanco = codigoRepository
+        .findTopByEmailAndTipoAndUtilizadoFalseAndDataExpiracaoAfterOrderByCriadoEmDesc(
+            emailFormatado, 
+            CodigoVerificacaoEmail.TipoCodigo.CADASTRO, 
+            agora
+        )
+        .orElseThrow(() -> new RegraDeNegocioException("Código de verificação inválido ou expirado."));
 
-        CodigoVerificacaoEmail registro = codigoRepository
-                .findTopByEmailAndTipoAndUtilizadoTrueAndDataExpiracaoAfterOrderByCriadoEmDesc(
-                    email, CodigoVerificacaoEmail.TipoCodigo.CADASTRO, dataLimite)
-                .orElseThrow(() -> new RegraDeNegocioException("Código de verificação inválido ou expirado."));
-
-        if (!registro.getCodigo().equals(codigoDigitado.trim())) {
-            throw new RegraDeNegocioException("Código de verificação inválido.");
-        }
+    if (!codigoBanco.getCodigo().equals(codigoDigitado.trim())) {
+        // Incrementa tentativas se tiver essa lógica, ou barra direto:
+        throw new RegraDeNegocioException("Código de verificação inválido ou expirado.");
     }
+
+    codigoBanco.setUtilizado(true);
+    codigoRepository.save(codigoBanco);
+}
+
 
     @Transactional(noRollbackFor = RegraDeNegocioException.class)
     public void verificarCodigoValido(String email, String codigoDigitado) {

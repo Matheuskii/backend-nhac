@@ -1,27 +1,32 @@
 package br.com.nhac.backend_nhac.domain.auth;
 
-import br.com.nhac.backend_nhac.domain.auth.CodigoVerificacao;
-import br.com.nhac.backend_nhac.domain.auth.dto.EnviarCodigoSmsDTO;
-import br.com.nhac.backend_nhac.domain.auth.dto.ValidarCodigoSmsDTO;
-import br.com.nhac.backend_nhac.domain.usuario.Usuario;
-import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
-import br.com.nhac.backend_nhac.domain.auth.CodigoVerificacaoRepository;
-import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import br.com.nhac.backend_nhac.domain.auth.dto.EnviarCodigoSmsDTO;
+import br.com.nhac.backend_nhac.domain.auth.dto.ValidarCodigoSmsDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 
 @ExtendWith(MockitoExtension.class)
 class VerificacaoTelefoneServiceTest {

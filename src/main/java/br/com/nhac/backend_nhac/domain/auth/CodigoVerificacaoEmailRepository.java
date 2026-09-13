@@ -21,5 +21,6 @@ public interface CodigoVerificacaoEmailRepository extends JpaRepository<CodigoVe
     Optional<CodigoVerificacaoEmail> findTopByEmailAndTipoAndUtilizadoTrueAndDataExpiracaoAfterOrderByCriadoEmDesc(
         String email, CodigoVerificacaoEmail.TipoCodigo tipo, LocalDateTime dataExpiracao);
 
-    public Object findTopByEmailAndTipoAndUtilizadoFalseAndDataExpiracaoAfterOrderByCriadoEmDesc(String email, CodigoVerificacaoEmail.TipoCodigo tipoCodigo, LocalDateTime dataLimite);
+    Optional<CodigoVerificacaoEmail> findTopByEmailAndTipoAndUtilizadoFalseAndDataExpiracaoAfterOrderByCriadoEmDesc(
+        String email, CodigoVerificacaoEmail.TipoCodigo tipoCodigo, LocalDateTime dataLimite);
 }

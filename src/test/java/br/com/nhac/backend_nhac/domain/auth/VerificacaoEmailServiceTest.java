@@ -1,21 +1,21 @@
 package br.com.nhac.backend_nhac.domain.auth;
 
-import br.com.nhac.backend_nhac.domain.auth.CodigoVerificacaoEmail;
-import br.com.nhac.backend_nhac.domain.usuario.Usuario;
-import br.com.nhac.backend_nhac.domain.auth.CodigoVerificacaoEmailRepository;
-import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
 
 @SpringBootTest
 @ActiveProfiles("test")
