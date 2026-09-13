@@ -1,16 +1,15 @@
 package br.com.nhac.backend_nhac.domain.auth;
 
-import br.com.nhac.backend_nhac.domain.auth.CodigoVerificacaoEmail;
-import br.com.nhac.backend_nhac.domain.usuario.Usuario;
-import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
-import br.com.nhac.backend_nhac.domain.auth.CodigoVerificacaoEmailRepository;
-import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
-import lombok.RequiredArgsConstructor;
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
-import java.time.LocalDateTime;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor

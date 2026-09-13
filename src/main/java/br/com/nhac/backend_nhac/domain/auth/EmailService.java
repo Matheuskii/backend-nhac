@@ -1,13 +1,13 @@
 package br.com.nhac.backend_nhac.domain.auth;
 
-import br.com.nhac.backend_nhac.exceptions.ServicoIndisponivelException;
-import br.com.nhac.backend_nhac.infra.email.BrevoApiException;
-import br.com.nhac.backend_nhac.infra.email.BrevoEmailClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+
+import br.com.nhac.backend_nhac.exceptions.ServicoIndisponivelException;
+import br.com.nhac.backend_nhac.infra.email.BrevoApiException;
+import br.com.nhac.backend_nhac.infra.email.BrevoEmailClient;
 
 @Service
 public class EmailService {
@@ -23,7 +23,6 @@ public class EmailService {
         this.brevoEmailClient = brevoEmailClient;
     }
 
-    @Async
     public void enviarEmailHtml(String para, String assunto, String htmlConteudo) {
         if (mockMode) {
             logger.info("=================================================");

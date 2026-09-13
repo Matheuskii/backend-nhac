@@ -1,13 +1,11 @@
 -- Suporte a funcionários: um funcionário é um tb_usuarios comum (papel = FUNCIONARIO)
 -- vinculado a uma loja que ele NÃO é dono. O dono continua identificado por
 -- tb_lojas.usuario_id (índice único da V027).
--- tb_usuarios nunca teve data de criação (diferente de tb_produtos/tb_pedidos).
--- A tela de funcionários precisa de "Data de Cadastro" na listagem, então
--- aproveitamos esta migration pra adicionar de forma genérica (não só p/ funcionário).
+-- A tela de funcionários precisa de "Data de Cadastro" na listagem; a coluna
+-- criado_em já existe em tb_usuarios desde uma migration anterior.
 ALTER TABLE tb_usuarios
     ADD COLUMN loja_vinculada_id VARCHAR(50) NULL,
-    ADD COLUMN cargo VARCHAR(30) NULL,
-    ADD COLUMN criado_em TIMESTAMP NULL;
+    ADD COLUMN cargo VARCHAR(30) NULL;
 
 UPDATE tb_usuarios SET criado_em = NOW() WHERE criado_em IS NULL;
 
