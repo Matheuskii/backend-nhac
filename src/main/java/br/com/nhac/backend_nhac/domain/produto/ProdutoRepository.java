@@ -69,6 +69,9 @@ public interface ProdutoRepository extends JpaRepository<Produto, String> {
             Pageable pageable
     );
 
+    @Query("SELECT p FROM Produto p JOIN FETCH p.loja WHERE p.id = :id AND p.loja.id = :lojaId")
+    Optional<Produto> findByIdAndLojaId(@Param("id") String id, @Param("lojaId") String lojaId);
+
     @Query("""
         SELECT i.produto.id as produtoId, i.produto.nome as nome, i.produto.categoriaMenu as categoria,
                SUM(i.quantidade) as quantidadeVendida, SUM(i.precoHistorico * i.quantidade) as faturamento

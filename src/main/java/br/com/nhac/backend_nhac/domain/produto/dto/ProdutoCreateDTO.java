@@ -42,7 +42,11 @@ public record ProdutoCreateDTO(
         Integer percentualDesconto,
 
         @Schema(description = "Lista de grupos de adicionais do produto", example = "[]")
-        List<GrupoAdicionalDTO> adicionais
+        List<GrupoAdicionalDTO> adicionais,
+
+        @Schema(description = "Quantidade em estoque. Se não informado, o produto nasce com o valor padrão do sistema (100).", example = "50")
+        @PositiveOrZero(message = "O estoque não pode ser negativo.")
+        Integer estoque
 ) {
 
         public Produto toEntity(Loja lojaDaBaseDeDados, ProdutoRepository produtoRepository) {
@@ -50,6 +54,9 @@ public record ProdutoCreateDTO(
 
                 Produto produto = new Produto(this, lojaDaBaseDeDados);
                 produto.setId(novoId);
+                if (this.estoque() != null) {
+                        produto.setEstoque(this.estoque());
+                }
 
                 return produto;
         }

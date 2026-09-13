@@ -54,7 +54,7 @@ public class ProdutoController {
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class)))
     })
     @PostMapping
-    @PreAuthorize("hasAnyRole('LOJISTA', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('LOJISTA', 'FUNCIONARIO', 'ADMIN')")
     public ResponseEntity<ProdutoResumoDTO> cadastrarProduto(@Valid @RequestBody ProdutoCreateDTO dto,
                                                               @AuthenticationPrincipal Usuario usuarioLogado) {
 
@@ -119,7 +119,7 @@ public class ProdutoController {
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class)))
     })
     @PutMapping("/{produtoId}")
-    @PreAuthorize("hasAnyRole('LOJISTA', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('LOJISTA', 'FUNCIONARIO', 'ADMIN')")
     public ResponseEntity<ProdutoResumoDTO> atualizarProduto(
             @PathVariable String produtoId,
             @Valid @RequestBody br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto,
@@ -143,7 +143,7 @@ public class ProdutoController {
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class)))
     })
     @DeleteMapping("/{produtoId}")
-    @PreAuthorize("hasAnyRole('LOJISTA', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('LOJISTA', 'FUNCIONARIO', 'ADMIN')")
     public ResponseEntity<Void> desativarProduto(@PathVariable String produtoId,
                                                   @AuthenticationPrincipal Usuario usuarioLogado) {
         produtoService.desativarProduto(produtoId, usuarioLogado);
@@ -159,10 +159,29 @@ public class ProdutoController {
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class)))
     })
     @PatchMapping("/{produtoId}/ativar")
-    @PreAuthorize("hasAnyRole('LOJISTA', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('LOJISTA', 'FUNCIONARIO', 'ADMIN')")
     public ResponseEntity<ProdutoResumoDTO> ativarProduto(@PathVariable String produtoId,
                                                           @AuthenticationPrincipal Usuario usuarioLogado) {
         return ResponseEntity.ok(produtoService.ativarProduto(produtoId, usuarioLogado));
+    }
+
+    @Operation(summary = "Repor/ajustar estoque de um produto", description = "Atualiza a quantidade em estoque de um produto para o valor absoluto informado (não é incremento). Pensado para reposição rápida sem precisar reenviar o produto inteiro.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Estoque atualizado com sucesso."),
+            @ApiResponse(responseCode = "400", description = "Erro de validação (ex: estoque negativo).",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Acesso negado: usuário não tem permissão para repor o estoque deste produto.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Produto não encontrado.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @PatchMapping("/{produtoId}/estoque")
+    @PreAuthorize("hasAnyRole('LOJISTA', 'FUNCIONARIO', 'ADMIN')")
+    public ResponseEntity<ProdutoResumoDTO> atualizarEstoque(
+            @PathVariable String produtoId,
+            @Valid @RequestBody br.com.nhac.backend_nhac.domain.produto.dto.AtualizarEstoqueDTO dto,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+        return ResponseEntity.ok(produtoService.atualizarEstoque(produtoId, dto.estoque(), usuarioLogado));
     }
 
     @Operation(summary = "Resumo de avaliações de um produto", description = "Retorna a média de notas e o total de avaliações de um produto.")

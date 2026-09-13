@@ -49,7 +49,11 @@ public record UsuarioCreateDTO(
                 false,
                 null,
                 null,
-                java.time.Instant.now()
+                java.time.Instant.now(),
+                true,
+                true,
+                false,
+                false
         );
     }
 }

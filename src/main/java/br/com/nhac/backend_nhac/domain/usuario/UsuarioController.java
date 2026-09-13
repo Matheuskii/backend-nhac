@@ -151,4 +151,23 @@ public class UsuarioController {
         br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioEstatisticasDTO estatisticas = usuarioService.obterEstatisticas(id);
         return ResponseEntity.ok(estatisticas);
     }
+
+    @io.swagger.v3.oas.annotations.Operation(summary = "Obter preferências de notificação", description = "Retorna as preferências de notificação do usuário (novo pedido, mensagens, avaliações, novidades).")
+    @GetMapping("/{id}/preferencias-notificacao")
+    public ResponseEntity<br.com.nhac.backend_nhac.domain.usuario.dto.PreferenciasNotificacaoDTO> buscarPreferenciasNotificacao(
+            @PathVariable String id,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+        validarPropriedade(id, usuarioLogado);
+        return ResponseEntity.ok(usuarioService.buscarPreferenciasNotificacao(id));
+    }
+
+    @io.swagger.v3.oas.annotations.Operation(summary = "Atualizar preferências de notificação", description = "Substitui as 4 preferências de notificação do usuário de uma vez.")
+    @PutMapping("/{id}/preferencias-notificacao")
+    public ResponseEntity<br.com.nhac.backend_nhac.domain.usuario.dto.PreferenciasNotificacaoDTO> atualizarPreferenciasNotificacao(
+            @PathVariable String id,
+            @RequestBody @Valid br.com.nhac.backend_nhac.domain.usuario.dto.PreferenciasNotificacaoDTO dto,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+        validarPropriedade(id, usuarioLogado);
+        return ResponseEntity.ok(usuarioService.atualizarPreferenciasNotificacao(id, dto));
+    }
 }

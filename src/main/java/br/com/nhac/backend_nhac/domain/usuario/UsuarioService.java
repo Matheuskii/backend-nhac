@@ -72,8 +72,13 @@ public class UsuarioService {
 
         if(dados.nome() != null)
             usuario.setNome(dados.nome());
-        if(dados.email() != null)
+        if(dados.email() != null) {
+            boolean emailMudou = !dados.email().equalsIgnoreCase(usuario.getEmail());
+            if (emailMudou && usuarioRepository.findByEmailIgnoreCase(dados.email()).isPresent()) {
+                throw new RegraDeNegocioException("Este e-mail já está em uso por outra conta.");
+            }
             usuario.setEmail(dados.email());
+        }
         if(dados.telefone() != null)
             usuario.setTelefone(dados.telefone());
         if(dados.imagemUrl() != null)
@@ -207,5 +212,31 @@ public class UsuarioService {
         long cuponsResgatados = pedidoRepository.countByUsuarioIdAndCupomIdIsNotNull(id);
         
         return new br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioEstatisticasDTO(totalPedidos, lojasFavoritadas, cuponsResgatados);
+    }
+
+    public br.com.nhac.backend_nhac.domain.usuario.dto.PreferenciasNotificacaoDTO buscarPreferenciasNotificacao(String id) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new IdNaoEncontradoException("Usuário não encontrado."));
+        return new br.com.nhac.backend_nhac.domain.usuario.dto.PreferenciasNotificacaoDTO(
+                usuario.isNotificarNovoPedido(),
+                usuario.isNotificarMensagens(),
+                usuario.isNotificarAvaliacoes(),
+                usuario.isNotificarNovidades()
+        );
+    }
+
+    @Transactional
+    public br.com.nhac.backend_nhac.domain.usuario.dto.PreferenciasNotificacaoDTO atualizarPreferenciasNotificacao(
+            String id, br.com.nhac.backend_nhac.domain.usuario.dto.PreferenciasNotificacaoDTO dto) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new IdNaoEncontradoException("Usuário não encontrado."));
+
+        usuario.setNotificarNovoPedido(dto.notificarNovoPedido());
+        usuario.setNotificarMensagens(dto.notificarMensagens());
+        usuario.setNotificarAvaliacoes(dto.notificarAvaliacoes());
+        usuario.setNotificarNovidades(dto.notificarNovidades());
+        usuarioRepository.save(usuario);
+
+        return dto;
     }
 }

@@ -177,6 +177,16 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Usado para o upload de imagens (loja/produtos) direto no bucket do Firebase Storage,
+		     que por baixo dos panos é um bucket do Google Cloud Storage.
+		     ATENÇÃO: confirme se esta é a versão estável mais recente em
+		     https://mvnrepository.com/artifact/com.google.cloud/google-cloud-storage antes de buildar -->
+		<dependency>
+			<groupId>com.google.cloud</groupId>
+			<artifactId>google-cloud-storage</artifactId>
+			<version>2.47.0</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>

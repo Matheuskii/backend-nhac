@@ -106,4 +106,20 @@ class SecurityFilterTest {
         assertNull(SecurityContextHolder.getContext().getAuthentication());
         verify(filterChain, times(1)).doFilter(request, response);
     }
+
+    @Test
+    @DisplayName("Não deve autenticar um usuário desativado, mesmo com token ainda válido (ex: funcionário demitido)")
+    void naoDeveAutenticarUsuarioDesativado() throws Exception {
+        Usuario usuario = usuarioDeTeste();
+        usuario.setAtivo(false);
+
+        when(request.getHeader("Authorization")).thenReturn("Bearer token_valido");
+        when(tokenService.validarToken("token_valido")).thenReturn("user_1");
+        when(usuarioRepository.findById("user_1")).thenReturn(java.util.Optional.of(usuario));
+
+        securityFilter.doFilterInternal(request, response, filterChain);
+
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        verify(filterChain, times(1)).doFilter(request, response);
+    }
 }

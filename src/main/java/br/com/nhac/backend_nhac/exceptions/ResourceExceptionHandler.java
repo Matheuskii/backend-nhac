@@ -166,6 +166,26 @@ public class ResourceExceptionHandler {
         return ResponseEntity.status(status).body(erro);
     }
 
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErroPadraoDTO> arquivoMuitoGrande(org.springframework.web.multipart.MaxUploadSizeExceededException e, HttpServletRequest request) {
+        String requestId = UUID.randomUUID().toString();
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        logger.warn("Upload acima do limite permitido, RequestId: {}", requestId);
+
+        ErroPadraoDTO erro = new ErroPadraoDTO(
+                requestId,
+                Instant.now(),
+                status.value(),
+                ErrorCode.REGRA_DE_NEGOCIO.getCode(),
+                "Arquivo Muito Grande",
+                "O arquivo enviado é maior que o limite permitido.",
+                Collections.emptyMap(),
+                request.getRequestURI(),
+                Collections.emptyList()
+        );
+        return ResponseEntity.status(status).body(erro);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErroPadraoDTO> erroGenerico(Exception e, HttpServletRequest request) {
         String requestId = UUID.randomUUID().toString();

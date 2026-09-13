@@ -71,6 +71,18 @@ public class Usuario implements UserDetails {
     @Column(name = "criado_em")
     private java.time.Instant criadoEm = java.time.Instant.now();
 
+    @Column(name = "notificar_novo_pedido", nullable = false)
+    private boolean notificarNovoPedido = true;
+
+    @Column(name = "notificar_mensagens", nullable = false)
+    private boolean notificarMensagens = true;
+
+    @Column(name = "notificar_avaliacoes", nullable = false)
+    private boolean notificarAvaliacoes = false;
+
+    @Column(name = "notificar_novidades", nullable = false)
+    private boolean notificarNovidades = false;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + this.papel.name()));

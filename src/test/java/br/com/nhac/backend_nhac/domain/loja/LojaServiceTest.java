@@ -40,6 +40,9 @@ class LojaServiceTest {
     @Mock
     private UsuarioRepository usuarioRepository;
 
+    @Mock
+    private LojaAccessService lojaAccessService;
+
     @InjectMocks
     private LojaService lojaService;
 
@@ -250,6 +253,44 @@ class LojaServiceTest {
 
         assertNotNull(atualizada);
         verify(lojaRepository).save(argThat(l -> "user_dono".equals(l.getUsuarioId())));
+    }
+
+    @Test
+    @DisplayName("Deve abrir/fechar a loja rapidamente quando usuário tiver acesso à loja")
+    void deveAtualizarAberturaQuandoUsuarioTiverAcesso() {
+        Usuario dono = new Usuario();
+        dono.setId("user_dono");
+        dono.setPapel(Papel.LOJISTA);
+
+        Loja lojaExistente = construirLojaCompleta("loja_1", true);
+        lojaExistente.setUsuarioId("user_dono");
+
+        when(lojaRepository.findById("loja_1")).thenReturn(Optional.of(lojaExistente));
+        when(lojaAccessService.temAcessoALoja(dono, "loja_1")).thenReturn(true);
+        when(lojaRepository.save(any(Loja.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        LojaDetalhesDTO atualizada = lojaService.atualizarAbertura("loja_1", false, dono);
+
+        assertNotNull(atualizada);
+        assertFalse(lojaExistente.isAberto());
+        verify(lojaRepository).save(argThat(l -> !l.isAberto()));
+    }
+
+    @Test
+    @DisplayName("Deve lançar AcessoNegadoException ao tentar abrir/fechar loja sem acesso a ela")
+    void deveLancarAcessoNegadoAoAtualizarAberturaSemAcesso() {
+        Usuario invasor = new Usuario();
+        invasor.setId("user_invasor");
+        invasor.setPapel(Papel.LOJISTA);
+
+        Loja lojaExistente = construirLojaCompleta("loja_1", true);
+        lojaExistente.setUsuarioId("user_dono");
+
+        when(lojaRepository.findById("loja_1")).thenReturn(Optional.of(lojaExistente));
+        when(lojaAccessService.temAcessoALoja(invasor, "loja_1")).thenReturn(false);
+
+        assertThrows(AcessoNegadoException.class,
+                () -> lojaService.atualizarAbertura("loja_1", false, invasor));
     }
 
     private LojaCreateDTO construirDtoCriacao() {

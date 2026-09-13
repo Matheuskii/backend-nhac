@@ -53,6 +53,21 @@ public class LojistaController {
         return ResponseEntity.ok(lojistaService.listarProdutos(usuarioLogado, categoriaMenu, nome, pageable));
     }
 
+    @Operation(summary = "Buscar um produto da loja por ID", description = "Retorna um produto (ativo ou inativo) desde que pertença à loja do usuário autenticado (dono ou funcionário). Usado pelo painel para carregar o formulário de edição, inclusive de produtos desativados.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Produto encontrado e retornado com sucesso."),
+            @ApiResponse(responseCode = "401", description = "Não autenticado",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Produto não encontrado ou não pertence à loja do usuário autenticado",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @GetMapping("/produtos/{produtoId}")
+    public ResponseEntity<ProdutoLojistaDTO> buscarProduto(
+            @AuthenticationPrincipal Usuario usuarioLogado,
+            @PathVariable String produtoId) {
+        return ResponseEntity.ok(lojistaService.buscarProdutoPorId(usuarioLogado, produtoId));
+    }
+
     @Operation(summary = "Listar pedidos recebidos", description = "Lista os pedidos recebidos pela loja do usuário autenticado (dono ou funcionário). Sem status, retorna todos ordenados do mais recente para o mais antigo. O parâmetro status deve ser o valor do enum StatusPedido em maiúsculas (PENDENTE, PAGO, PREPARANDO, SAIU_ENTREGA, ENTREGUE, CANCELADO). Valores inválidos retornam 400.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lista paginada de pedidos. Vazia se ainda não houver pedidos ou se o usuário não tiver loja."),

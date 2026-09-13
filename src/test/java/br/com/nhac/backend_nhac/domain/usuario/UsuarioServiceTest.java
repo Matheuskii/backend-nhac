@@ -169,6 +169,36 @@ class UsuarioServiceTest {
         assertThrows(IdNaoEncontradoException.class,
                 () -> usuarioService.atualizarUsuarioParcial("fantasma", dados));
     }
+    @Test
+    @DisplayName("Deve lançar RegraDeNegocioException ao trocar para um e-mail que já pertence a outra conta")
+    void deveLancarErroQuandoNovoEmailJaEstiverEmUso() {
+        Usuario usuario = usuarioPadrao("user_1");
+        when(usuarioRepository.findById("user_1")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findByEmailIgnoreCase("outro@nhac.com"))
+                .thenReturn(Optional.of(usuarioPadrao("user_2")));
+
+        UsuarioAtualizarDTO dados = new UsuarioAtualizarDTO(null, "outro@nhac.com", null, null, null);
+
+        assertThrows(br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException.class,
+                () -> usuarioService.atualizarUsuarioParcial("user_1", dados));
+
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Não deve checar duplicidade quando o e-mail enviado for o mesmo que o usuário já tem")
+    void naoDeveChecarDuplicidadeQuandoEmailNaoMudou() {
+        Usuario usuario = usuarioPadrao("user_1");
+        when(usuarioRepository.findById("user_1")).thenReturn(Optional.of(usuario));
+
+        UsuarioAtualizarDTO dados = new UsuarioAtualizarDTO(null, "matheus@nhac.com", null, null, null);
+
+        usuarioService.atualizarUsuarioParcial("user_1", dados);
+
+        verify(usuarioRepository, never()).findByEmailIgnoreCase(any());
+        verify(usuarioRepository).save(usuario);
+    }
+
     // ---------- listarEnderecos ----------
 
     @Test

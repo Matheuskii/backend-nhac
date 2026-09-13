@@ -42,7 +42,10 @@ public class SecurityFilter extends OncePerRequestFilter {
 
                 Usuario usuario = usuarioRepository.findById(id).orElse(null);
 
-                if(usuario != null){
+                // Recarrega o usuário do banco a cada request (já fazia isso), mas antes não
+                // checava isEnabled()/ativo — um funcionário desativado continuava usando o
+                // token antigo normalmente até expirar. Ver pergunta em aberto #12 da spec.
+                if(usuario != null && usuario.isEnabled()){
                     var authentication = new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities());
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }

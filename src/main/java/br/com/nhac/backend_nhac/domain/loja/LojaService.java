@@ -1,20 +1,22 @@
 package br.com.nhac.backend_nhac.domain.loja;
 
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaCreateDTO;
-import br.com.nhac.backend_nhac.domain.loja.dto.LojaResumoDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaDetalhesDTO;
+import br.com.nhac.backend_nhac.domain.loja.dto.LojaResumoDTO;
 import br.com.nhac.backend_nhac.domain.usuario.Papel;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
 import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
+import br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException;
 import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 import jakarta.transaction.Transactional;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
 
 
 @Service
@@ -22,11 +24,13 @@ public class LojaService {
 
     private final LojaRepository lojaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final LojaAccessService lojaAccessService;
 
 
-    public LojaService(LojaRepository lojaRepository, UsuarioRepository usuarioRepository) {
+    public LojaService(LojaRepository lojaRepository, UsuarioRepository usuarioRepository, LojaAccessService lojaAccessService) {
         this.lojaRepository = lojaRepository;
         this.usuarioRepository = usuarioRepository;
+        this.lojaAccessService = lojaAccessService;
     }
 
 
@@ -140,5 +144,26 @@ public class LojaService {
 
         return new LojaDetalhesDTO(lojaRepository.save(loja));
     }
-}
+
+  @Transactional
+public LojaDetalhesDTO atualizarAbertura(String id, Boolean isAberto, Usuario usuarioLogado) {
+    if (usuarioLogado == null) {
+        throw new AcessoNegadoException("É necessário estar autenticado para atualizar a loja.");
+    }
+
+    if (isAberto == null) {
+        throw new RegraDeNegocioException("O status de abertura (isAberto) deve ser informado.");
+    }
+
+    Loja loja = lojaRepository.findById(id)
+            .orElseThrow(() -> new LojaNaoEncontradaException(id));
+
+    boolean isAdmin = usuarioLogado.getPapel() == Papel.ADMIN;
+    if (!isAdmin && !lojaAccessService.temAcessoALoja(usuarioLogado, loja.getId())) {
+        throw new AcessoNegadoException("Acesso negado: você não tem permissão para abrir/fechar esta loja.");
+    }
+
+    loja.setAberto(isAberto);
+    return new LojaDetalhesDTO(lojaRepository.save(loja));
+}}
 

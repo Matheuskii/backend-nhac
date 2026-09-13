@@ -63,6 +63,10 @@ public class AuthController {
             throw new RegraDeNegocioException("Verifique seu e-mail antes de fazer login.");
         }
 
+        if (!usuario.isAtivo()) {
+            throw new RegraDeNegocioException("Esta conta está desativada. Fale com o dono da loja para reativá-la.");
+        }
+
         if (passwordEncoder.matches(body.senha(), usuario.getSenha())) {
             String token = tokenService.gerarToken(usuario);
             return ResponseEntity.ok(LoginResponseDTO.from(usuario, token, false));

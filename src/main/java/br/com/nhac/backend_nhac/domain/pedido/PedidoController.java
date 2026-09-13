@@ -114,7 +114,7 @@ public class PedidoController {
             @ApiResponse(responseCode = "500", description = "Erro interno no servidor", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroPadraoDTO.class)))
     })
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LOJISTA')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LOJISTA', 'FUNCIONARIO')")
     public ResponseEntity<Void> atualizarStatus(
             @PathVariable String id,
             @Valid @RequestBody PedidoUpdateStatusDTO dto,

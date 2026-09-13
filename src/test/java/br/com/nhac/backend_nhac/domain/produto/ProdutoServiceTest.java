@@ -1,34 +1,46 @@
 package br.com.nhac.backend_nhac.domain.produto;
 
-import br.com.nhac.backend_nhac.domain.loja.Loja;
-import br.com.nhac.backend_nhac.domain.loja.LojaAccessService;
-import br.com.nhac.backend_nhac.domain.produto.Produto;
-import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoCreateDTO;
-import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoResumoDTO;
-import br.com.nhac.backend_nhac.domain.usuario.Usuario;
-import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
-import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
-import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
-import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
-import br.com.nhac.backend_nhac.domain.produto.ProdutoRepository;
-import org.junit.jupiter.api.DisplayName;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import br.com.nhac.backend_nhac.domain.loja.Loja;
+import br.com.nhac.backend_nhac.domain.loja.LojaAccessService;
+import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
+import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoAvaliacaoResumoDTO;
+import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoCreateDTO;
+import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoResumoDTO;
+import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Papel;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
+import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
+import br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException;
+import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 
 @ExtendWith(MockitoExtension.class)
 class ProdutoServiceTest {
@@ -65,9 +77,9 @@ class ProdutoServiceTest {
         usuario.setEmail("teste@nhac.com");
         usuario.setNome("Teste");
         if ("ADMIN".equals(papel)) {
-            usuario.setPapel(br.com.nhac.backend_nhac.domain.usuario.Papel.ADMIN);
+            usuario.setPapel(Papel.ADMIN);
         } else {
-            usuario.setPapel(br.com.nhac.backend_nhac.domain.usuario.Papel.LOJISTA);
+            usuario.setPapel(Papel.LOJISTA);
         }
         return usuario;
     }
@@ -76,7 +88,6 @@ class ProdutoServiceTest {
         Loja loja = new Loja();
         loja.setId(id);
         loja.setAberto(aberto);
-        // Simula o vínculo 1:1 lojista-loja
         loja.setUsuarioId(usuarioId);
         return loja;
     }
@@ -106,7 +117,7 @@ class ProdutoServiceTest {
 
         ProdutoCreateDTO dto = new ProdutoCreateDTO(
                 "Hossomaki", "Descrição", new BigDecimal("25.50"),
-                "Sushi", "url", "200g", 10, null
+                "Sushi", "url", "200g", 10, null, 50
         );
 
         Produto produtoSalvo = new Produto();
@@ -129,16 +140,16 @@ class ProdutoServiceTest {
     @DisplayName("Deve explodir exceção quando usuário não tiver loja cadastrada")
     void deveLancarExcecaoQuandoUsuarioNaoTiverLoja() {
         Usuario usuarioSemLoja = criarUsuario("usuario_sem_loja", "LOJISTA");
-        
+
         ProdutoCreateDTO dto = new ProdutoCreateDTO(
                 "Hossomaki", "Descrição", new BigDecimal("25.50"),
-                "Sushi", "url", "200g", 10, null
+                "Sushi", "url", "200g", 10, null, null
         );
 
         when(lojaAccessService.obterLojaAcessivel(usuarioSemLoja))
-            .thenThrow(new br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException());
+                .thenThrow(new LojaNaoEncontradaException());
 
-        Exception excecao = assertThrows(br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException.class,
+        Exception excecao = assertThrows(LojaNaoEncontradaException.class,
                 () -> produtoService.cadastrarProduto(dto, usuarioSemLoja));
 
         assertEquals("Loja do usuário não encontrada.", excecao.getMessage());
@@ -153,7 +164,7 @@ class ProdutoServiceTest {
 
         ProdutoCreateDTO dto = new ProdutoCreateDTO(
                 "Hossomaki", "Descrição", new BigDecimal("25.50"),
-                "Sushi", "url", "200g", 10, null
+                "Sushi", "url", "200g", 10, null, null
         );
 
         when(lojaAccessService.obterLojaAcessivel(usuarioLojista)).thenReturn(lojaFechada);
@@ -172,7 +183,7 @@ class ProdutoServiceTest {
 
         ProdutoCreateDTO dto = new ProdutoCreateDTO(
                 "Hossomaki", "Descrição", new BigDecimal("25.50"),
-                "Sushi", "url", "200g", 10, null
+                "Sushi", "url", "200g", 10, null, 100
         );
 
         Produto produtoSalvo = new Produto();
@@ -186,24 +197,6 @@ class ProdutoServiceTest {
 
         assertNotNull(resultado);
         verify(produtoRepository, times(1)).save(any(Produto.class));
-    }
-
-    private Produto produtoDeTesteAntigo() {
-        Loja loja = new Loja();
-        loja.setId("loja_1");
-        loja.setAberto(true);
-
-        Produto produto = new Produto();
-        produto.setId("produto_1");
-        produto.setLoja(loja);
-        produto.setNome("Hossomaki");
-        produto.setDescricao("Descrição do produto");
-        produto.setPreco(new BigDecimal("25.50"));
-        produto.setCategoriaMenu("Sushi");
-        produto.setImagemUrl("url");
-        produto.setPeso("200g");
-        produto.setPercentualDesconto(10);
-        return produto;
     }
 
     @Test
@@ -307,9 +300,9 @@ class ProdutoServiceTest {
     void deveAtualizarProdutoComSucesso() {
         Usuario usuarioDono = criarUsuario("usuario_lojista_1", "LOJISTA");
         Produto produtoOriginal = produtoDeTeste();
-        br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
+        ProdutoUpdateDTO dto = new ProdutoUpdateDTO(
                 "Hossomaki Editado", "Descrição editada", new BigDecimal("29.90"),
-                "Sushi", "nova-url", "300g", 15, false, null
+                "Sushi", "nova-url", "300g", 15, true, null, 30
         );
 
         when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
@@ -329,9 +322,9 @@ class ProdutoServiceTest {
     void adminDeveAtualizarProdutoDeQualquerLoja() {
         Usuario usuarioAdmin = criarUsuario("admin_123", "ADMIN");
         Produto produtoOriginal = produtoDeTeste();
-        br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
+        ProdutoUpdateDTO dto = new ProdutoUpdateDTO(
                 "Hossomaki Editado", "Descrição editada", new BigDecimal("29.90"),
-                "Sushi", "nova-url", "300g", 15, false, null
+                "Sushi", "nova-url", "300g", 15, true, null, 30
         );
 
         when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
@@ -348,9 +341,9 @@ class ProdutoServiceTest {
     void deveLancarAcessoNegadoAoAtualizarProdutoDeOutraLoja() {
         Usuario usuarioDeOutraLoja = criarUsuario("usuario_de_outra_loja", "LOJISTA");
         Produto produtoOriginal = produtoDeTeste();
-        br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
+        ProdutoUpdateDTO dto = new ProdutoUpdateDTO(
                 "Hossomaki Editado", "Descrição editada", new BigDecimal("29.90"),
-                "Sushi", "nova-url", "300g", 15, false, null
+                "Sushi", "nova-url", "300g", 15, true, null, 30
         );
 
         when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
@@ -366,9 +359,9 @@ class ProdutoServiceTest {
     @DisplayName("Deve lançar IdNaoEncontradoException ao tentar atualizar produto inexistente")
     void deveLancarExcecaoAoAtualizarProdutoInexistente() {
         Usuario usuarioLojista = criarUsuario("usuario_lojista_1", "LOJISTA");
-        br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
+        ProdutoUpdateDTO dto = new ProdutoUpdateDTO(
                 "Hossomaki Editado", "Descrição editada", new BigDecimal("29.90"),
-                "Sushi", "nova-url", "300g", 15, false, null
+                "Sushi", "nova-url", "300g", 15, true, null, 30
         );
 
         when(produtoRepository.findById("produto_fantasma")).thenReturn(Optional.empty());
@@ -387,14 +380,14 @@ class ProdutoServiceTest {
         Produto produtoOriginal = produtoDeTeste();
         produtoOriginal.getLoja().setAberto(false);
 
-        br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO dto = new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoUpdateDTO(
+        ProdutoUpdateDTO dto = new ProdutoUpdateDTO(
                 "Hossomaki Editado", "Descrição editada", new BigDecimal("29.90"),
-                "Sushi", "nova-url", "300g", 15, false, null
+                "Sushi", "nova-url", "300g", 15, true, null, 30
         );
 
         when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
 
-        Exception excecao = assertThrows(br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException.class,
+        Exception excecao = assertThrows(RegraDeNegocioException.class,
                 () -> produtoService.atualizarProduto("produto_1", dto, usuarioLojista));
 
         assertEquals("Não é possível editar produtos de uma loja fechada.", excecao.getMessage());
@@ -473,7 +466,7 @@ class ProdutoServiceTest {
 
         when(produtoRepository.findById("produto_1")).thenReturn(Optional.of(produtoOriginal));
 
-        Exception excecao = assertThrows(br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException.class,
+        Exception excecao = assertThrows(RegraDeNegocioException.class,
                 () -> produtoService.desativarProduto("produto_1", usuarioLojista));
 
         assertEquals("Não é possível desativar produtos de uma loja fechada.", excecao.getMessage());
@@ -502,9 +495,9 @@ class ProdutoServiceTest {
     void deveBuscarResumoAvaliacoesProduto() {
         when(produtoRepository.existsById("produto_1")).thenReturn(true);
         when(produtoRepository.getResumoAvaliacoesPorProdutoId("produto_1"))
-                .thenReturn(new br.com.nhac.backend_nhac.domain.produto.dto.ProdutoAvaliacaoResumoDTO(15L, 4.8));
+                .thenReturn(new ProdutoAvaliacaoResumoDTO(15L, 4.8));
 
-        br.com.nhac.backend_nhac.domain.produto.dto.ProdutoAvaliacaoResumoDTO resumo = produtoService.buscarResumoAvaliacoes("produto_1");
+        ProdutoAvaliacaoResumoDTO resumo = produtoService.buscarResumoAvaliacoes("produto_1");
 
         assertNotNull(resumo);
         assertEquals(15L, resumo.totalAvaliacoes());
@@ -516,7 +509,7 @@ class ProdutoServiceTest {
     void deveLancarExcecaoBuscarResumoAvaliacoesProdutoInexistente() {
         when(produtoRepository.existsById("produto_fantasma")).thenReturn(false);
 
-        Exception excecao = assertThrows(br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException.class,
+        Exception excecao = assertThrows(IdNaoEncontradoException.class,
                 () -> produtoService.buscarResumoAvaliacoes("produto_fantasma"));
 
         assertTrue(excecao.getMessage().contains("produto_fantasma"));

@@ -7,6 +7,7 @@ import br.com.nhac.backend_nhac.domain.pedido.PedidoRepository;
 import br.com.nhac.backend_nhac.domain.pedido.PedidoResumoLojistaMapper;
 import br.com.nhac.backend_nhac.domain.pedido.StatusPedido;
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoLojistaDTO;
+import br.com.nhac.backend_nhac.domain.produto.Produto;
 import br.com.nhac.backend_nhac.domain.produto.ProdutoRepository;
 import br.com.nhac.backend_nhac.domain.produto.dto.ProdutoLojistaDTO;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
@@ -42,6 +43,19 @@ public class LojistaService {
         String nomeFiltro = StringUtils.hasText(nome) ? nome : null;
         return produtoRepository.findByLoja(loja.getId(), categoriaFiltro, nomeFiltro, limitarPagina(pageable))
                 .map(ProdutoLojistaDTO::new);
+    }
+
+    /**
+     * Busca um único produto da loja do usuário logado (dono ou funcionário), incluindo
+     * inativos — GET /produtos/{id} (público) só retorna ativos, então o formulário de edição
+     * do painel não conseguia carregar um produto desativado antes deste endpoint existir.
+     */
+    @Transactional(readOnly = true)
+    public ProdutoLojistaDTO buscarProdutoPorId(Usuario usuarioLogado, String produtoId) {
+        Loja loja = lojaAccessService.obterLojaAcessivel(usuarioLogado);
+        Produto produto = produtoRepository.findByIdAndLojaId(produtoId, loja.getId())
+                .orElseThrow(() -> new br.com.nhac.backend_nhac.exceptions.ProdutoNaoEncontradoException(produtoId));
+        return new ProdutoLojistaDTO(produto);
     }
 
     @Transactional(readOnly = true)

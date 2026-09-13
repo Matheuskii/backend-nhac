@@ -38,5 +38,25 @@
     "name": "api.security.token.secret",
     "type": "java.lang.String",
     "description": "A description for 'api.security.token.secret'"
+  },
+  {
+    "name": "firebase.storage.bucket-name",
+    "type": "java.lang.String",
+    "description": "Nome do bucket do Firebase Storage usado para upload de imagens de loja/produtos."
+  },
+  {
+    "name": "firebase.storage.credentials-base64",
+    "type": "java.lang.String",
+    "description": "JSON da service account do Firebase, em Base64, usado para autenticar o upload de imagens."
+  },
+  {
+    "name": "nhac.storage.mock-mode",
+    "type": "java.lang.String",
+    "description": "Quando true (padrão), o upload de imagens não sobe nada de verdade — só loga e devolve uma URL de placeholder."
+  },
+  {
+    "name": "nhac.storage.max-tamanho-bytes",
+    "type": "java.lang.String",
+    "description": "Tamanho máximo (em bytes) aceito no upload de imagens."
   }
 ]}

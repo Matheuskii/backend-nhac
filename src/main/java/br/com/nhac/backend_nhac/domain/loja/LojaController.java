@@ -1,10 +1,24 @@
 package br.com.nhac.backend_nhac.domain.loja;
 
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaCreateDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaDetalhesDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaResumoDTO;
-import br.com.nhac.backend_nhac.exceptions.ErroPadraoDTO;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.exceptions.ErroPadraoDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,11 +26,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/lojas")
@@ -104,6 +113,31 @@ public class LojaController {
             @RequestBody @Valid LojaCreateDTO dto,
             @AuthenticationPrincipal Usuario usuarioLogado) {
         return ResponseEntity.ok(lojaService.atualizarLoja(id, dto, usuarioLogado));
+    }
+
+    @Operation(summary = "Abrir ou fechar a loja",
+            description = "Alterna rapidamente se a loja está aberta ou fechada, sem precisar reenviar o cadastro completo da loja. Dono, funcionário da loja ou ADMIN.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Status de abertura atualizado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Payload inválido",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = "401", description = "Não autenticado",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Usuário autenticado não tem acesso a esta loja",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Loja não encontrada",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDTO.class)))
+    })
+    @PatchMapping("/{id}/abertura")
+    public ResponseEntity<LojaDetalhesDTO> atualizarAbertura(
+            @PathVariable String id,
+            @RequestBody @Valid br.com.nhac.backend_nhac.domain.loja.dto.AtualizarAberturaDTO dto,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+
+                if (usuarioLogado == null) {
+        throw new br.com.nhac.backend_nhac.exceptions.AcessoNegadoException("Usuário não autenticado ou token inválido.");
+    }
+        return ResponseEntity.ok(lojaService.atualizarAbertura(id, dto.isAberto(), usuarioLogado));
     }
 
     @Operation(summary = "Calcular frete dinâmico", description = "Calcula o frete e o tempo de entrega com base na localização do cliente.")

@@ -87,6 +87,9 @@ public class ProdutoService {
         produto.setPeso(dto.peso());
         produto.setPercentualDesconto(dto.percentualDesconto());
         produto.setAtivo(dto.isAtivo());
+        if (dto.estoque() != null) {
+            produto.setEstoque(dto.estoque());
+        }
 
         produtoRepository.save(produto);
 
@@ -127,6 +130,21 @@ public class ProdutoService {
         }
 
         produto.setAtivo(true);
+        produtoRepository.save(produto);
+        return new ProdutoResumoDTO(produto);
+    }
+
+    @Transactional
+    public ProdutoResumoDTO atualizarEstoque(String id, Integer novoEstoque, Usuario usuarioLogado) {
+        Produto produto = produtoRepository.findById(id)
+                .orElseThrow(() -> new IdNaoEncontradoException("O produto com o id: " + id + " não foi encontrado."));
+
+        boolean isAdmin = usuarioLogado.getPapel().name().equals("ADMIN");
+        if (!isAdmin && !lojaAccessService.temAcessoALoja(usuarioLogado, produto.getLoja().getId())) {
+            throw new AcessoNegadoException("Acesso negado: você não tem permissão para repor o estoque deste produto.");
+        }
+
+        produto.setEstoque(novoEstoque);
         produtoRepository.save(produto);
         return new ProdutoResumoDTO(produto);
     }
