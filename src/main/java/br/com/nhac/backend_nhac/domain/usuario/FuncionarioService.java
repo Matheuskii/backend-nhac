@@ -1,5 +1,15 @@
 package br.com.nhac.backend_nhac.domain.usuario;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import br.com.nhac.backend_nhac.domain.loja.Loja;
 import br.com.nhac.backend_nhac.domain.loja.LojaAccessService;
 import br.com.nhac.backend_nhac.domain.usuario.dto.FuncionarioCreateDTO;
@@ -8,15 +18,6 @@ import br.com.nhac.backend_nhac.domain.usuario.dto.FuncionarioUpdateDTO;
 import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
 import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.UUID;
 
 /**
  * CRUD de funcionários (Round 20 / item 5.2). Decisões de produto já tomadas:
@@ -80,14 +81,17 @@ public class FuncionarioService {
         Loja loja = exigirDono(usuarioLogado);
         Usuario funcionario = buscarFuncionarioDaLoja(funcionarioId, loja.getId());
 
-        funcionario.setNome(dto.nome());
-        funcionario.setTelefone(dto.telefone());
-        funcionario.setCargo(dto.cargo());
-        if (dto.imagemUrl() != null) {
-            funcionario.setImagemUrl(dto.imagemUrl());
-        }
+       funcionario.setNome(dto.nome());
+funcionario.setCargo(dto.cargo());
 
-        usuarioRepository.save(funcionario);
+if (dto.telefone() != null && !dto.telefone().isBlank()) {
+    funcionario.setTelefone(dto.telefone());
+}
+if (dto.imagemUrl() != null) {
+    funcionario.setImagemUrl(dto.imagemUrl());
+}
+
+usuarioRepository.save(funcionario);
         return new FuncionarioResponseDTO(funcionario);
     }
 
