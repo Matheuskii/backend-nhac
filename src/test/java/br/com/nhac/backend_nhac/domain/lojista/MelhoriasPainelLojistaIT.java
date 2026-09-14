@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -21,6 +20,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import br.com.nhac.backend_nhac.AbstractIntegrationTest;
 import br.com.nhac.backend_nhac.domain.loja.DadosOperacionais;
 import br.com.nhac.backend_nhac.domain.loja.EnderecoLoja;
+import br.com.nhac.backend_nhac.domain.loja.FormasPagamento;
+import br.com.nhac.backend_nhac.domain.loja.HorariosFuncionamento;
 import br.com.nhac.backend_nhac.domain.loja.Loja;
 import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
 import br.com.nhac.backend_nhac.domain.produto.Produto;
@@ -74,6 +75,26 @@ public class MelhoriasPainelLojistaIT extends AbstractIntegrationTest {
         dadosOp.setTempoEntregaMax(30);
         loja.setDadosOperacionais(dadosOp);
         loja.setEndereco(new EnderecoLoja("Rua Teste", "123", "Cidade", "SP", "00000-000", "Bairro", null));
+        // Depois do `loja.setEndereco(...)` e antes do save, adiciona:
+
+loja.setHorariosFuncionamento(new HorariosFuncionamento(
+        "10:00 - 22:00",   // domingo
+        "10:00 - 22:00",   // segunda
+        "10:00 - 22:00",   // terca
+        "10:00 - 22:00",   // quarta
+        "10:00 - 22:00",   // quinta
+        "10:00 - 23:00",   // sexta
+        "10:00 - 23:00"    // sabado
+));
+
+loja.setFormasPagamento(new FormasPagamento(
+        true,   // aceitaDinheiro
+        true,   // aceitaCredito
+        true,   // aceitaDebito
+        true,   // aceitaPix
+        false,  // aceitaValeRefeicao
+        false   // aceitaValeAlimentacao
+));
         loja = lojaRepository.saveAndFlush(loja);
 
         funcionario = criarUsuario("func.melhorias@teste.com", Papel.FUNCIONARIO, loja.getId());
@@ -127,22 +148,24 @@ public class MelhoriasPainelLojistaIT extends AbstractIntegrationTest {
 
     // ---------- Abrir/fechar loja ----------
 
-    @Test
-    void deveAbrirEFecharLoja() throws Exception {
-        mockMvc.perform(patch("/api/v1/lojas/" + loja.getId() + "/abertura")
-                        .with(user(dono))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"isAberto\": false}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.isAberto").value(false));
+  @Test
+void deveAbrirEFecharLoja() throws Exception {
+    // Chamada 1 — DONO
+    mockMvc.perform(patch("/api/v1/lojas/" + loja.getId() + "/abertura")
+                    .header("Authorization", "Bearer " + tokenDono)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"isAberto\": false}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.isAberto").value(false));
 
-        mockMvc.perform(patch("/api/v1/lojas/" + loja.getId() + "/abertura")
-                        .with(user(funcionario))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"isAberto\": true}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.isAberto").value(true));
-    }
+    // Chamada 2 — FUNCIONÁRIO (mesma loja, autorizado via loja_vinculada_id)
+    mockMvc.perform(patch("/api/v1/lojas/" + loja.getId() + "/abertura")
+                    .header("Authorization", "Bearer " + tokenFuncionario)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"isAberto\": true}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.isAberto").value(true));
+}
 
     @Test
     void naoDeveDeixarUsuarioSemAcessoAbrirOuFecharLoja() throws Exception {

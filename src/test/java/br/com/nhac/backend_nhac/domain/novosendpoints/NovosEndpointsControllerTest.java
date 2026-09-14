@@ -1,11 +1,41 @@
 package br.com.nhac.backend_nhac.domain.novosendpoints;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import br.com.nhac.backend_nhac.domain.chat.ChatController;
 import br.com.nhac.backend_nhac.domain.chat.ChatService;
 import br.com.nhac.backend_nhac.domain.chat.ConversaClienteController;
+import br.com.nhac.backend_nhac.domain.chat.RemetenteTipo;
 import br.com.nhac.backend_nhac.domain.chat.dto.ChatDTOs.ConversaResumoDTO;
 import br.com.nhac.backend_nhac.domain.chat.dto.ChatDTOs.MensagemDTO;
-import br.com.nhac.backend_nhac.domain.chat.RemetenteTipo;
 import br.com.nhac.backend_nhac.domain.financeiro.FinanceiroController;
 import br.com.nhac.backend_nhac.domain.financeiro.FinanceiroService;
 import br.com.nhac.backend_nhac.domain.financeiro.PeriodoFinanceiro;
@@ -13,43 +43,13 @@ import br.com.nhac.backend_nhac.domain.financeiro.dto.FinanceiroDTOs.FinanceiroD
 import br.com.nhac.backend_nhac.domain.financeiro.dto.FinanceiroDTOs.ResumoFinanceiroDTO;
 import br.com.nhac.backend_nhac.domain.painel.PainelController;
 import br.com.nhac.backend_nhac.domain.painel.PainelService;
-import br.com.nhac.backend_nhac.domain.painel.dto.PainelResumoDTO;
 import br.com.nhac.backend_nhac.domain.painel.dto.FaturamentoDiaDTO;
+import br.com.nhac.backend_nhac.domain.painel.dto.PainelResumoDTO;
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoLojistaDTO;
 import br.com.nhac.backend_nhac.domain.usuario.FuncionarioController;
 import br.com.nhac.backend_nhac.domain.usuario.FuncionarioService;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.domain.usuario.dto.FuncionarioResponseDTO;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.List;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 @WebMvcTest({FuncionarioController.class, PainelController.class, FinanceiroController.class,
         ChatController.class, ConversaClienteController.class})
@@ -79,14 +79,15 @@ class NovosEndpointsControllerTest {
 
     private Usuario usuario;
 
-    @BeforeEach
-    void configurarAutenticacao() {
-        usuario = new Usuario();
-        usuario.setId("lojista_1");
-        usuario.setEmail("lojista@nhac.com");
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities()));
-    }
+@BeforeEach
+void configurarAutenticacao() {
+    usuario = new Usuario();
+    usuario.setId("lojista_1");
+    usuario.setEmail("lojista@nhac.com");
+    usuario.setPapel(br.com.nhac.backend_nhac.domain.usuario.Papel.CLIENTE);   // ← adiciona
+    SecurityContextHolder.getContext().setAuthentication(
+            new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities()));
+}
 
     @AfterEach
     void limparAutenticacao() {
@@ -197,13 +198,14 @@ class NovosEndpointsControllerTest {
     }
 
     @Test
-    void deveAbrirConversaDoCliente() throws Exception {
-        br.com.nhac.backend_nhac.domain.chat.Conversa conversa = new br.com.nhac.backend_nhac.domain.chat.Conversa();
-        conversa.setId("conv_1");
-        when(chatService.obterOuCriarConversa("loja_1", "lojista_1")).thenReturn(conversa);
+void deveAbrirConversaDoCliente() throws Exception {
+    br.com.nhac.backend_nhac.domain.chat.Conversa conversa = new br.com.nhac.backend_nhac.domain.chat.Conversa();
+    conversa.setId("conv_1");
+    when(chatService.obterOuCriarConversa(eq("loja_1"), eq(usuario))).thenReturn(conversa);
 
-        mockMvc.perform(post("/api/v1/conversas/lojas/loja_1").with(csrf()))
-                .andExpect(status().isOk())
-                .andExpect(content -> org.junit.jupiter.api.Assertions.assertEquals("conv_1", content.getResponse().getContentAsString()));
-    }
-}
+    mockMvc.perform(post("/api/v1/conversas/lojas/loja_1").with(csrf()))
+            .andExpect(status().isOk())
+            .andExpect(content -> org.junit.jupiter.api.Assertions.assertEquals(
+                    "conv_1", content.getResponse().getContentAsString()));
+            }
+        }

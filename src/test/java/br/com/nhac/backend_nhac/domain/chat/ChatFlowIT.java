@@ -1,5 +1,19 @@
 package br.com.nhac.backend_nhac.domain.chat;
 
+import java.math.BigDecimal;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import br.com.nhac.backend_nhac.AbstractIntegrationTest;
 import br.com.nhac.backend_nhac.domain.chat.dto.ChatDTOs.MensagemDTO;
 import br.com.nhac.backend_nhac.domain.loja.DadosOperacionais;
@@ -10,19 +24,6 @@ import br.com.nhac.backend_nhac.domain.usuario.Papel;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
 import br.com.nhac.backend_nhac.infra.security.TokenService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-
-import java.math.BigDecimal;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * Cobre o fluxo REST do chat: abrir/obter conversa (idempotente), listar conversas da loja
@@ -162,7 +163,7 @@ public class ChatFlowIT extends AbstractIntegrationTest {
 
     @Test
     void naoDeveDeixarUsuarioForaDaConversaEnviarMensagem() {
-        String conversaId = chatService.obterOuCriarConversa(lojaA.getId(), cliente.getId()).getId();
+String conversaId = chatService.obterOuCriarConversa(lojaA.getId(), cliente).getId();
 
         assertTrue(org.junit.jupiter.api.Assertions.assertThrows(
                 br.com.nhac.backend_nhac.exceptions.AcessoNegadoException.class,
