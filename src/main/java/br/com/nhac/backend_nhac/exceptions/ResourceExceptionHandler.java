@@ -1,19 +1,26 @@
 package br.com.nhac.backend_nhac.exceptions;
 
-import jakarta.servlet.http.HttpServletRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
 public class ResourceExceptionHandler {
@@ -145,6 +152,120 @@ public class ResourceExceptionHandler {
         return ResponseEntity.status(status).body(erro);
     }
 
+    // ============================================================
+    //  HANDLERS NOVOS — resolvem os 500 dos webhooks e uploads
+    // ============================================================
+
+    /**
+     * Corpo da requisição ausente, vazio ou malformado (JSON inválido).
+     * Sem este handler, o Spring lança HttpMessageNotReadableException
+     * e o @ExceptionHandler(Exception.class) genérico abaixo transforma
+     * em 500, sobrescrevendo o 400 que seria o correto.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErroPadraoDTO> corpoInvalido(HttpMessageNotReadableException e, HttpServletRequest request) {
+        String requestId = UUID.randomUUID().toString();
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        logger.warn("Corpo da requisição inválido/ausente: {}, RequestId: {}", e.getMessage(), requestId);
+
+        ErroPadraoDTO erro = new ErroPadraoDTO(
+                requestId,
+                Instant.now(),
+                status.value(),
+                ErrorCode.VALIDACAO_FALHOU.getCode(),
+                "Requisição Inválida",
+                "Corpo da requisição ausente ou em formato inválido.",
+                Collections.emptyMap(),
+                request.getRequestURI(),
+                Collections.singletonList("Envie um JSON válido no corpo da requisição.")
+        );
+        return ResponseEntity.status(status).body(erro);
+    }
+
+    /**
+     * Parâmetro obrigatório ausente — cobre @RequestParam e @RequestPart
+     * (upload de arquivo sem o campo "file" cai aqui).
+     */
+    @ExceptionHandler({
+            MissingServletRequestParameterException.class,
+            MissingServletRequestPartException.class
+    })
+    public ResponseEntity<ErroPadraoDTO> parametroAusente(Exception e, HttpServletRequest request) {
+        String requestId = UUID.randomUUID().toString();
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        logger.warn("Parâmetro obrigatório ausente: {}, RequestId: {}", e.getMessage(), requestId);
+
+        String mensagem = "Parâmetro obrigatório ausente.";
+        if (e instanceof MissingServletRequestParameterException missing) {
+            mensagem = "Parâmetro obrigatório ausente: '" + missing.getParameterName() + "'.";
+        } else if (e instanceof MissingServletRequestPartException missingPart) {
+            mensagem = "Arquivo obrigatório ausente: '" + missingPart.getRequestPartName() + "'.";
+        }
+
+        ErroPadraoDTO erro = new ErroPadraoDTO(
+                requestId,
+                Instant.now(),
+                status.value(),
+                ErrorCode.VALIDACAO_FALHOU.getCode(),
+                "Requisição Inválida",
+                mensagem,
+                Collections.emptyMap(),
+                request.getRequestURI(),
+                Collections.singletonList("Verifique os parâmetros obrigatórios e tente novamente.")
+        );
+        return ResponseEntity.status(status).body(erro);
+    }
+
+    /**
+     * Content-Type não suportado (ex.: enviar text/plain pra um endpoint
+     * que espera application/json ou multipart/form-data).
+     */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErroPadraoDTO> tipoMidiaNaoSuportado(HttpMediaTypeNotSupportedException e, HttpServletRequest request) {
+        String requestId = UUID.randomUUID().toString();
+        HttpStatus status = HttpStatus.UNSUPPORTED_MEDIA_TYPE;
+        logger.warn("Content-Type não suportado: {}, RequestId: {}", e.getContentType(), requestId);
+
+        ErroPadraoDTO erro = new ErroPadraoDTO(
+                requestId,
+                Instant.now(),
+                status.value(),
+                ErrorCode.VALIDACAO_FALHOU.getCode(),
+                "Tipo de Conteúdo Não Suportado",
+                "O Content-Type enviado não é suportado por esta rota.",
+                Collections.emptyMap(),
+                request.getRequestURI(),
+                Collections.singletonList("Content-Type aceito: " + e.getSupportedMediaTypes())
+        );
+        return ResponseEntity.status(status).body(erro);
+    }
+
+    /**
+     * Método HTTP não suportado (ex.: DELETE onde só aceita GET).
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErroPadraoDTO> metodoNaoSuportado(HttpRequestMethodNotSupportedException e, HttpServletRequest request) {
+        String requestId = UUID.randomUUID().toString();
+        HttpStatus status = HttpStatus.METHOD_NOT_ALLOWED;
+        logger.warn("Método não suportado: {} em {}, RequestId: {}", e.getMethod(), request.getRequestURI(), requestId);
+
+        ErroPadraoDTO erro = new ErroPadraoDTO(
+                requestId,
+                Instant.now(),
+                status.value(),
+                ErrorCode.VALIDACAO_FALHOU.getCode(),
+                "Método Não Permitido",
+                "O método HTTP " + e.getMethod() + " não é suportado nesta rota.",
+                Collections.emptyMap(),
+                request.getRequestURI(),
+                Collections.singletonList("Métodos aceitos: " + e.getSupportedHttpMethods())
+        );
+        return ResponseEntity.status(status).body(erro);
+    }
+
+    // ============================================================
+    //  HANDLERS PRÉ-EXISTENTES
+    // ============================================================
 
     @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
     public ResponseEntity<ErroPadraoDTO> noResourceFound(org.springframework.web.servlet.resource.NoResourceFoundException e, HttpServletRequest request) {
@@ -205,7 +326,7 @@ public class ResourceExceptionHandler {
         );
         return ResponseEntity.status(status).body(erro);
     }
-    
+
     private String getFriendlyTitle(HttpStatus status) {
         return switch (status) {
             case NOT_FOUND -> "Recurso Não Encontrado";
@@ -219,4 +340,24 @@ public class ResourceExceptionHandler {
             default -> "Erro na Requisição";
         };
     }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+public ResponseEntity<ErroPadraoDTO> dataIntegrity(DataIntegrityViolationException e, HttpServletRequest request) {
+    String requestId = UUID.randomUUID().toString();
+    HttpStatus status = HttpStatus.CONFLICT;
+    logger.warn("Conflito de integridade de dados: {}, RequestId: {}", e.getMostSpecificCause().getMessage(), requestId);
+
+    ErroPadraoDTO erro = new ErroPadraoDTO(
+            requestId,
+            Instant.now(),
+            status.value(),
+            ErrorCode.REGRA_DE_NEGOCIO.getCode(),
+            "Conflito de Dados",
+            "A operação viola uma restrição de integridade dos dados.",
+            Collections.emptyMap(),
+            request.getRequestURI(),
+            Collections.emptyList()
+    );
+    return ResponseEntity.status(status).body(erro);
+}
 }
