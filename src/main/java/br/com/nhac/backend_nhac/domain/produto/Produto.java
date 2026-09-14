@@ -23,6 +23,11 @@ public class Produto {
     @Column(updatable = false, nullable = false, length = 50)
     private String id;
 
+    @Version
+    @Column(nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private Long version;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "loja_id", nullable = false)
     private Loja loja;

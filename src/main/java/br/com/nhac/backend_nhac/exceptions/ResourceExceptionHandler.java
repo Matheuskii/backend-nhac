@@ -67,8 +67,9 @@ public class ResourceExceptionHandler {
         return ResponseEntity.status(status).body(erro);
     }
 
-    @ExceptionHandler(org.springframework.dao.CannotAcquireLockException.class)
-    public ResponseEntity<ErroPadraoDTO> handleCannotAcquireLockException(org.springframework.dao.CannotAcquireLockException e, HttpServletRequest request) {
+    @ExceptionHandler({org.springframework.dao.CannotAcquireLockException.class,
+            org.springframework.dao.OptimisticLockingFailureException.class})
+    public ResponseEntity<ErroPadraoDTO> handleCannotAcquireLockException(org.springframework.dao.ConcurrencyFailureException e, HttpServletRequest request) {
         String requestId = UUID.randomUUID().toString();
         HttpStatus status = HttpStatus.CONFLICT;
         logger.warn("Conflito de concorrência (Deadlock): {}, RequestId: {}", e.getMessage(), requestId);

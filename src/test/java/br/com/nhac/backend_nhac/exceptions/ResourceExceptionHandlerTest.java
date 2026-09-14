@@ -155,6 +155,14 @@ class ResourceExceptionHandlerTest {
         assertEquals("ESTOQUE_INSUFICIENTE", resposta.getBody().error());
     }
 
+    @Test
+    void conflitoOtimistaDeveRetornar409() {
+        var erro = new org.springframework.dao.OptimisticLockingFailureException("Conflito");
+        var resposta = handler.handleCannotAcquireLockException(erro, request);
+        assertEquals(HttpStatus.CONFLICT, resposta.getStatusCode());
+        assertEquals(409, resposta.getBody().status());
+    }
+
     private MethodArgumentNotValidException mockErroDeValidacao() {
         MethodArgumentNotValidException excecao = org.mockito.Mockito.mock(MethodArgumentNotValidException.class);
         BindingResult bindingResult = org.mockito.Mockito.mock(BindingResult.class);

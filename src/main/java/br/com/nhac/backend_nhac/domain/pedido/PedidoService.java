@@ -86,10 +86,6 @@ public class PedidoService {
                 throw new EstoqueInsuficienteException(produtoReal.getId(), itemDto.quantidade(), produtoReal.getEstoque() == null ? 0 : produtoReal.getEstoque());
             }
 
-            int atualizados = produtoRepository.decrementarEstoqueSeDisponivel(produtoReal.getId(), itemDto.quantidade());
-            if (atualizados == 0) {
-                throw new EstoqueInsuficienteException(produtoReal.getId(), itemDto.quantidade(), produtoReal.getEstoque());
-            }
             produtoReal.setEstoque(produtoReal.getEstoque() - itemDto.quantidade());
 
             ItemPedido novoItem = itemDto.toEntity(produtoReal);
@@ -113,6 +109,8 @@ public class PedidoService {
         pedido.setTaxaFrete(taxaFrete);
         pedido.setValorTotal(valorTotalItens.add(taxaFrete));
 
+        // Detect stock conflicts before making an external payment request.
+        produtoRepository.flush();
         Pedido pedidoSalvo = pedidoRepository.save(pedido);
 
         try {
