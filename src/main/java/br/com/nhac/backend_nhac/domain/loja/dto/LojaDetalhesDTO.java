@@ -1,9 +1,9 @@
 package br.com.nhac.backend_nhac.domain.loja.dto;
 
+import java.math.BigDecimal;
+
 import br.com.nhac.backend_nhac.domain.loja.Loja;
 import io.swagger.v3.oas.annotations.media.Schema;
-
-import java.math.BigDecimal;
 
 @Schema(description = "Objeto completo com todos os dados e horários de uma loja específica")
 public record LojaDetalhesDTO(
@@ -83,47 +83,81 @@ public record LojaDetalhesDTO(
     ) {}
 
     public LojaDetalhesDTO(Loja loja) {
-        this(loja.getId(),
+        this(
+                loja.getId(),
                 loja.getNome(),
                 loja.getDescricao(),
                 loja.getCategoria(),
                 loja.getImagemUrl(),
                 loja.isAberto(),
-                new LojaDetalhesDTO.DadosOperacionaisDTO(
-                        loja.getDadosOperacionais().getAvaliacaoMedia(),
-                        loja.getDadosOperacionais().getTaxaEntregaBase(),
-                        loja.getDadosOperacionais().getTempoEntregaMin(),
-                        loja.getDadosOperacionais().getTempoEntregaMax(),
-                        loja.getDadosOperacionais().getTotalAvaliacoes(),
-                        loja.getDadosOperacionais().getEntregaPropria(),
-                        loja.getDadosOperacionais().getRetiradaNoLocal(),
-                        loja.getDadosOperacionais().getRaioEntregaKm()
-                ),
-                new LojaDetalhesDTO.EnderecoDTO(
-                        loja.getEndereco().getRua(),
-                        loja.getEndereco().getNumero(),
-                        loja.getEndereco().getCidade(),
-                        loja.getEndereco().getEstado(),
-                        loja.getEndereco().getCep(),
-                        loja.getEndereco().getBairro(),
-                        loja.getEndereco().getComplemento()
-                ),
-                new LojaDetalhesDTO.HorariosDTO(
-                        loja.getHorariosFuncionamento().getDomingo(),
-                        loja.getHorariosFuncionamento().getSegunda(),
-                        loja.getHorariosFuncionamento().getTerca(),
-                        loja.getHorariosFuncionamento().getQuarta(),
-                        loja.getHorariosFuncionamento().getQuinta(),
-                        loja.getHorariosFuncionamento().getSexta() ,
-                        loja.getHorariosFuncionamento().getSabado()
-                ),
-                new LojaDetalhesDTO.FormasPagamentoDTO(
-                        loja.getFormasPagamento().getAceitaDinheiro(),
-                        loja.getFormasPagamento().getAceitaCredito(),
-                        loja.getFormasPagamento().getAceitaDebito(),
-                        loja.getFormasPagamento().getAceitaPix(),
-                        loja.getFormasPagamento().getAceitaValeRefeicao(),
-                        loja.getFormasPagamento().getAceitaValeAlimentacao()
-                ));
+                mapearDadosOperacionais(loja),
+                mapearEndereco(loja),
+                mapearHorarios(loja),
+                mapearFormasPagamento(loja)
+        );
+    }
+
+    // ================================================================
+    // Mapeadores null-safe. Loja pode existir com apenas parte dos
+    // embedded preenchidos (ex.: loja recém-criada via service, ou
+    // loja antiga que veio de migration sem os campos novos). Antes
+    // disso, acessar getHorariosFuncionamento().getDomingo() dava NPE
+    // quando a loja vinha sem horários.
+    // ================================================================
+
+    private static DadosOperacionaisDTO mapearDadosOperacionais(Loja loja) {
+        var d = loja.getDadosOperacionais();
+        if (d == null) return null;
+        return new DadosOperacionaisDTO(
+                d.getAvaliacaoMedia(),
+                d.getTaxaEntregaBase(),
+                d.getTempoEntregaMin(),
+                d.getTempoEntregaMax(),
+                d.getTotalAvaliacoes(),
+                d.getEntregaPropria(),
+                d.getRetiradaNoLocal(),
+                d.getRaioEntregaKm()
+        );
+    }
+
+    private static EnderecoDTO mapearEndereco(Loja loja) {
+        var e = loja.getEndereco();
+        if (e == null) return null;
+        return new EnderecoDTO(
+                e.getRua(),
+                e.getNumero(),
+                e.getCidade(),
+                e.getEstado(),
+                e.getCep(),
+                e.getBairro(),
+                e.getComplemento()
+        );
+    }
+
+    private static HorariosDTO mapearHorarios(Loja loja) {
+        var h = loja.getHorariosFuncionamento();
+        if (h == null) return null;
+        return new HorariosDTO(
+                h.getDomingo(),
+                h.getSegunda(),
+                h.getTerca(),
+                h.getQuarta(),
+                h.getQuinta(),
+                h.getSexta(),
+                h.getSabado()
+        );
+    }
+
+    private static FormasPagamentoDTO mapearFormasPagamento(Loja loja) {
+        var f = loja.getFormasPagamento();
+        if (f == null) return null;
+        return new FormasPagamentoDTO(
+                f.getAceitaDinheiro(),
+                f.getAceitaCredito(),
+                f.getAceitaDebito(),
+                f.getAceitaPix(),
+                f.getAceitaValeRefeicao(),
+                f.getAceitaValeAlimentacao()
+        );
     }
 }
