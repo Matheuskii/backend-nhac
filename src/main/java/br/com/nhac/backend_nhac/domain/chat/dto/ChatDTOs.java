@@ -1,11 +1,12 @@
 package br.com.nhac.backend_nhac.domain.chat.dto;
 
+import java.time.Instant;
+
 import br.com.nhac.backend_nhac.domain.chat.Conversa;
 import br.com.nhac.backend_nhac.domain.chat.Mensagem;
 import br.com.nhac.backend_nhac.domain.chat.RemetenteTipo;
 import jakarta.validation.constraints.NotBlank;
-
-import java.time.Instant;
+import jakarta.validation.constraints.Size;
 
 public class ChatDTOs {
 
@@ -51,6 +52,16 @@ public class ChatDTOs {
         }
     }
 
-    /** Payload enviado pelo cliente WebSocket (STOMP) para /app/conversas/{id}/enviar. */
-    public record EnviarMensagemDTO(@NotBlank String conteudo) {}
+    /**
+     * Payload enviado pelo cliente WebSocket (STOMP) para
+     * /app/conversas/{id}/enviar.
+     *
+     * Limite de 4000 caracteres: previne abuso (mandar MB de texto) e casa
+     * com o que a UI mostra em preview de conversa.
+     */
+    public record EnviarMensagemDTO(
+            @NotBlank(message = "Mensagem não pode ser vazia")
+            @Size(max = 4000, message = "Mensagem muito longa (máx. 4000 caracteres)")
+            String conteudo
+    ) {}
 }
