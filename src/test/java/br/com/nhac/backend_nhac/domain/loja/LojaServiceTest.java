@@ -1,10 +1,31 @@
 package br.com.nhac.backend_nhac.domain.loja;
 
-import br.com.nhac.backend_nhac.domain.loja.DadosOperacionais;
-import br.com.nhac.backend_nhac.domain.loja.EnderecoLoja;
-import br.com.nhac.backend_nhac.domain.loja.GeoLocalizacao;
-import br.com.nhac.backend_nhac.domain.loja.HorariosFuncionamento;
-import br.com.nhac.backend_nhac.domain.loja.Loja;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaCreateDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaDetalhesDTO;
 import br.com.nhac.backend_nhac.domain.loja.dto.LojaResumoDTO;
@@ -13,23 +34,6 @@ import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
 import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class LojaServiceTest {
@@ -165,34 +169,39 @@ class LojaServiceTest {
     }
 
     @Test
-    @DisplayName("Deve obter minha loja quando o usuário possuir loja")
-    void deveObterMinhaLojaComSucesso() {
-        Usuario usuario = new Usuario();
-        usuario.setId("user_dono");
+@DisplayName("Deve obter minha loja quando o usuário possuir loja")
+void deveObterMinhaLojaComSucesso() {
+    Usuario usuario = new Usuario();
+    usuario.setId("user_dono");
 
-        Loja loja = construirLojaCompleta("loja_1", true);
-        loja.setUsuarioId("user_dono");
+    Loja loja = construirLojaCompleta("loja_1", true);
+    loja.setUsuarioId("user_dono");
 
-        when(lojaRepository.findByUsuarioId("user_dono")).thenReturn(Optional.of(loja));
+    // AGORA o service delega a resolução pro LojaAccessService
+    when(lojaAccessService.obterLojaAcessivel(usuario)).thenReturn(loja);
 
-        LojaDetalhesDTO resultado = lojaService.obterMinhaLoja(usuario);
+    LojaDetalhesDTO resultado = lojaService.obterMinhaLoja(usuario);
 
-        assertNotNull(resultado);
-        assertEquals("loja_1", resultado.id());
-        assertEquals("Sushi Ken", resultado.nome());
-    }
+    assertNotNull(resultado);
+    assertEquals("loja_1", resultado.id());
+    assertEquals("Sushi Ken", resultado.nome());
+    verify(lojaAccessService).obterLojaAcessivel(usuario);
+}
+  @Test
+@DisplayName("Deve lançar LojaNaoEncontradaException quando o usuário não tiver loja ao consultar minha loja")
+void deveLancarExcecaoQuandoMinhaLojaNaoExistir() {
+    Usuario usuario = new Usuario();
+    usuario.setId("user_sem_loja");
 
-    @Test
-    @DisplayName("Deve lançar LojaNaoEncontradaException quando o usuário não tiver loja ao consultar minha loja")
-    void deveLancarExcecaoQuandoMinhaLojaNaoExistir() {
-        Usuario usuario = new Usuario();
-        usuario.setId("user_sem_loja");
+    // O LojaAccessService é quem lança a exceção agora
+    when(lojaAccessService.obterLojaAcessivel(usuario))
+            .thenThrow(new br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException("user_sem_loja"));
 
-        when(lojaRepository.findByUsuarioId("user_sem_loja")).thenReturn(Optional.empty());
+    assertThrows(br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException.class,
+            () -> lojaService.obterMinhaLoja(usuario));
 
-        assertThrows(br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException.class,
-                () -> lojaService.obterMinhaLoja(usuario));
-    }
+    verify(lojaAccessService).obterLojaAcessivel(usuario);
+}
 
     @Test
     @DisplayName("Deve lançar AcessoNegadoException ao consultar minha loja sem estar autenticado")
@@ -200,25 +209,27 @@ class LojaServiceTest {
         assertThrows(AcessoNegadoException.class, () -> lojaService.obterMinhaLoja(null));
     }
 
-    @Test
-    @DisplayName("Deve atualizar loja com sucesso quando usuário for o dono e preservar usuarioId")
-    void deveAtualizarLojaQuandoUsuarioForDono() {
-        Usuario dono = new Usuario();
-        dono.setId("user_dono");
-        dono.setPapel(Papel.LOJISTA);
+  @Test
+@DisplayName("Deve atualizar loja com sucesso quando usuário for o dono e preservar usuarioId")
+void deveAtualizarLojaQuandoUsuarioForDono() {
+    Usuario dono = new Usuario();
+    dono.setId("user_dono");
+    dono.setPapel(Papel.LOJISTA);
 
-        Loja lojaExistente = construirLojaCompleta("loja_1", true);
-        lojaExistente.setUsuarioId("user_dono");
+    Loja lojaExistente = construirLojaCompleta("loja_1", true);
+    lojaExistente.setUsuarioId("user_dono");
 
-        when(lojaRepository.findById("loja_1")).thenReturn(Optional.of(lojaExistente));
-        when(lojaRepository.save(any(Loja.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    when(lojaRepository.findById("loja_1")).thenReturn(Optional.of(lojaExistente));
+    // FALTAVA ISSO:
+    when(lojaAccessService.temAcessoALoja(dono, "loja_1")).thenReturn(true);
+    when(lojaRepository.save(any(Loja.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        LojaDetalhesDTO atualizada = lojaService.atualizarLoja("loja_1", construirDtoCriacao(), dono);
+    LojaDetalhesDTO atualizada = lojaService.atualizarLoja("loja_1", construirDtoCriacao(), dono);
 
-        assertNotNull(atualizada);
-        assertEquals("Nova Loja", atualizada.nome());
-        verify(lojaRepository).save(argThat(l -> "user_dono".equals(l.getUsuarioId())));
-    }
+    assertNotNull(atualizada);
+    assertEquals("Nova Loja", atualizada.nome());
+    verify(lojaRepository).save(argThat(l -> "user_dono".equals(l.getUsuarioId())));
+}
 
     @Test
     @DisplayName("Deve lançar AcessoNegadoException ao tentar atualizar loja de outro usuário")

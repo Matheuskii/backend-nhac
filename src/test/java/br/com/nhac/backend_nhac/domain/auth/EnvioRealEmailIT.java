@@ -1,17 +1,19 @@
 package br.com.nhac.backend_nhac.domain.auth;
 
-import br.com.nhac.backend_nhac.domain.usuario.Papel;
-import br.com.nhac.backend_nhac.domain.usuario.Usuario;
-import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
-
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
+
+import br.com.nhac.backend_nhac.domain.usuario.Papel;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
 
 @SpringBootTest
 @TestPropertySource(properties = {
@@ -20,6 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
         "brevo.sender-email=matheusalvesknight@gmail.com",
         "brevo.sender-name=Nhac Delivery"
 })
+@Tag("manual")
+@ActiveProfiles("test")
 class EnvioRealEmailIT {
 
     @Autowired

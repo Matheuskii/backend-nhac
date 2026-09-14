@@ -9,15 +9,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.web.servlet.request.RequestPostProcessor;
-
-import org.springframework.security.core.context.SecurityContext;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -133,14 +130,14 @@ public class MelhoriasPainelLojistaIT extends AbstractIntegrationTest {
     @Test
     void deveAbrirEFecharLoja() throws Exception {
         mockMvc.perform(patch("/api/v1/lojas/" + loja.getId() + "/abertura")
-                        .with(autenticarComo(dono))
+                        .with(user(dono))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"isAberto\": false}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isAberto").value(false));
 
         mockMvc.perform(patch("/api/v1/lojas/" + loja.getId() + "/abertura")
-                        .with(autenticarComo(funcionario))
+                        .with(user(funcionario))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"isAberto\": true}"))
                 .andExpect(status().isOk())

@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
@@ -29,6 +30,9 @@ public class VerificacaoEmailServiceTest {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
+
+    @MockitoBean
+private EmailService emailService;
 
     @Test
     public void testDeadlockEmRequisicoesConcorrentes() throws InterruptedException {
