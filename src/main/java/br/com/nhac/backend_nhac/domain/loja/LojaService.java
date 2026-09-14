@@ -102,34 +102,35 @@ public class LojaService {
     }
 
     public LojaDetalhesDTO obterMinhaLoja(Usuario usuarioLogado) {
-        if (usuarioLogado == null) {
-            throw new AcessoNegadoException("É necessário estar autenticado para consultar a loja.");
-        }
-        Loja loja = lojaRepository.findByUsuarioId(usuarioLogado.getId())
-                .orElseThrow(br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException::new);
-        return new LojaDetalhesDTO(loja);
+    if (usuarioLogado == null) {
+        throw new AcessoNegadoException("É necessário estar autenticado para consultar a loja.");
+    }
+    // Antes só olhava loja.usuarioId (o dono) — um funcionário logado
+    // (papel=FUNCIONARIO) nunca é o dono, então caía sempre em
+    // LOJA_NAO_ENCONTRADA e o frontend mandava ele pro onboarding de
+    // "criar loja nova". LojaAccessService resolve dono OU funcionário.
+    Loja loja = lojaAccessService.obterLojaAcessivel(usuarioLogado);
+    return new LojaDetalhesDTO(loja);
+}
 
-
+@Transactional
+public LojaDetalhesDTO atualizarLoja(String id, LojaCreateDTO dto, Usuario usuarioLogado) {
+    if (usuarioLogado == null) {
+        throw new AcessoNegadoException("É necessário estar autenticado para atualizar a loja.");
     }
 
-    @Transactional
-    public LojaDetalhesDTO atualizarLoja(String id, LojaCreateDTO dto, Usuario usuarioLogado) {
-        if (usuarioLogado == null) {
-            throw new AcessoNegadoException("É necessário estar autenticado para atualizar a loja.");
-        }
+    Loja loja = lojaRepository.findById(id)
+            .orElseThrow(() -> new br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException(id));
 
-        Loja loja = lojaRepository.findById(id)
-                .orElseThrow(() -> new br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException(id));
+    boolean isAdmin = usuarioLogado.getPapel() == Papel.ADMIN;
+    if (!isAdmin && !lojaAccessService.temAcessoALoja(usuarioLogado, loja.getId())) {
+        throw new AcessoNegadoException("Acesso negado: você não tem permissão para atualizar esta loja.");
+    }
 
-        boolean isAdmin = usuarioLogado.getPapel() == Papel.ADMIN;
-        if (!isAdmin && !usuarioLogado.getId().equals(loja.getUsuarioId())) {
-            throw new AcessoNegadoException("Acesso negado: você não tem permissão para atualizar esta loja.");
-        }
+    String donoOriginal = loja.getUsuarioId();
+    GeoLocalizacao geoOriginal = loja.getGeoLocalizacao();
 
-        String donoOriginal = loja.getUsuarioId();
-        GeoLocalizacao geoOriginal = loja.getGeoLocalizacao();
-
-        Loja dadosAtualizados = dto.toEntity();
+    Loja dadosAtualizados = dto.toEntity();
         loja.setNome(dadosAtualizados.getNome());
         loja.setDescricao(dadosAtualizados.getDescricao());
         loja.setCategoria(dadosAtualizados.getCategoria());
@@ -147,6 +148,16 @@ public class LojaService {
 
   @Transactional
 public LojaDetalhesDTO atualizarAbertura(String id, Boolean isAberto, Usuario usuarioLogado) {
+    // === DEBUG TEMPORÁRIO ===
+    System.out.println("=== atualizarAbertura chamado ===");
+    System.out.println("usuarioLogado: " + (usuarioLogado != null ? usuarioLogado.getId() : "NULL"));
+    if (usuarioLogado != null) {
+        System.out.println("papel: " + usuarioLogado.getPapel());
+        System.out.println("lojaVinculadaId: " + usuarioLogado.getLojaVinculadaId());
+    }
+    System.out.println("lojaId: " + id);
+    // ========================
+
     if (usuarioLogado == null) {
         throw new AcessoNegadoException("É necessário estar autenticado para atualizar a loja.");
     }

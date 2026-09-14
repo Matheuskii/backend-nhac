@@ -1,9 +1,10 @@
 package br.com.nhac.backend_nhac.domain.loja;
 
+import org.springframework.stereotype.Service;
+
 import br.com.nhac.backend_nhac.domain.usuario.Papel;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException;
-import org.springframework.stereotype.Service;
 
 /**
  * Único ponto de resolução de "qual loja este usuário logado pode gerenciar".
@@ -49,14 +50,21 @@ public class LojaAccessService {
      * loja informada. Uso típico: checagem de ownership em atualizarProduto,
      * desativarProduto, atualizarStatus de pedido, etc.
      */
-    public boolean temAcessoALoja(Usuario usuarioLogado, String lojaId) {
-        if (usuarioLogado.getPapel() == Papel.ADMIN) {
-            return true;
-        }
-        try {
-            return obterLojaAcessivel(usuarioLogado).getId().equals(lojaId);
-        } catch (LojaNaoEncontradaException e) {
-            return false;
-        }
+   public boolean temAcessoALoja(Usuario usuarioLogado, String lojaId) {
+    // === DEBUG ===
+    System.out.println("=== temAcessoALoja ===");
+    System.out.println("papel: " + usuarioLogado.getPapel());
+    // =============
+
+    if (usuarioLogado.getPapel() == Papel.ADMIN) return true;
+    try {
+        Loja lojaAcessivel = obterLojaAcessivel(usuarioLogado);
+        System.out.println("lojaAcessivel.id: " + lojaAcessivel.getId());  // DEBUG
+        System.out.println("lojaId esperado: " + lojaId);                   // DEBUG
+        return lojaAcessivel.getId().equals(lojaId);
+    } catch (LojaNaoEncontradaException e) {
+        System.out.println("LojaNaoEncontradaException — retornando false");  // DEBUG
+        return false;
     }
+}
 }
