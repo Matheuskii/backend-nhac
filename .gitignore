@@ -1,37 +1,40 @@
-# Compiled and build artifacts
-*.class
-*.o
-*.obj
-*.exe
-*.dll
-*.so
-*.a
-*.out
-
-# Dependencies
+```
+# Java/Maven
 target/
-.mypy_cache/
-.pytest_cache/
+*.class
+*.jar
+*.war
+*.ear
 
-# Logs and temp files
-*.log
-*.tmp
-*.swp
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
 
 # Environment
 .env
 .env.local
 *.env.*
 
-# Editors
-.vscode/
-.idea/
+# Logs
+*.log
 
-# Coverage reports
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
 coverage/
 htmlcov/
 .coverage
 
-# System files
-.DS_Store
-Thumbs.db
+# Database migration backups (if any)
+*.sql.bak
+*.sql~
+```

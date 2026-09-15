@@ -16,4 +16,10 @@ public class BackendNhacApplication {
 		return new org.springframework.web.client.RestTemplate();
 	}
 
+	@jakarta.annotation.PostConstruct
+public void init() {
+    java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("UTC"));
+}
+
+
 }

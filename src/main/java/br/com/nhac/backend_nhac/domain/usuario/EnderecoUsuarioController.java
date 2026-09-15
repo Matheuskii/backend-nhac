@@ -2,7 +2,7 @@ package br.com.nhac.backend_nhac.domain.usuario;
 
 import br.com.nhac.backend_nhac.domain.usuario.dto.EnderecoUsuarioDTO;
 import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
-import br.com.nhac.backend_nhac.services.UsuarioService;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

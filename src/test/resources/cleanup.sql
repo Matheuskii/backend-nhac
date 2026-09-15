@@ -1,0 +1,14 @@
+DELETE FROM tb_mensagens; 
+DELETE FROM tb_conversas; 
+DELETE FROM tb_avaliacoes; 
+DELETE FROM tb_itens_pedido; 
+DELETE FROM tb_pedidos; 
+DELETE FROM tb_item_adicional; 
+DELETE FROM tb_grupo_adicional; 
+DELETE FROM tb_produtos; 
+DELETE FROM tb_favoritos; 
+DELETE FROM tb_enderecos_usuario; 
+DELETE FROM tb_lojas; 
+DELETE FROM tb_codigos_verificacao; 
+DELETE FROM tb_codigos_verificacao_email; 
+DELETE FROM tb_usuarios;

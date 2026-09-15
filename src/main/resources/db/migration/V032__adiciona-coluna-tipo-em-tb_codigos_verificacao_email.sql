@@ -1,0 +1,2 @@
+ALTER TABLE tb_codigos_verificacao_email
+ADD COLUMN tipo VARCHAR(20) NOT NULL DEFAULT 'RESET_SENHA';

@@ -36,8 +36,18 @@ public class CodigoVerificacaoEmail {
     @Column(name = "criado_em")
     private LocalDateTime criadoEm;
 
+    @Column(name = "tipo", nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private TipoCodigo tipo = TipoCodigo.RESET_SENHA;
+
     @PrePersist
     public void prePersist() {
         this.criadoEm = LocalDateTime.now();
+    }
+
+    public enum TipoCodigo {
+        RESET_SENHA,
+        CADASTRO
     }
 }

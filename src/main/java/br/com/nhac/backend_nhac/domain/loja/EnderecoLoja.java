@@ -34,4 +34,12 @@ public class EnderecoLoja {
     @Schema(description = "CEP do endereço", example = "88010-400")
     @Column(name = "end_cep", length = 20)
     private String cep;
+
+    @Schema(description = "Bairro do endereço", example = "Centro")
+    @Column(name = "end_bairro", length = 100, nullable = false)
+    private String bairro = "";
+
+    @Schema(description = "Complemento do endereço (opcional)", example = "Sala 42")
+    @Column(name = "end_complemento", length = 100)
+    private String complemento;
 }
