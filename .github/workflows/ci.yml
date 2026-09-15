@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  JAVA_VERSION: "21"
+  JAVA_VERSION: "25"
   JAVA_DISTRIBUTION: "temurin"
   IMAGE_NAME: ghcr.io/${{ github.repository }}
 

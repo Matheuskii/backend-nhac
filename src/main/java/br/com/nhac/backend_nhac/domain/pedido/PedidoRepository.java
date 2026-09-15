@@ -47,4 +47,6 @@ public interface PedidoRepository extends JpaRepository<Pedido, String> {
             @Param("inicio") java.time.Instant inicio,
             @Param("fim") java.time.Instant fim
     );
+
+    Optional<Pedido> findFirstByEntregadorIdAndStatusIn(String entregadorId, java.util.List<StatusPedido> status);
 }

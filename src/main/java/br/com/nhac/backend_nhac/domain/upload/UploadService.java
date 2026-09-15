@@ -13,12 +13,13 @@ import java.util.Set;
 @Service
 public class UploadService {
 
-    private static final Set<String> CONTENT_TYPES_PERMITIDOS = Set.of("image/jpeg", "image/png", "image/webp");
+    private static final Set<String> CONTENT_TYPES_PERMITIDOS = Set.of("image/jpeg", "image/png", "image/webp", "image/gif");
 
     private static final Map<String, String> EXTENSAO_POR_CONTENT_TYPE = Map.of(
             "image/jpeg", "jpg",
             "image/png", "png",
-            "image/webp", "webp"
+            "image/webp", "webp",
+            "image/gif", "gif"
     );
 
     private final FirebaseStorageClient storageClient;
@@ -51,7 +52,7 @@ public class UploadService {
         String contentType = arquivo.getContentType();
         if (contentType == null || !CONTENT_TYPES_PERMITIDOS.contains(contentType)) {
             throw new RegraDeNegocioException(
-                    "Formato de imagem não suportado. Envie um arquivo JPEG, PNG ou WEBP.");
+                    "Formato de imagem não suportado. Envie um arquivo JPEG, PNG, GIF ou WEBP.");
         }
 
         if (arquivo.getSize() > tamanhoMaximoEmBytes) {
