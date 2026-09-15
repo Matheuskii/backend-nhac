@@ -1,18 +1,25 @@
 package br.com.nhac.backend_nhac.domain.usuario;
 
-import br.com.nhac.backend_nhac.domain.usuario.dto.EnderecoUsuarioDTO;
-import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
-import br.com.nhac.backend_nhac.domain.usuario.UsuarioService;
-import jakarta.validation.Valid;
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import br.com.nhac.backend_nhac.domain.usuario.dto.EnderecoUsuarioDTO;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
+import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("api/v1/usuarios")
+@RequestMapping("/api/v1/usuarios/{usuarioId}/enderecos")
 public class EnderecoUsuarioController {
 
     private final UsuarioService usuarioService;
@@ -29,7 +36,7 @@ public class EnderecoUsuarioController {
 
 
 
-    @GetMapping("/{usuarioId}/enderecos")
+    @GetMapping
     public ResponseEntity<List<EnderecoUsuarioDTO>> buscarEnderecos(
             @PathVariable String usuarioId,
             @AuthenticationPrincipal Usuario usuarioLogado) {
@@ -38,7 +45,7 @@ public class EnderecoUsuarioController {
         return ResponseEntity.ok(usuarioService.listarEnderecos(usuarioId));
     }
 
-    @PostMapping("/{usuarioId}/enderecos")
+    @PostMapping
     public ResponseEntity<Void> adicionarEndereco(
             @PathVariable String usuarioId,
             @RequestBody @Valid EnderecoUsuarioDTO dto,
@@ -49,7 +56,7 @@ public class EnderecoUsuarioController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @PutMapping("/{usuarioId}/enderecos/{enderecoId}")
+    @PutMapping("/{enderecoId}")
     public ResponseEntity<Void> atualizarEndereco(
             @PathVariable String usuarioId,
             @PathVariable String enderecoId,
@@ -61,7 +68,7 @@ public class EnderecoUsuarioController {
         return ResponseEntity.noContent().build();
     }
 
-    @DeleteMapping("/{usuarioId}/enderecos/{enderecoId}")
+    @DeleteMapping("/{enderecoId}")
     public ResponseEntity<Void> removerEndereco(
             @PathVariable String usuarioId,
             @PathVariable String enderecoId,
