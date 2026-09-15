@@ -4,5 +4,6 @@ public enum Papel {
     CLIENTE,
     LOJISTA,
     FUNCIONARIO,
-    ADMIN
+    ADMIN,
+    ENTREGADOR
 }
