@@ -1,22 +1,24 @@
 package br.com.nhac.backend_nhac.domain.usuario;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import br.com.nhac.backend_nhac.domain.auth.dto.LoginResponseDTO;
-import br.com.nhac.backend_nhac.domain.usuario.dto.EnderecoUsuarioDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioAtualizarDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioCreateDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioResponseDTO;
 import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
 import br.com.nhac.backend_nhac.infra.security.TokenService;
-import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
-import br.com.nhac.backend_nhac.domain.usuario.UsuarioService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/usuarios")

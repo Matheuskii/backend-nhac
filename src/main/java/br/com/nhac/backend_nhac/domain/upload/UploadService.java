@@ -1,25 +1,26 @@
 package br.com.nhac.backend_nhac.domain.upload;
 
-import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
-import br.com.nhac.backend_nhac.infra.storage.FirebaseStorageClient;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
+import br.com.nhac.backend_nhac.infra.storage.FirebaseStorageClient;
+
 @Service
 public class UploadService {
 
-    private static final Set<String> CONTENT_TYPES_PERMITIDOS = Set.of("image/jpeg", "image/png", "image/webp", "image/gif");
+    private static final Set<String> CONTENT_TYPES_PERMITIDOS = Set.of("image/jpeg", "image/png", "image/webp");
 
     private static final Map<String, String> EXTENSAO_POR_CONTENT_TYPE = Map.of(
             "image/jpeg", "jpg",
             "image/png", "png",
-            "image/webp", "webp",
-            "image/gif", "gif"
+            "image/webp", "webp"
+        
     );
 
     private final FirebaseStorageClient storageClient;
@@ -52,7 +53,7 @@ public class UploadService {
         String contentType = arquivo.getContentType();
         if (contentType == null || !CONTENT_TYPES_PERMITIDOS.contains(contentType)) {
             throw new RegraDeNegocioException(
-                    "Formato de imagem não suportado. Envie um arquivo JPEG, PNG, GIF ou WEBP.");
+                    "Formato de imagem não suportado. Envie um arquivo JPEG, PNG ou WEBP.");
         }
 
         if (arquivo.getSize() > tamanhoMaximoEmBytes) {
