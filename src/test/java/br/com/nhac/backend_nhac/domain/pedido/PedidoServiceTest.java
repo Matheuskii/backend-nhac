@@ -102,7 +102,6 @@ class PedidoServiceTest {
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
         when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(burgerMock));
-        when(produtoRepository.decrementarEstoqueSeDisponivel("prod_1", 2)).thenReturn(1);
 
         when(pedidoRepository.save(any(Pedido.class))).thenAnswer(invocation -> {
             Pedido p = invocation.getArgument(0);
@@ -246,8 +245,6 @@ class PedidoServiceTest {
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
         when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(produto1));
         when(produtoRepository.findById("prod_2")).thenReturn(Optional.of(produto2));
-        when(produtoRepository.decrementarEstoqueSeDisponivel("prod_1", 2)).thenReturn(1);
-        when(produtoRepository.decrementarEstoqueSeDisponivel("prod_2", 1)).thenReturn(1);
         when(pedidoRepository.save(any(Pedido.class))).thenAnswer(invocation -> {
             Pedido p = invocation.getArgument(0);
             p.setId("pedido_gerado_002");
@@ -292,7 +289,6 @@ class PedidoServiceTest {
 
         when(lojaRepository.findByIdAndIsAbertoTrue("loja_1")).thenReturn(Optional.of(lojaMock));
         when(produtoRepository.findById("prod_1")).thenReturn(Optional.of(produto));
-        when(produtoRepository.decrementarEstoqueSeDisponivel("prod_1", 1)).thenReturn(1);
         when(pedidoRepository.save(any(Pedido.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         pedidoService.finalizarPedido(dto, usuario, null);

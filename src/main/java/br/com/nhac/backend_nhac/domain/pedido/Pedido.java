@@ -23,6 +23,11 @@ public class Pedido {
     @Column(updatable = false, nullable = false, length = 50)
     private String id;
 
+    @Version
+    @Column(nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private Long version;
+
     @Column(name = "usuario_id", nullable = false)
     private String usuarioId;
 
