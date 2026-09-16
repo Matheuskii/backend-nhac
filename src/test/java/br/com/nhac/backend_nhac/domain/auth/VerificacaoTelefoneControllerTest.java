@@ -1,24 +1,23 @@
 package br.com.nhac.backend_nhac.domain.auth;
 
-import br.com.nhac.backend_nhac.domain.auth.dto.EnviarCodigoSmsDTO;
-import br.com.nhac.backend_nhac.domain.auth.dto.ValidarCodigoSmsDTO;
-import br.com.nhac.backend_nhac.services.VerificacaoTelefoneService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import br.com.nhac.backend_nhac.domain.auth.dto.EnviarCodigoSmsDTO;
+import br.com.nhac.backend_nhac.domain.auth.dto.ValidarCodigoSmsDTO;
 
 @ExtendWith(MockitoExtension.class)
 class VerificacaoTelefoneControllerTest {

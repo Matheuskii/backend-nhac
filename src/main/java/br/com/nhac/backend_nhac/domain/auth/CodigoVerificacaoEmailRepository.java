@@ -1,0 +1,26 @@
+package br.com.nhac.backend_nhac.domain.auth;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface CodigoVerificacaoEmailRepository extends JpaRepository<CodigoVerificacaoEmail, Long> {
+
+    @Modifying
+    @Query("UPDATE CodigoVerificacaoEmail c SET c.utilizado = true WHERE c.email = :email AND c.utilizado = false")
+    void inativarCodigosAtivosPorEmail(@Param("email") String email);
+
+    Optional<CodigoVerificacaoEmail> findTopByEmailAndUtilizadoFalseAndDataExpiracaoAfterOrderByCriadoEmDesc(String email, LocalDateTime data);
+
+    Optional<CodigoVerificacaoEmail> findTopByEmailAndTipoAndUtilizadoTrueAndDataExpiracaoAfterOrderByCriadoEmDesc(
+        String email, CodigoVerificacaoEmail.TipoCodigo tipo, LocalDateTime dataExpiracao);
+
+    Optional<CodigoVerificacaoEmail> findTopByEmailAndTipoAndUtilizadoFalseAndDataExpiracaoAfterOrderByCriadoEmDesc(
+        String email, CodigoVerificacaoEmail.TipoCodigo tipoCodigo, LocalDateTime dataLimite);
+}

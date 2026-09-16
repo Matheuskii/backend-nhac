@@ -1,22 +1,24 @@
 package br.com.nhac.backend_nhac.domain.usuario;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import br.com.nhac.backend_nhac.domain.auth.dto.LoginResponseDTO;
-import br.com.nhac.backend_nhac.domain.usuario.dto.EnderecoUsuarioDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioAtualizarDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioCreateDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioResponseDTO;
 import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
 import br.com.nhac.backend_nhac.infra.security.TokenService;
-import br.com.nhac.backend_nhac.repositories.UsuarioRepository;
-import br.com.nhac.backend_nhac.services.UsuarioService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/usuarios")
@@ -25,10 +27,10 @@ public class UsuarioController {
     private final UsuarioService usuarioService;
     private final UsuarioRepository usuarioRepository;
     private final TokenService tokenService;
-    private final br.com.nhac.backend_nhac.services.FavoritoService favoritoService;
-    private final br.com.nhac.backend_nhac.services.PedidoService pedidoService;
+    private final br.com.nhac.backend_nhac.domain.favorito.FavoritoService favoritoService;
+    private final br.com.nhac.backend_nhac.domain.pedido.PedidoService pedidoService;
 
-    public UsuarioController(UsuarioService usuarioService, UsuarioRepository usuarioRepository, TokenService tokenService, br.com.nhac.backend_nhac.services.FavoritoService favoritoService, br.com.nhac.backend_nhac.services.PedidoService pedidoService) {
+    public UsuarioController(UsuarioService usuarioService, UsuarioRepository usuarioRepository, TokenService tokenService, br.com.nhac.backend_nhac.domain.favorito.FavoritoService favoritoService, br.com.nhac.backend_nhac.domain.pedido.PedidoService pedidoService) {
         this.usuarioService = usuarioService;
         this.usuarioRepository = usuarioRepository;
         this.tokenService = tokenService;
@@ -68,7 +70,7 @@ public class UsuarioController {
         Usuario usuarioAtualizado = usuarioRepository.findById(id).get();
         String novoToken = tokenService.gerarToken(usuarioAtualizado);
 
-        return ResponseEntity.ok(new LoginResponseDTO(novoToken, usuarioAtualizado.getId(), usuarioAtualizado.getNome(), false));
+        return ResponseEntity.ok(LoginResponseDTO.from(usuarioAtualizado, novoToken, false));
     }
 
     @DeleteMapping("/{id}")
@@ -150,5 +152,24 @@ public class UsuarioController {
         validarPropriedade(id, usuarioLogado);
         br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioEstatisticasDTO estatisticas = usuarioService.obterEstatisticas(id);
         return ResponseEntity.ok(estatisticas);
+    }
+
+    @io.swagger.v3.oas.annotations.Operation(summary = "Obter preferências de notificação", description = "Retorna as preferências de notificação do usuário (novo pedido, mensagens, avaliações, novidades).")
+    @GetMapping("/{id}/preferencias-notificacao")
+    public ResponseEntity<br.com.nhac.backend_nhac.domain.usuario.dto.PreferenciasNotificacaoDTO> buscarPreferenciasNotificacao(
+            @PathVariable String id,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+        validarPropriedade(id, usuarioLogado);
+        return ResponseEntity.ok(usuarioService.buscarPreferenciasNotificacao(id));
+    }
+
+    @io.swagger.v3.oas.annotations.Operation(summary = "Atualizar preferências de notificação", description = "Substitui as 4 preferências de notificação do usuário de uma vez.")
+    @PutMapping("/{id}/preferencias-notificacao")
+    public ResponseEntity<br.com.nhac.backend_nhac.domain.usuario.dto.PreferenciasNotificacaoDTO> atualizarPreferenciasNotificacao(
+            @PathVariable String id,
+            @RequestBody @Valid br.com.nhac.backend_nhac.domain.usuario.dto.PreferenciasNotificacaoDTO dto,
+            @AuthenticationPrincipal Usuario usuarioLogado) {
+        validarPropriedade(id, usuarioLogado);
+        return ResponseEntity.ok(usuarioService.atualizarPreferenciasNotificacao(id, dto));
     }
 }

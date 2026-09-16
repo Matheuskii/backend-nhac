@@ -1,0 +1,67 @@
+package br.com.nhac.backend_nhac.domain.chat.dto;
+
+import java.time.Instant;
+
+import br.com.nhac.backend_nhac.domain.chat.Conversa;
+import br.com.nhac.backend_nhac.domain.chat.Mensagem;
+import br.com.nhac.backend_nhac.domain.chat.RemetenteTipo;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+public class ChatDTOs {
+
+    /** Resumo de conversa para a listagem no painel do lojista. */
+    public record ConversaResumoDTO(
+            String id,
+            String clienteId,
+            String clienteNome,
+            String ultimaMensagemPreview,
+            Instant ultimaMensagemEm,
+            int naoLidas
+    ) {
+        public ConversaResumoDTO(Conversa conversa, String clienteNome) {
+            this(
+                    conversa.getId(),
+                    conversa.getClienteId(),
+                    clienteNome,
+                    conversa.getUltimaMensagemPreview(),
+                    conversa.getUltimaMensagemEm(),
+                    conversa.getNaoLidasLoja()
+            );
+        }
+    }
+
+    /** Uma mensagem, tanto no histórico REST quanto transmitida via WebSocket. */
+    public record MensagemDTO(
+            String id,
+            String conversaId,
+            RemetenteTipo remetenteTipo,
+            String remetenteUsuarioId,
+            String conteudo,
+            Instant enviadaEm
+    ) {
+        public MensagemDTO(Mensagem mensagem) {
+            this(
+                    mensagem.getId(),
+                    mensagem.getConversa().getId(),
+                    mensagem.getRemetenteTipo(),
+                    mensagem.getRemetenteUsuarioId(),
+                    mensagem.getConteudo(),
+                    mensagem.getEnviadaEm()
+            );
+        }
+    }
+
+    /**
+     * Payload enviado pelo cliente WebSocket (STOMP) para
+     * /app/conversas/{id}/enviar.
+     *
+     * Limite de 4000 caracteres: previne abuso (mandar MB de texto) e casa
+     * com o que a UI mostra em preview de conversa.
+     */
+    public record EnviarMensagemDTO(
+            @NotBlank(message = "Mensagem não pode ser vazia")
+            @Size(max = 4000, message = "Mensagem muito longa (máx. 4000 caracteres)")
+            String conteudo
+    ) {}
+}

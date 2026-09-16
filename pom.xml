@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.1.0</version>
+		<version>4.1.1</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>br.com.nhac</groupId>
@@ -27,20 +27,24 @@
 		<url/>
 	</scm>
 	<properties>
-		<java.version>17</java.version>
+		<java.version>25</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 	</properties>
 	<dependencies>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>com.stripe</groupId>
 			<artifactId>stripe-java</artifactId>
 			<version>33.3.0</version>
 		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-mail</artifactId>
-		</dependency>
+
+
 
 		<dependency>
 
@@ -87,6 +91,16 @@
 			<version>12.1.1</version>
 			<scope>compile</scope>
 		</dependency>
+		<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-messaging</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-websocket</artifactId>
+</dependency>
+
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
@@ -153,7 +167,6 @@
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
-			<version>2.13.2</version>
 			<scope>compile</scope>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.stripe/stripe-java -->
@@ -164,10 +177,36 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Usado para o upload de imagens (loja/produtos) direto no bucket do Firebase Storage,
+		     que por baixo dos panos é um bucket do Google Cloud Storage.
+		     ATENÇÃO: confirme se esta é a versão estável mais recente em
+		     https://mvnrepository.com/artifact/com.google.cloud/google-cloud-storage antes de buildar -->
+		<dependency>
+			<groupId>com.google.cloud</groupId>
+			<artifactId>google-cloud-storage</artifactId>
+			<version>2.47.0</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>
 		<plugins>
+		<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-failsafe-plugin</artifactId>
+    <version>3.5.2</version>
+	<configuration>
+    <excludedGroups>manual</excludedGroups>
+</configuration>
+    <executions>
+        <execution>
+            <goals>
+                <goal>integration-test</goal>
+                <goal>verify</goal>
+            </goals>
+        </execution>
+    </executions>
+</plugin>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
@@ -196,7 +235,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.12</version>
+				<version>0.8.14</version>
 				<configuration>
 					<excludes>
 						<exclude>br/com/nhac/backend_nhac/config/DataLoader.class</exclude>
