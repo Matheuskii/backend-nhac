@@ -14,6 +14,7 @@ import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
 import br.com.nhac.backend_nhac.domain.auth.GoogleAuthService;
 import br.com.nhac.backend_nhac.domain.auth.SmsAuthService;
 import br.com.nhac.backend_nhac.domain.auth.CodigoVerificacaoEmail;
+import br.com.nhac.backend_nhac.domain.auth.CodigoVerificacaoEmailRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -46,6 +48,9 @@ class AuthControllerTest {
 
     @Mock
     private UsuarioRepository usuarioRepository;
+
+    @Mock
+    private CodigoVerificacaoEmailRepository codigoVerificacaoEmailRepository;
 
     private MockMvc mockMvc;
 
@@ -161,7 +166,7 @@ class AuthControllerTest {
         // Mock do código de verificação de cadastro
         var codigoVerificacao = new br.com.nhac.backend_nhac.domain.auth.CodigoVerificacaoEmail();
         codigoVerificacao.setUtilizado(true);
-        when(usuarioRepository.findCodigoVerificacaoPorEmailETipo(
+        when(codigoVerificacaoEmailRepository.findTopByEmailAndTipoAndUtilizadoTrueAndCriadoEmGreaterThanEqualOrderByCriadoEmDesc(
             eq("novo@nhac.com"), 
             eq(CodigoVerificacaoEmail.TipoCodigo.CADASTRO),
             any(java.time.LocalDateTime.class)
@@ -196,7 +201,7 @@ class AuthControllerTest {
         codigoVerificacao.setUtilizado(true);
         codigoVerificacao.setCriadoEm(LocalDateTime.now());
 
-        when(usuarioRepository.findCodigoVerificacaoPorEmailETipo(
+        when(codigoVerificacaoEmailRepository.findTopByEmailAndTipoAndUtilizadoTrueAndCriadoEmGreaterThanEqualOrderByCriadoEmDesc(
                 eq("matheus@nhac.com"), 
                 eq(CodigoVerificacaoEmail.TipoCodigo.CADASTRO), 
                 any(LocalDateTime.class)))
