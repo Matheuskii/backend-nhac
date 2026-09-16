@@ -449,6 +449,13 @@ if [[ -n "$LOJA_ID" ]]; then
   CONVERSA_ID=$(extrair '.id // empty')
 fi
 
+testar "abrir conversa (cliente)" POST "/api/v1/conversas/lojas/loja_burger_002" "200,201" "-"
+CONVERSA_ID=$(cat /tmp/smoke_last_body | tr -d '"' | tr -d '\n')
+
+if [[ -n "$CONVERSA_ID" ]]; then
+  testar "marcar conversa como lida (cliente)" PATCH "/api/v1/conversas/${CONVERSA_ID}/lida" "204" "-"
+fi
+
 if [[ -n "$CONVERSA_ID" ]]; then
   testar "historico mensagens" GET "/api/v1/lojista/conversas/${CONVERSA_ID}/mensagens?page=0&size=10" "200,403" "-" \
     -H "Authorization: Bearer ${TOKEN_LOJISTA}"
