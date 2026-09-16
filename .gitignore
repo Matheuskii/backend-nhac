@@ -38,3 +38,5 @@ htmlcov/
 *.sql.bak
 *.sql~
 ```
+
+src/main/resources/*firebase-adminsdk*.json

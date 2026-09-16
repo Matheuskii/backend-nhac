@@ -47,28 +47,37 @@ public class FirebaseStorageClient {
     }
 
     @PostConstruct
-    public void init() {
-        if (mockMode) {
-            logger.info("Firebase Storage operando em modo MOCK (upload não sobe nada de verdade).");
-            return;
-        }
-
-        try {
-            byte[] credenciaisDecodificadas = Base64.getDecoder().decode(properties.getCredentialsBase64());
-            GoogleCredentials credentials = GoogleCredentials.fromStream(
-                    new ByteArrayInputStream(credenciaisDecodificadas));
-
-            this.storage = StorageOptions.newBuilder()
-                    .setCredentials(credentials)
-                    .build()
-                    .getService();
-
-            logger.info("Firebase Storage Client inicializado com sucesso para o bucket '{}'.", properties.getBucketName());
-        } catch (Exception e) {
-            logger.error("Falha ao inicializar o Firebase Storage Client. Voltando para modo MOCK. Erro: {}", e.getMessage());
-            this.mockMode = true;
-        }
+public void init() {
+    if (mockMode) {
+        logger.info("Firebase Storage operando em modo MOCK (upload não sobe nada de verdade).");
+        return;
     }
+
+    try {
+        GoogleCredentials credentials;
+
+        if (properties.getCredentialsBase64() != null && !properties.getCredentialsBase64().isBlank()) {
+            byte[] decoded = Base64.getDecoder().decode(properties.getCredentialsBase64());
+            credentials = GoogleCredentials.fromStream(new ByteArrayInputStream(decoded));
+        } else if (properties.getCredentialsPath() != null) {
+            credentials = GoogleCredentials.fromStream(properties.getCredentialsPath().getInputStream());
+        } else {
+            throw new IllegalStateException(
+                "Nenhuma credencial do Firebase configurada. Defina firebase.storage.credentials-path (dev) " +
+                "ou firebase.storage.credentials-base64 (prod).");
+        }
+
+        this.storage = StorageOptions.newBuilder()
+                .setCredentials(credentials)
+                .build()
+                .getService();
+
+        logger.info("Firebase Storage Client inicializado com sucesso para o bucket '{}'.", properties.getBucketName());
+    } catch (Exception e) {
+        logger.error("Falha ao inicializar o Firebase Storage Client. Voltando para modo MOCK. Erro: {}", e.getMessage());
+        this.mockMode = true;
+    }
+}
 
     /**
      * Faz upload dos bytes de um arquivo e devolve uma URL de download no formato do Firebase Storage

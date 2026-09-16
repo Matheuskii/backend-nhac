@@ -32,18 +32,21 @@ public class UploadService {
         this.storageClient = storageClient;
     }
 
-    private static final Set<String> PASTAS_PERMITIDAS = Set.of("lojas", "produtos");
+    private static final Set<String> PASTAS_PERMITIDAS = Set.of(
+            "lojas", "produtos", "usuarios", "funcionarios"
+    );
 
     /**
      * Valida e envia uma imagem para o Firebase Storage.
      *
      * @param arquivo arquivo recebido no multipart/form-data
-     * @param pasta   pasta de destino dentro do bucket, ex: "lojas" ou "produtos"
+     * @param pasta   pasta de destino dentro do bucket, ex: "lojas", "produtos", "usuarios" ou "funcionarios"
      * @return URL pública de download da imagem
      */
     public String enviarImagem(MultipartFile arquivo, String pasta) {
         if (pasta == null || !PASTAS_PERMITIDAS.contains(pasta)) {
-            throw new RegraDeNegocioException("Pasta de destino inválida. Use 'lojas' ou 'produtos'.");
+            throw new RegraDeNegocioException(
+                    "Pasta de destino inválida. Use 'lojas', 'produtos', 'usuarios' ou 'funcionarios'.");
         }
 
         if (arquivo == null || arquivo.isEmpty()) {
