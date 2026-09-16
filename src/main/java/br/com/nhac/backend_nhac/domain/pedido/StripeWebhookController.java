@@ -1,6 +1,6 @@
 package br.com.nhac.backend_nhac.domain.pedido;
 
-import br.com.nhac.backend_nhac.services.PedidoService;
+import br.com.nhac.backend_nhac.domain.pedido.PedidoService;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;

@@ -4,7 +4,7 @@ import br.com.nhac.backend_nhac.domain.usuario.dto.EnderecoUsuarioDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioAtualizarDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioCreateDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioResponseDTO;
-import br.com.nhac.backend_nhac.services.UsuarioService;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,7 +42,7 @@ class EnderecoUsuarioControllerTest {
     private br.com.nhac.backend_nhac.infra.security.TokenService tokenService;
 
     @MockitoBean
-    private br.com.nhac.backend_nhac.repositories.UsuarioRepository usuarioRepository;
+    private br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository usuarioRepository;
 
     private static final String USUARIO_LOGADO_ID = "user_123";
 

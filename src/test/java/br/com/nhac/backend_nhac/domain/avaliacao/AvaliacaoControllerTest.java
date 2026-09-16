@@ -3,7 +3,7 @@ package br.com.nhac.backend_nhac.domain.avaliacao;
 import br.com.nhac.backend_nhac.domain.avaliacao.dto.AvaliacaoCreateDTO;
 import br.com.nhac.backend_nhac.domain.avaliacao.dto.AvaliacaoResumoDTO;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
-import br.com.nhac.backend_nhac.services.AvaliacaoService;
+import br.com.nhac.backend_nhac.domain.avaliacao.AvaliacaoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -49,7 +49,7 @@ class AvaliacaoControllerTest {
     private br.com.nhac.backend_nhac.infra.security.TokenService tokenService;
 
     @MockitoBean
-    private br.com.nhac.backend_nhac.repositories.UsuarioRepository usuarioRepository;
+    private br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository usuarioRepository;
 
     @BeforeEach
     void setUp() {

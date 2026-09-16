@@ -12,9 +12,10 @@ public enum StatusPedido {
     
     public boolean podeMudarPara(StatusPedido novoStatus) {
         if (this == novoStatus) {
-            throw new br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException("O pedido já está no status " + novoStatus);
+            throw new br.com.nhac.backend_nhac.exceptions.TransicaoStatusInvalidaException(
+                    "O pedido já está no status " + novoStatus);
         }
-        
+
         boolean isValido = switch (this) {
             case PENDENTE -> Set.of(PAGO, CANCELADO).contains(novoStatus);
             case PAGO -> Set.of(PREPARANDO, CANCELADO).contains(novoStatus);
@@ -22,9 +23,11 @@ public enum StatusPedido {
             case SAIU_ENTREGA -> Set.of(ENTREGUE).contains(novoStatus);
             case ENTREGUE, CANCELADO -> false;
         };
-        
+
         if (!isValido) {
-            throw new br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException("Transição de status inválida de " + this + " para " + novoStatus);
+            throw new br.com.nhac.backend_nhac.exceptions.TransicaoStatusInvalidaException(
+                    "Transição de status inválida de " + this + " para " + novoStatus,
+                    java.util.Map.of("statusAtual", this.name(), "statusNovo", novoStatus.name()));
         }
         return true;
     }

@@ -56,6 +56,33 @@ public class Usuario implements UserDetails {
     @Column(nullable = false)
     private boolean ativo = true;
 
+    @Column(name = "email_verificado", nullable = false)
+    private boolean emailVerificado = false;
+
+    // Preenchidos apenas quando papel == FUNCIONARIO: indicam a loja em que
+    // esse usuário atua como equipe (não é o dono) e o cargo exibido na UI
+    // do lojista. O cargo hoje é só um rótulo — não altera permissões.
+    @Column(name = "loja_vinculada_id", length = 50)
+    private String lojaVinculadaId;
+
+    @Column(name = "cargo", length = 30)
+    private String cargo;
+
+    @Column(name = "criado_em")
+    private java.time.Instant criadoEm = java.time.Instant.now();
+
+    @Column(name = "notificar_novo_pedido", nullable = false)
+    private boolean notificarNovoPedido = true;
+
+    @Column(name = "notificar_mensagens", nullable = false)
+    private boolean notificarMensagens = true;
+
+    @Column(name = "notificar_avaliacoes", nullable = false)
+    private boolean notificarAvaliacoes = false;
+
+    @Column(name = "notificar_novidades", nullable = false)
+    private boolean notificarNovidades = false;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + this.papel.name()));
