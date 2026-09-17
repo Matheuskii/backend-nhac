@@ -85,6 +85,20 @@ public class ChatService {
                 });
     }
 
+       @Transactional(readOnly = true)
+    public Page<MensagemDTO> listarMensagensDoCliente(String conversaId, Usuario usuarioLogado, Pageable pageable) {
+        if (usuarioLogado == null) {
+            throw new AcessoNegadoException("É necessário estar autenticado.");
+        }
+        Conversa conversa = conversaRepository.findById(conversaId)
+                .orElseThrow(() -> new IdNaoEncontradoException("Conversa não encontrada."));
+        if (!usuarioLogado.getId().equals(conversa.getClienteId())) {
+            throw new AcessoNegadoException("Você não é o cliente desta conversa.");
+        }
+        return mensagemRepository.findByConversaIdOrderByEnviadaEmDesc(conversa.getId(), pageable)
+                .map(MensagemDTO::new);
+    }
+
     // ---------- Lado LOJA (lojista / funcionário) ----------
 
     @Transactional(readOnly = true)

@@ -1,22 +1,25 @@
 package br.com.nhac.backend_nhac.domain.auth;
 
 
-import br.com.nhac.backend_nhac.domain.auth.dto.LoginResponseDTO;
-import br.com.nhac.backend_nhac.domain.usuario.Usuario;
-import br.com.nhac.backend_nhac.exceptions.CredenciaisInvalidasException;
-import br.com.nhac.backend_nhac.infra.security.TokenService;
-import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-import java.util.*;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+
+import br.com.nhac.backend_nhac.domain.auth.dto.LoginResponseDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import br.com.nhac.backend_nhac.exceptions.CredenciaisInvalidasException;
+import br.com.nhac.backend_nhac.infra.security.TokenService;
 
 @Service
 public class GoogleAuthService {
@@ -75,7 +78,7 @@ public class GoogleAuthService {
             novoUsuario.setNome(nome != null ? nome : "Usuário Nhac");
             novoUsuario.setImagemUrl(imagemUrl);
             novoUsuario.setEnderecos(new ArrayList<>());
-
+            novoUsuario.setEmailVerificado(true);
             novoUsuario.setTelefone("00000000000");
 
             novoUsuario.setSenha(null);
