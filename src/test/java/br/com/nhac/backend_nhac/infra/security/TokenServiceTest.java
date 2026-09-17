@@ -37,13 +37,13 @@ class TokenServiceTest {
     }
 
     @Test
-    @DisplayName("Deve validar um token gerado e devolver o e-mail (subject) correto")
-    void deveValidarTokenERecuperarEmail() {
+    @DisplayName("Deve validar um token gerado e devolver o ID (subject) correto")
+    void deveValidarTokenERecuperarId() {
         String token = tokenService.gerarToken(usuarioDeTeste());
 
-        String emailExtraido = tokenService.validarToken(token);
+        String idExtraido = tokenService.validarToken(token);
 
-        assertEquals("matheus@nhac.com", emailExtraido);
+        assertEquals("user_1", idExtraido);
     }
 
     @Test

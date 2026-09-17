@@ -37,4 +37,17 @@ public class DadosOperacionais {
     @Column(name = "total_avaliacoes")
     private int totalAvaliacoes;
 
+    // B3 - Novos campos de dados operacionais
+    @Schema(description = "Indica se a loja realiza entrega própria", example = "true")
+    @Column(name = "entrega_propria", nullable = false)
+    private Boolean entregaPropria = true;
+
+    @Schema(description = "Indica se a loja permite retirada no local", example = "false")
+    @Column(name = "retirada_no_local", nullable = false)
+    private Boolean retiradaNoLocal = false;
+
+    @Schema(description = "Raio de entrega em quilômetros (null = ilimitado)", example = "10.5")
+    @Column(name = "raio_entrega_km", precision = 6, scale = 2)
+    private BigDecimal raioEntregaKm;
+
 }

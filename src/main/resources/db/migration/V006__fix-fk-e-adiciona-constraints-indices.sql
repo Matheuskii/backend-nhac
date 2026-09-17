@@ -21,15 +21,21 @@ CREATE INDEX idx_lojas_is_aberto ON tb_lojas (is_aberto);
 CREATE INDEX idx_pedidos_status ON tb_pedidos (status);
 
 ALTER TABLE tb_produtos
-    ADD CONSTRAINT chk_produto_preco_positivo CHECK (preco >= 0),
+    ADD CONSTRAINT chk_produto_preco_positivo CHECK (preco >= 0);
+
+ALTER TABLE tb_produtos
     ADD CONSTRAINT chk_produto_desconto_valido CHECK (percentual_desconto IS NULL OR percentual_desconto BETWEEN 0 AND 100);
 
 ALTER TABLE tb_pedidos
-    ADD CONSTRAINT chk_pedido_valor_total_positivo CHECK (valor_total >= 0),
+    ADD CONSTRAINT chk_pedido_valor_total_positivo CHECK (valor_total >= 0);
+
+ALTER TABLE tb_pedidos
     ADD CONSTRAINT chk_pedido_taxa_frete_positiva CHECK (taxa_frete >= 0);
 
 ALTER TABLE tb_itens_pedido
-    ADD CONSTRAINT chk_item_quantidade_positiva CHECK (quantidade > 0),
+    ADD CONSTRAINT chk_item_quantidade_positiva CHECK (quantidade > 0);
+
+ALTER TABLE tb_itens_pedido
     ADD CONSTRAINT chk_item_preco_historico_positivo CHECK (preco_historico >= 0);
 
 ALTER TABLE tb_lojas

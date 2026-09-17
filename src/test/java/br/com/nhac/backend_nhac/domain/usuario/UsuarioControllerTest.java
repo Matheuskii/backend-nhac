@@ -1,9 +1,10 @@
 package br.com.nhac.backend_nhac.domain.usuario;
 
 import br.com.nhac.backend_nhac.domain.usuario.dto.EnderecoUsuarioDTO;
+import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioAtualizarDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioCreateDTO;
 import br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioResponseDTO;
-import br.com.nhac.backend_nhac.services.UsuarioService;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -41,7 +43,12 @@ class UsuarioControllerTest {
     private br.com.nhac.backend_nhac.infra.security.TokenService tokenService;
 
     @MockitoBean
-    private br.com.nhac.backend_nhac.repositories.UsuarioRepository usuarioRepository;
+    private br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository usuarioRepository;
+    @MockitoBean
+    private br.com.nhac.backend_nhac.domain.favorito.FavoritoService favoritoService;
+
+    @MockitoBean
+    private br.com.nhac.backend_nhac.domain.pedido.PedidoService pedidoService;
 
     private static final String USUARIO_LOGADO_ID = "user_123";
 
@@ -58,11 +65,12 @@ class UsuarioControllerTest {
     }
 
     @Test
-    @DisplayName("Deve retornar 200 ao buscar os próprios dados")
+    @DisplayName("Deve retornar 200 ao buscar os prÃ³prios dados")
     void deveBuscarProprioUsuarioComSucesso() throws Exception {
-        UsuarioResponseDTO dto = new UsuarioResponseDTO(USUARIO_LOGADO_ID, "Matheus Alves",
-                "matheus@nhac.com", "11999998888", null);
-        when(usuarioService.buscarUsuario(USUARIO_LOGADO_ID)).thenReturn(dto);
+        UsuarioResponseDTO mockResponse = new UsuarioResponseDTO(
+                USUARIO_LOGADO_ID, "Matheus Alves", "matheus@nhac.com", "11999998888", null, br.com.nhac.backend_nhac.domain.usuario.Papel.CLIENTE
+        );
+        when(usuarioService.buscarUsuario(USUARIO_LOGADO_ID)).thenReturn(mockResponse);
 
         mockMvc.perform(get("/api/v1/usuarios/{id}", USUARIO_LOGADO_ID))
                 .andExpect(status().isOk())
@@ -70,7 +78,7 @@ class UsuarioControllerTest {
     }
 
     @Test
-    @DisplayName("Deve retornar 403 ao tentar buscar dados de outro usuário")
+    @DisplayName("Deve retornar 403 ao tentar buscar dados de outro usuÃ¡rio")
     void deveRetornar403AoBuscarDadosDeOutroUsuario() throws Exception {
         mockMvc.perform(get("/api/v1/usuarios/{id}", "outro_usuario_id"))
                 .andExpect(status().isForbidden())
@@ -80,7 +88,7 @@ class UsuarioControllerTest {
     }
 
     @Test
-    @DisplayName("Deve retornar 201 ao criar um novo usuário com dados válidos")
+    @DisplayName("Deve retornar 201 ao criar um novo usuÃ¡rio com dados vÃ¡lidos")
     void deveCriarUsuarioComSucesso() throws Exception {
         UsuarioCreateDTO dto = new UsuarioCreateDTO("user_novo", "Nome Novo", "novo@nhac.com",
                 "11999998888", null, "senha123");
@@ -94,7 +102,7 @@ class UsuarioControllerTest {
     }
 
     @Test
-    @DisplayName("Deve retornar 422 ao criar usuário com e-mail inválido")
+    @DisplayName("Deve retornar 422 ao criar usuÃ¡rio com e-mail invÃ¡lido")
     void deveRetornar422AoCriarUsuarioComEmailInvalido() throws Exception {
         UsuarioCreateDTO dto = new UsuarioCreateDTO("user_novo", "Nome Novo", "email-invalido",
                 "11999998888", null, "senha123");
@@ -109,88 +117,74 @@ class UsuarioControllerTest {
     }
 
     @Test
-    @DisplayName("Deve retornar 204 ao atualizar dados parciais do próprio usuário")
+    @DisplayName("Deve retornar 200 e o novo token ao atualizar dados parciais do prÃ³prio usuÃ¡rio")
     void deveAtualizarDadosDoProprioUsuario() throws Exception {
-        Map<String, Object> dados = Map.of("nome", "Nome Atualizado");
+        UsuarioAtualizarDTO dados = new UsuarioAtualizarDTO("Nome Atualizado", null, null, null, null);
 
-        mockMvc.perform(patch("/api/v1/usuarios/{id}", USUARIO_LOGADO_ID)
+        Usuario usuarioMock = new Usuario();
+        usuarioMock.setId(USUARIO_LOGADO_ID);
+        usuarioMock.setNome("Nome Atualizado");
+
+        when(usuarioRepository.findById(USUARIO_LOGADO_ID)).thenReturn(Optional.of(usuarioMock));
+        when(tokenService.gerarToken(any(Usuario.class))).thenReturn("novo_token_jwt_super_seguro");
+
+        mockMvc.perform(put("/api/v1/usuarios/{id}", USUARIO_LOGADO_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dados)))
-                .andExpect(status().isNoContent());
-
-        verify(usuarioService, times(1)).atualizarUsuarioParcial(eq(USUARIO_LOGADO_ID), any());
-    }
-
-    @Test
-    @DisplayName("Deve retornar 200 ao listar endereços do próprio usuário")
-    void deveListarEnderecosDoProprioUsuario() throws Exception {
-        EnderecoUsuarioDTO endereco = new EnderecoUsuarioDTO("end_1", "Rua A", "123", "Centro",
-                "SP", "SP", "01000-000", null, true);
-        when(usuarioService.listarEnderecos(USUARIO_LOGADO_ID)).thenReturn(List.of(endereco));
-
-        mockMvc.perform(get("/api/v1/usuarios/{usuarioId}/enderecos", USUARIO_LOGADO_ID))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value("end_1"));
+                .andExpect(jsonPath("$.token").value("novo_token_jwt_super_seguro"))
+                .andExpect(jsonPath("$.nome").value("Nome Atualizado"));
+
+        verify(usuarioService, times(1)).atualizarUsuarioParcial(eq(USUARIO_LOGADO_ID), any(UsuarioAtualizarDTO.class));
     }
 
     @Test
-    @DisplayName("Deve retornar 201 ao adicionar um novo endereço válido")
-    void deveAdicionarEnderecoComSucesso() throws Exception {
-        EnderecoUsuarioDTO dto = new EnderecoUsuarioDTO(null, "Rua A", "123", "Centro",
-                "SP", "SP", "01000-000", null, true);
-
-        mockMvc.perform(post("/api/v1/usuarios/{usuarioId}/enderecos", USUARIO_LOGADO_ID)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isCreated());
-
-        verify(usuarioService, times(1)).adicionarEndereco(eq(USUARIO_LOGADO_ID), any());
-    }
-
-    @Test
-    @DisplayName("Deve retornar 400 ao adicionar endereço com CEP em formato inválido")
-    void deveRetornar422AoAdicionarEnderecoComCepInvalido() throws Exception {
-        EnderecoUsuarioDTO dto = new EnderecoUsuarioDTO(null, "Rua A", "123", "Centro",
-                "SP", "SP", "cep-invalido", null, true);
-
-        //noinspection deprecation
-        mockMvc.perform(post("/api/v1/usuarios/{usuarioId}/enderecos", USUARIO_LOGADO_ID)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isBadRequest());
-
-        verify(usuarioService, never()).adicionarEndereco(any(), any());
-    }
-
-    @Test
-    @DisplayName("Deve retornar 204 ao atualizar um endereço do próprio usuário")
-    void deveAtualizarEnderecoComSucesso() throws Exception {
-        EnderecoUsuarioDTO dto = new EnderecoUsuarioDTO("end_1", "Rua Nova", "456", "Centro",
-                "SP", "SP", "01000-000", null, true);
-
-        mockMvc.perform(put("/api/v1/usuarios/{usuarioId}/enderecos/{enderecoId}", USUARIO_LOGADO_ID, "end_1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
+    @DisplayName("Deve retornar 204 ao desativar conta de usuÃ¡rio")
+    void deveDesativarUsuarioComSucesso() throws Exception {
+        mockMvc.perform(delete("/api/v1/usuarios/{id}", USUARIO_LOGADO_ID))
                 .andExpect(status().isNoContent());
 
-        verify(usuarioService, times(1)).atualizarEndereco(eq(USUARIO_LOGADO_ID), eq("end_1"), any());
+        verify(usuarioService, times(1)).desativarUsuario(eq(USUARIO_LOGADO_ID), any(Usuario.class));
     }
 
     @Test
-    @DisplayName("Deve retornar 204 ao remover um endereço do próprio usuário")
-    void deveRemoverEnderecoComSucesso() throws Exception {
-        mockMvc.perform(delete("/api/v1/usuarios/{usuarioId}/enderecos/{enderecoId}", USUARIO_LOGADO_ID, "end_1"))
-                .andExpect(status().isNoContent());
+    @DisplayName("Deve retornar true se usuario segue a loja")
+    void deveVerificarSeUsuarioSegueLoja() throws Exception {
+        when(favoritoService.usuarioSegueLoja(USUARIO_LOGADO_ID, "loja_1")).thenReturn(true);
 
-        verify(usuarioService, times(1)).removerEndereco(USUARIO_LOGADO_ID, "end_1");
+        mockMvc.perform(get("/api/v1/usuarios/{usuarioId}/seguindo/{lojaId}", USUARIO_LOGADO_ID, "loja_1"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string("true"));
     }
 
     @Test
-    @DisplayName("Deve retornar 403 ao tentar remover endereço de outro usuário")
-    void deveRetornar403AoRemoverEnderecoDeOutroUsuario() throws Exception {
-        mockMvc.perform(delete("/api/v1/usuarios/{usuarioId}/enderecos/{enderecoId}", "outro_usuario_id", "end_1"))
-                .andExpect(status().isForbidden());
+    @DisplayName("Deve retornar 200 com a lista de pedidos do usuário")
+    void deveListarPedidosDoUsuario() throws Exception {
+        br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoDTO pedidoMock = new br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoDTO(
+                "pedido_1", "loja_1", "Loja Teste", new java.math.BigDecimal("50.00"), br.com.nhac.backend_nhac.domain.pedido.StatusPedido.PENDENTE,
+                java.time.Instant.now()
+        );
+        org.springframework.data.domain.Page<br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoDTO> pagina =
+                new org.springframework.data.domain.PageImpl<>(java.util.List.of(pedidoMock));
 
-        verify(usuarioService, never()).removerEndereco(any(), any());
+        when(pedidoService.listarMeusPedidos(eq(USUARIO_LOGADO_ID), any())).thenReturn(pagina);
+
+        mockMvc.perform(get("/api/v1/usuarios/{usuarioId}/pedidos", USUARIO_LOGADO_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value("pedido_1"));
+    }
+    @Test
+    @DisplayName("Deve retornar 200 com as estatisticas do usuario")
+    void deveObterEstatisticasDoUsuario() throws Exception {
+        br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioEstatisticasDTO statsMock = 
+                new br.com.nhac.backend_nhac.domain.usuario.dto.UsuarioEstatisticasDTO(15L, 3L, 5L);
+
+        when(usuarioService.obterEstatisticas(USUARIO_LOGADO_ID)).thenReturn(statsMock);
+
+        mockMvc.perform(get("/api/v1/usuarios/{usuarioId}/estatisticas", USUARIO_LOGADO_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalPedidos").value(15))
+                .andExpect(jsonPath("$.lojasFavoritadas").value(3))
+                .andExpect(jsonPath("$.cuponsResgatados").value(5));
     }
 }

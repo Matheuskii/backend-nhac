@@ -1,0 +1,62 @@
+{"properties": [
+  {
+    "name": "asaas.api.url",
+    "type": "java.lang.String",
+    "description": "A description for 'asaas.api.url'"
+  },
+  {
+    "name": "asaas.webhook.token",
+    "type": "java.lang.String",
+    "description": "A description for 'asaas.webhook.token'"
+  },
+  {
+    "name": "asaas.api.key",
+    "type": "java.lang.String",
+    "description": "A description for 'asaas.api.key'"
+  },
+  {
+    "name": "stripe.webhook.secret",
+    "type": "java.lang.String",
+    "description": "A description for 'stripe.webhook.secret'"
+  },
+  {
+    "name": "stripe.api.key",
+    "type": "java.lang.String",
+    "description": "A description for 'stripe.api.key'"
+  },
+  {
+    "name": "nhac.sms.mock-mode",
+    "type": "java.lang.String",
+    "description": "A description for 'nhac.sms.mock-mode'"
+  },
+  {
+    "name": "nhac.email.mock-mode",
+    "type": "java.lang.String",
+    "description": "A description for 'nhac.email.mock-mode'"
+  },
+  {
+    "name": "api.security.token.secret",
+    "type": "java.lang.String",
+    "description": "A description for 'api.security.token.secret'"
+  },
+  {
+    "name": "firebase.storage.bucket-name",
+    "type": "java.lang.String",
+    "description": "Nome do bucket do Firebase Storage usado para upload de imagens de loja/produtos."
+  },
+  {
+    "name": "firebase.storage.credentials-base64",
+    "type": "java.lang.String",
+    "description": "JSON da service account do Firebase, em Base64, usado para autenticar o upload de imagens."
+  },
+  {
+    "name": "nhac.storage.mock-mode",
+    "type": "java.lang.String",
+    "description": "Quando true (padrão), o upload de imagens não sobe nada de verdade — só loga e devolve uma URL de placeholder."
+  },
+  {
+    "name": "nhac.storage.max-tamanho-bytes",
+    "type": "java.lang.String",
+    "description": "Tamanho máximo (em bytes) aceito no upload de imagens."
+  }
+]}

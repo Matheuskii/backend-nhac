@@ -18,6 +18,9 @@ public class Loja {
     @Column(updatable = false, nullable = false, length = 50)
     private String id;
 
+    @Column(name = "usuario_id", length = 50)
+    private String usuarioId;
+
 
     private String nome;
 
@@ -46,5 +49,9 @@ public class Loja {
 
     @Embedded
     private HorariosFuncionamento horariosFuncionamento;
+
+    @Embedded
+    @Builder.Default
+    private FormasPagamento formasPagamento = new FormasPagamento();
 
 }

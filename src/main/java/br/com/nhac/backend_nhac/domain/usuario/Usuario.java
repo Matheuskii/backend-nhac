@@ -3,8 +3,12 @@ package br.com.nhac.backend_nhac.domain.usuario;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @Entity
@@ -14,7 +18,7 @@ import java.util.List;
 @Getter
 @Setter
 @EqualsAndHashCode(of = "id")
-public class Usuario {
+public class Usuario implements UserDetails {
 
     @Id
     @Column(updatable = false, nullable = false, length = 50)
@@ -23,7 +27,7 @@ public class Usuario {
     @Column(nullable = false, length = 100)
     private String nome;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = true, length = 100)
     private String email;
 
     @Column(nullable = false, length = 20)
@@ -41,5 +45,77 @@ public class Usuario {
 
     @Column(name = "fcm_token", length = 255)
     private String fcmToken;
+
+    @Column(name = "telefone_verificado", nullable = false)
+    private boolean telefoneVerificado = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private Papel papel = Papel.CLIENTE;
+
+    @Column(nullable = false)
+    private boolean ativo = true;
+
+    @Column(name = "email_verificado", nullable = false)
+    private boolean emailVerificado = false;
+
+    // Preenchidos apenas quando papel == FUNCIONARIO: indicam a loja em que
+    // esse usuário atua como equipe (não é o dono) e o cargo exibido na UI
+    // do lojista. O cargo hoje é só um rótulo — não altera permissões.
+    @Column(name = "loja_vinculada_id", length = 50)
+    private String lojaVinculadaId;
+
+    @Column(name = "cargo", length = 30)
+    private String cargo;
+
+    @Column(name = "criado_em")
+    private java.time.Instant criadoEm = java.time.Instant.now();
+
+    @Column(name = "notificar_novo_pedido", nullable = false)
+    private boolean notificarNovoPedido = true;
+
+    @Column(name = "notificar_mensagens", nullable = false)
+    private boolean notificarMensagens = true;
+
+    @Column(name = "notificar_avaliacoes", nullable = false)
+    private boolean notificarAvaliacoes = false;
+
+    @Column(name = "notificar_novidades", nullable = false)
+    private boolean notificarNovidades = false;
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority("ROLE_" + this.papel.name()));
+    }
+
+    @Override
+    public String getPassword() {
+        return this.senha;
+    }
+
+    @Override
+    public String getUsername() {
+        return this.email;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return this.ativo;
+    }
 }
 

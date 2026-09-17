@@ -1,40 +1,42 @@
 ```
-# Compiled and build artifacts
-*.class
-*.o
-*.obj
-*.out
-*.dll
-*.so
-*.a
-
-# Dependencies
+# Java/Maven
 target/
-.gradle/
+*.class
+*.jar
+*.war
+*.ear
 
-# Logs and temp files
-*.log
-*.tmp
-
-# Editors
-.vscode/
+# IDE
 .idea/
-*.swp
-*.swo
+*.iml
+*.ipr
+*.iws
 
 # Environment
 .env
 .env.local
 *.env.*
 
-# Coverage
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
 coverage/
 htmlcov/
 .coverage
 
-# Package manager
-node_modules/
-__pycache__/
-.mypy_cache/
-.pytest_cache/
+# Database migration backups (if any)
+*.sql.bak
+*.sql~
 ```
+
+src/main/resources/*firebase-adminsdk*.json

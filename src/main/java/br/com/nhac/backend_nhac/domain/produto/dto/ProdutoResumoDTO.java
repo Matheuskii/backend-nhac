@@ -4,6 +4,7 @@ import br.com.nhac.backend_nhac.domain.produto.Produto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Schema(description = "Objeto simplificado devolvido na listagem do cardápio")
 public record ProdutoResumoDTO(
@@ -37,7 +38,15 @@ public record ProdutoResumoDTO(
         String peso,
 
         @Schema(description = "Percentual de desconto", example = "0")
-        Integer percentualDesconto
+        Integer percentualDesconto,
+
+        @Schema(description = "Indica se a loja do produto está aberta no momento (baseado no campo isAberto da loja). "
+                + "Permite ao cliente decidir a exibição sem precisar chamar GET /lojas/{id} separadamente.",
+                example = "true")
+        boolean lojaAberta,
+
+        @Schema(description = "Lista de grupos de adicionais do produto")
+        List<GrupoAdicionalDTO> adicionais
 ) {
     public ProdutoResumoDTO(Produto produto) {
         this(
@@ -50,7 +59,19 @@ public record ProdutoResumoDTO(
                 produto.getCategoriaMenu(),
                 produto.getImagemUrl(),
                 produto.getPeso(),
-                produto.getPercentualDesconto()
+                produto.getPercentualDesconto(),
+                produto.getLoja() != null && produto.getLoja().isAberto(),
+                produto.getAdicionais() != null ? produto.getAdicionais().stream()
+                    .map(grupo -> new GrupoAdicionalDTO(
+                            grupo.getNome(),
+                            grupo.isObrigatorio(),
+                            grupo.getMinimo(),
+                            grupo.getMaximo(),
+                            grupo.getItens() != null ? grupo.getItens().stream()
+                                .map(item -> new ItemAdicionalDTO(item.getNome(), item.getPreco()))
+                                .toList() : List.of()
+                    ))
+                    .toList() : List.of()
         );
     }
 }

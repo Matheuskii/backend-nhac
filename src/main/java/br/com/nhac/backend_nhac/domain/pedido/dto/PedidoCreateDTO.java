@@ -40,10 +40,18 @@ public record PedidoCreateDTO(
     @JsonProperty(required = false)
     BigDecimal trocoPara,
 
+    @Schema(description = "CPF do pagador, obrigatório quando formaPagamento = PIX (necessário para criar o cliente no Asaas)", example = "12345678901")
+    @JsonProperty(required = false)
+    String cpfPagador,
+
     @Schema(description = "Endereço completo e exato para entrega")
     @JsonProperty(required = false)
     @Valid
     EnderecoEntregaDTO enderecoEntrega,
+
+    @Schema(description = "ID do cupom de desconto aplicado, se houver", example = "cupom-001")
+    @JsonProperty(required = false)
+    String cupomId,
 
     @Schema(description = "Lista de produtos comprados")
     @NotNull(message = "O carrinho de compras não pode ser nulo.")
@@ -58,6 +66,7 @@ public record PedidoCreateDTO(
 
                 pedido.setId(UUID.randomUUID().toString());
                 pedido.setLoja(lojaDaBaseDeDados);
+                pedido.setCupomId(this.cupomId());
 
                 pedido.setFormaPagamento(this.formaPagamento());
                 pedido.setObservacao(this.observacao());
