@@ -1,21 +1,36 @@
 package br.com.nhac.backend_nhac.domain.pedido;
 
-import br.com.nhac.backend_nhac.domain.loja.Loja;
-import br.com.nhac.backend_nhac.domain.loja.LojaAccessService;
-import br.com.nhac.backend_nhac.domain.pedido.dto.*;
-import br.com.nhac.backend_nhac.domain.produto.Produto;
-import br.com.nhac.backend_nhac.domain.usuario.Usuario;
-import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
-import br.com.nhac.backend_nhac.exceptions.*;
-import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
-import br.com.nhac.backend_nhac.domain.produto.ProdutoRepository;
+import java.math.BigDecimal;
+import java.util.Map;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.util.Map;
+import br.com.nhac.backend_nhac.domain.loja.Loja;
+import br.com.nhac.backend_nhac.domain.loja.LojaAccessService;
+import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCreateDTO;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoCriadoDTO;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoDetalheLojistaDTO;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResponseDTO;
+import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResumoDTO;
+import br.com.nhac.backend_nhac.domain.pedido.dto.ResultadoCriacaoPedido;
+import br.com.nhac.backend_nhac.domain.produto.Produto;
+import br.com.nhac.backend_nhac.domain.produto.ProdutoRepository;
+import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
+import br.com.nhac.backend_nhac.exceptions.CampoObrigatorioFaltandoException;
+import br.com.nhac.backend_nhac.exceptions.EstoqueInsuficienteException;
+import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
+import br.com.nhac.backend_nhac.exceptions.LojaFechadaException;
+import br.com.nhac.backend_nhac.exceptions.PagamentoRecusadoException;
+import br.com.nhac.backend_nhac.exceptions.ProdutoInativoException;
+import br.com.nhac.backend_nhac.exceptions.ProdutoNaoEncontradoException;
+import br.com.nhac.backend_nhac.exceptions.QuantidadeInvalidaException;
+import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 
 @Service
 public class PedidoService {
@@ -90,7 +105,6 @@ public class PedidoService {
             if (atualizados == 0) {
                 throw new EstoqueInsuficienteException(produtoReal.getId(), itemDto.quantidade(), produtoReal.getEstoque());
             }
-            produtoReal.setEstoque(produtoReal.getEstoque() - itemDto.quantidade());
 
             ItemPedido novoItem = itemDto.toEntity(produtoReal);
             BigDecimal precoReal = produtoReal.getPreco();
