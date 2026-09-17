@@ -1,6 +1,8 @@
 package br.com.nhac.backend_nhac.domain.produto;
 
-import br.com.nhac.backend_nhac.domain.produto.Produto;
+import java.math.BigDecimal;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -8,10 +10,6 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import org.springframework.util.StringUtils;
-
-import java.math.BigDecimal;
-import java.util.Optional;
 
 @Repository
 public interface ProdutoRepository extends JpaRepository<Produto, String> {
@@ -21,7 +19,7 @@ public interface ProdutoRepository extends JpaRepository<Produto, String> {
 
     long countByLojaId(String lojaId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Produto p SET p.estoque = p.estoque - :quantidade WHERE p.id = :id AND p.estoque >= :quantidade")
     int decrementarEstoqueSeDisponivel(@Param("id") String id, @Param("quantidade") int quantidade);
 

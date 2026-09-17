@@ -61,8 +61,7 @@ public class ChatService {
         if (usuarioLogado == null) {
             throw new AcessoNegadoException("É necessário estar autenticado para abrir uma conversa.");
         }
-        // Apenas CLIENTE inicia conversa. Um LOJISTA usando essa rota abriria
-        // conversas "cliente=lojista" que poluem a lista e permitem spam.
+     
         if (usuarioLogado.getPapel() != Papel.CLIENTE) {
             throw new AcessoNegadoException("Apenas clientes podem iniciar conversas com lojas.");
         }
@@ -76,8 +75,7 @@ public class ChatService {
                         Conversa nova = new Conversa("conv_" + UUID.randomUUID(), loja, clienteId);
                         return conversaRepository.saveAndFlush(nova);
                     } catch (DataIntegrityViolationException e) {
-                        // Corrida: outra requisição criou entre o find e o save.
-                        // O UNIQUE (loja_id, cliente_id) garante consistência — só recupera.
+               
                         return conversaRepository.findByLojaIdAndClienteId(lojaId, clienteId)
                                 .orElseThrow(() -> new IllegalStateException(
                                         "Conversa deveria existir após violação de unique", e));
