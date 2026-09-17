@@ -41,8 +41,10 @@ public class AuthController {
     private final br.com.nhac.backend_nhac.domain.auth.VerificacaoTelefoneService verificacaoTelefoneService;
     private final br.com.nhac.backend_nhac.domain.auth.VerificacaoEmailService verificacaoEmailService;
     private final UsuarioService usuarioService;
+    private final CodigoVerificacaoEmailRepository codigoVerificacaoEmailRepository;
 
-    public AuthController(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, TokenService tokenService, GoogleAuthService googleAuthService, SmsAuthService smsAuthService, br.com.nhac.backend_nhac.domain.auth.VerificacaoTelefoneService verificacaoTelefoneService, br.com.nhac.backend_nhac.domain.auth.VerificacaoEmailService verificacaoEmailService, UsuarioService usuarioService) {
+    public AuthController(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, TokenService tokenService, GoogleAuthService googleAuthService, SmsAuthService smsAuthService, br.com.nhac.backend_nhac.domain.auth.VerificacaoTelefoneService verificacaoTelefoneService, br.com.nhac.backend_nhac.domain.auth.VerificacaoEmailService verificacaoEmailService, UsuarioService usuarioService, CodigoVerificacaoEmailRepository codigoVerificacaoEmailRepository) {
+
 
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
@@ -52,6 +54,7 @@ public class AuthController {
         this.verificacaoTelefoneService = verificacaoTelefoneService;
         this.verificacaoEmailService = verificacaoEmailService;
         this.usuarioService = usuarioService;
+        this.codigoVerificacaoEmailRepository = codigoVerificacaoEmailRepository;
     }
 
     @PostMapping("/login")
@@ -105,7 +108,7 @@ public class AuthController {
         LocalDateTime agora = java.time.LocalDateTime.now();
         LocalDateTime dataLimite = agora.minusMinutes(30);
         
-        var codigoVerificado = usuarioRepository.findCodigoVerificacaoPorEmailETipo(
+        var codigoVerificado = codigoVerificacaoEmailRepository.findTopByEmailAndTipoAndUtilizadoTrueAndCriadoEmGreaterThanEqualOrderByCriadoEmDesc(
             body.email().trim().toLowerCase(), 
             CodigoVerificacaoEmail.TipoCodigo.CADASTRO,
             dataLimite
