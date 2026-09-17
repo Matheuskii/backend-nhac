@@ -2,7 +2,7 @@ package br.com.nhac.backend_nhac.domain.auth;
 
 import br.com.nhac.backend_nhac.domain.auth.dto.EnviarCodigoSmsDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.ValidarCodigoSmsDTO;
-import br.com.nhac.backend_nhac.services.VerificacaoTelefoneService;
+import br.com.nhac.backend_nhac.domain.auth.VerificacaoTelefoneService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

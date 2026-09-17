@@ -1,6 +1,6 @@
 package br.com.nhac.backend_nhac.domain.pedido;
 
-import br.com.nhac.backend_nhac.services.PedidoService;
+import br.com.nhac.backend_nhac.domain.pedido.PedidoService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +34,7 @@ public class StripeWebhookControllerTest {
     private br.com.nhac.backend_nhac.infra.security.TokenService tokenService;
 
     @MockitoBean
-    private br.com.nhac.backend_nhac.repositories.UsuarioRepository usuarioRepository;
+    private br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository usuarioRepository;
 
     // Ignora a segurança apenas para o Webhook no ambiente de teste de Controller
     @TestConfiguration

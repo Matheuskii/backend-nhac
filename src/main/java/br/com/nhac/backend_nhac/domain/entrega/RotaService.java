@@ -1,0 +1,176 @@
+package br.com.nhac.backend_nhac.domain.entrega;
+
+import br.com.nhac.backend_nhac.domain.entrega.dto.PontoCoordenadaDTO;
+import br.com.nhac.backend_nhac.domain.entrega.dto.RotaEntregaResponseDTO;
+import br.com.nhac.backend_nhac.domain.entregador.EntregadorService;
+import br.com.nhac.backend_nhac.domain.pedido.Pedido;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+@Service
+public class RotaService {
+
+    private static final Logger log = LoggerFactory.getLogger(RotaService.class);
+
+    private final RestClient restClient;
+
+    @Value("${nhac.routing.osrm-url:https://router.project-osrm.org}")
+    private String osrmBaseUrl = "https://router.project-osrm.org";
+
+    public RotaService() {
+        var factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(4000);
+        factory.setReadTimeout(4000);
+        this.restClient = RestClient.builder()
+                .requestFactory(factory)
+                .build();
+    }
+
+    public RotaEntregaResponseDTO calcularRota(Pedido pedido) {
+        if (pedido.getLoja() == null || pedido.getLoja().getGeoLocalizacao() == null) {
+            throw new IllegalArgumentException("A loja do pedido não possui coordenadas geográficas cadastradas.");
+        }
+
+        double origemLat = pedido.getLoja().getGeoLocalizacao().getGeoLat();
+        double origemLng = pedido.getLoja().getGeoLocalizacao().getGeoLng();
+
+        // Se o pedido tiver coordenadas específicas de entrega salvas, usa elas; senão usa aproximação da loja
+        double destinoLat = pedido.getEntregaLatitude() != null ? pedido.getEntregaLatitude() : origemLat + 0.015;
+        double destinoLng = pedido.getEntregaLongitude() != null ? pedido.getEntregaLongitude() : origemLng + 0.015;
+
+        PontoCoordenadaDTO origem = new PontoCoordenadaDTO(origemLat, origemLng);
+        PontoCoordenadaDTO destino = new PontoCoordenadaDTO(destinoLat, destinoLng);
+        String lojaNome = pedido.getLoja().getNome();
+
+        try {
+            String url = String.format(Locale.US, "%s/route/v1/driving/%.6f,%.6f;%.6f,%.6f?overview=full&geometries=polyline",
+                    osrmBaseUrl, origemLng, origemLat, destinoLng, destinoLat);
+
+            String jsonResponse = restClient.get()
+                    .uri(url)
+                    .retrieve()
+                    .body(String.class);
+
+            if (jsonResponse != null) {
+                JsonObject root = JsonParser.parseString(jsonResponse).getAsJsonObject();
+                if ("Ok".equalsIgnoreCase(root.get("code").getAsString())) {
+                    JsonArray routes = root.getAsJsonArray("routes");
+                    if (!routes.isEmpty()) {
+                        JsonObject route = routes.get(0).getAsJsonObject();
+                        double distanciaMetros = route.get("distance").getAsDouble();
+                        double duracaoSegundos = route.get("duration").getAsDouble();
+                        String polyline = route.get("geometry").getAsString();
+                        List<PontoCoordenadaDTO> waypoints = decodificarPolyline(polyline);
+
+                        double distanciaKm = Math.round((distanciaMetros / 1000.0) * 100.0) / 100.0;
+                        int duracaoMinutos = (int) Math.ceil(duracaoSegundos / 60.0);
+
+                        return new RotaEntregaResponseDTO(
+                                pedido.getId(),
+                                lojaNome,
+                                origem,
+                                destino,
+                                distanciaMetros,
+                                distanciaKm,
+                                Math.max(1, duracaoMinutos),
+                                polyline,
+                                waypoints
+                        );
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Falha ao consultar API externa de rotas (OSRM). Utilizando fallback por Haversine: {}", e.getMessage());
+        }
+
+        // Fallback local se a API de mapas estiver indisponível ou offline
+        double distanciaKm = EntregadorService.calcularDistanciaKm(origemLat, origemLng, destinoLat, destinoLng);
+        double distanciaMetros = distanciaKm * 1000.0;
+        int duracaoMinutos = (int) Math.ceil((distanciaKm / 30.0) * 60.0); // estimativa a 30 km/h de moto
+
+        List<PontoCoordenadaDTO> fallbackPoints = List.of(origem, destino);
+        String fallbackPolyline = codificarPolyline(fallbackPoints);
+
+        return new RotaEntregaResponseDTO(
+                pedido.getId(),
+                lojaNome,
+                origem,
+                destino,
+                distanciaMetros,
+                Math.round(distanciaKm * 100.0) / 100.0,
+                Math.max(1, duracaoMinutos),
+                fallbackPolyline,
+                fallbackPoints
+        );
+    }
+
+    public static List<PontoCoordenadaDTO> decodificarPolyline(String encoded) {
+        List<PontoCoordenadaDTO> poly = new ArrayList<>();
+        int index = 0, len = encoded.length();
+        int lat = 0, lng = 0;
+
+        while (index < len) {
+            int b, shift = 0, result = 0;
+            do {
+                b = encoded.charAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+            lat += dlat;
+
+            shift = 0;
+            result = 0;
+            do {
+                b = encoded.charAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+            lng += dlng;
+
+            poly.add(new PontoCoordenadaDTO((lat / 1E5), (lng / 1E5)));
+        }
+
+        return poly;
+    }
+
+    public static String codificarPolyline(List<PontoCoordenadaDTO> points) {
+        StringBuilder result = new StringBuilder();
+        long prevLat = 0;
+        long prevLng = 0;
+
+        for (PontoCoordenadaDTO point : points) {
+            long lat = Math.round(point.latitude() * 1e5);
+            long lng = Math.round(point.longitude() * 1e5);
+
+            encodeValue(lat - prevLat, result);
+            encodeValue(lng - prevLng, result);
+
+            prevLat = lat;
+            prevLng = lng;
+        }
+
+        return result.toString();
+    }
+
+    private static void encodeValue(long value, StringBuilder result) {
+        value = value < 0 ? ~(value << 1) : (value << 1);
+        while (value >= 0x20) {
+            result.append((char) ((0x20 | (value & 0x1f)) + 63));
+            value >>= 5;
+        }
+        result.append((char) (value + 63));
+    }
+}

@@ -1,5 +1,6 @@
 package br.com.nhac.backend_nhac.domain.pedido;
 
+import br.com.nhac.backend_nhac.domain.entregador.Entregador;
 import br.com.nhac.backend_nhac.domain.loja.Loja;
 import jakarta.persistence.*;
 import lombok.*;
@@ -50,6 +51,16 @@ public class Pedido {
 
     @Embedded
     private EnderecoEntrega enderecoEntrega;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "entregador_id")
+    private Entregador entregador;
+
+    @Column(name = "entrega_latitude")
+    private Double entregaLatitude;
+
+    @Column(name = "entrega_longitude")
+    private Double entregaLongitude;
 
     @Column(name = "criado_em")
     private Instant criadoEm;

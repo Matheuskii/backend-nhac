@@ -1,6 +1,6 @@
 package br.com.nhac.backend_nhac.domain.pedido;
 
-import br.com.nhac.backend_nhac.services.PedidoService;
+import br.com.nhac.backend_nhac.domain.pedido.PedidoService;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import jakarta.servlet.http.HttpServletRequest;
