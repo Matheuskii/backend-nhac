@@ -21,6 +21,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.messaging.converter.JacksonJsonMessageConverter;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.stomp.StompFrameHandler;
 import org.springframework.messaging.simp.stomp.StompHeaders;
@@ -72,7 +73,8 @@ public class ChatWebSocketIT extends AbstractIntegrationTest {
 
         lojaA = criarLoja("loja-ws-a", donoA.getId());
         conversaA = conversaRepository.saveAndFlush(
-                new Conversa("conv_ws_" + UUID.randomUUID(), lojaA, clienteA.getId()));
+                new Conversa("conv_ws_" + UUID.randomUUID(), lojaA, clienteA.getId(),
+                        ParticipanteTipo.CLIENTE));
     }
 
     // ============================================================

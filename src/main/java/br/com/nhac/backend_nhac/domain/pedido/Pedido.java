@@ -62,6 +62,18 @@ public class Pedido {
     @Column(name = "entrega_longitude")
     private Double entregaLongitude;
 
+    /**
+     * Momento em que o entregador confirmou a retirada na loja (V039).
+     * Aceitar a oferta ≠ ter o pedido na mochila: a corrida é atribuída no
+     * aceite, mas SAIU_ENTREGA só vale quando ele realmente coleta.
+     */
+    @Column(name = "coletado_em")
+    private Instant coletadoEm;
+
+    /** Momento em que o entregador deu baixa na entrega (V039). */
+    @Column(name = "entregue_em")
+    private Instant entregueEm;
+
     @Column(name = "criado_em")
     private Instant criadoEm;
 

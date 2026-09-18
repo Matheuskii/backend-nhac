@@ -10,9 +10,13 @@ import java.util.Optional;
 
 public interface ConversaRepository extends JpaRepository<Conversa, String> {
 
-    Optional<Conversa> findByLojaIdAndClienteId(String lojaId, String clienteId);
+    Optional<Conversa> findByLojaIdAndClienteIdAndParticipanteTipo(
+            String lojaId, String clienteId, ParticipanteTipo participanteTipo);
 
     Page<Conversa> findByLojaIdOrderByUltimaMensagemEmDesc(String lojaId, Pageable pageable);
+
+    Page<Conversa> findByLojaIdAndParticipanteTipoOrderByUltimaMensagemEmDesc(
+            String lojaId, ParticipanteTipo participanteTipo, Pageable pageable);
 
     @Query("SELECT c FROM Conversa c WHERE c.id = :id AND c.loja.id = :lojaId")
     Optional<Conversa> findByIdAndLojaId(@Param("id") String id, @Param("lojaId") String lojaId);

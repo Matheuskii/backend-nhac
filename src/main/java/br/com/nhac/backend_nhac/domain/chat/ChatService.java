@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import br.com.nhac.backend_nhac.domain.chat.dto.ChatDTOs.ConversaResumoDTO;
 import br.com.nhac.backend_nhac.domain.chat.dto.ChatDTOs.MensagemDTO;
+import br.com.nhac.backend_nhac.domain.entregador.EntregadorService;
 import br.com.nhac.backend_nhac.domain.loja.Loja;
 import br.com.nhac.backend_nhac.domain.loja.LojaAccessService;
 import br.com.nhac.backend_nhac.domain.loja.LojaRepository;
@@ -27,10 +28,10 @@ import br.com.nhac.backend_nhac.exceptions.LojaNaoEncontradaException;
  * Ponto único de regra de negócio do chat (item 7 da spec, arquitetura
  * decidida como WebSocket em vez de polling).
  *
- * Uma Conversa é sempre entre UM cliente e UMA loja (não por pedido — é um
- * canal contínuo, como a maioria dos apps de delivery faz). Do lado da loja,
- * "quem enviou" pode ser o dono ou qualquer funcionário — pro cliente, toda
- * mensagem do lado loja aparece igual (remetenteTipo=LOJA), só guardamos
+ * Uma Conversa é sempre entre UMA loja e UM participante — cliente ou
+ * entregador (V039) — nunca por pedido, é um canal contínuo. Do lado da loja,
+ * "quem enviou" pode ser o dono ou qualquer funcionário — pro participante,
+ * toda mensagem do lado loja aparece igual (remetenteTipo=LOJA), só guardamos
  * remetenteUsuarioId internamente pra rastreabilidade.
  */
 @Service
@@ -43,15 +44,17 @@ public class ChatService {
     private final LojaRepository lojaRepository;
     private final UsuarioRepository usuarioRepository;
     private final LojaAccessService lojaAccessService;
+    private final EntregadorService entregadorService;
 
     public ChatService(ConversaRepository conversaRepository, MensagemRepository mensagemRepository,
                         LojaRepository lojaRepository, UsuarioRepository usuarioRepository,
-                        LojaAccessService lojaAccessService) {
+                        LojaAccessService lojaAccessService, EntregadorService entregadorService) {
         this.conversaRepository = conversaRepository;
         this.mensagemRepository = mensagemRepository;
         this.lojaRepository = lojaRepository;
         this.usuarioRepository = usuarioRepository;
         this.lojaAccessService = lojaAccessService;
+        this.entregadorService = entregadorService;
     }
 
     // ---------- Lado CLIENTE ----------
@@ -61,54 +64,122 @@ public class ChatService {
         if (usuarioLogado == null) {
             throw new AcessoNegadoException("É necessário estar autenticado para abrir uma conversa.");
         }
-     
         if (usuarioLogado.getPapel() != Papel.CLIENTE) {
             throw new AcessoNegadoException("Apenas clientes podem iniciar conversas com lojas.");
         }
+        return obterOuCriarConversaInterna(lojaId, usuarioLogado.getId(), ParticipanteTipo.CLIENTE);
+    }
 
-        String clienteId = usuarioLogado.getId();
-        return conversaRepository.findByLojaIdAndClienteId(lojaId, clienteId)
+    @Transactional(readOnly = true)
+    public Page<MensagemDTO> listarMensagensDoCliente(String conversaId, Usuario usuarioLogado, Pageable pageable) {
+        if (usuarioLogado == null) {
+            throw new AcessoNegadoException("É necessário estar autenticado.");
+        }
+        Conversa conversa = buscarConversaDoParticipante(conversaId, usuarioLogado.getId(), ParticipanteTipo.CLIENTE);
+        return mensagemRepository.findByConversaIdOrderByEnviadaEmDesc(conversa.getId(), pageable)
+                .map(MensagemDTO::new);
+    }
+
+    @Transactional
+    public void marcarComoLidaPeloCliente(String conversaId, Usuario usuarioLogado) {
+        if (usuarioLogado == null) {
+            throw new AcessoNegadoException("É necessário estar autenticado.");
+        }
+        Conversa conversa = buscarConversaDoParticipante(conversaId, usuarioLogado.getId(), ParticipanteTipo.CLIENTE);
+        conversa.marcarComoLidaPeloCliente();
+        conversaRepository.save(conversa);
+    }
+
+    // ---------- Lado ENTREGADOR (V039) ----------
+
+    /**
+     * Espelha obterOuCriarConversa, mas pro app do motoboy: uma conversa por
+     * par (loja, entregador), independente das conversas que a mesma loja tem
+     * com seus clientes.
+     */
+    @Transactional
+    public Conversa obterOuCriarConversaEntregador(String lojaId, Usuario usuarioLogado) {
+        if (usuarioLogado == null) {
+            throw new AcessoNegadoException("É necessário estar autenticado para abrir uma conversa.");
+        }
+        if (usuarioLogado.getPapel() != Papel.ENTREGADOR) {
+            throw new AcessoNegadoException("Apenas entregadores podem abrir esta conversa.");
+        }
+        // Garante que ele realmente tem cadastro de entregador (não só o
+        // papel) antes de criar o canal.
+        entregadorService.buscarPorUsuario(usuarioLogado);
+        return obterOuCriarConversaInterna(lojaId, usuarioLogado.getId(), ParticipanteTipo.ENTREGADOR);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<MensagemDTO> listarMensagensDoEntregador(String conversaId, Usuario usuarioLogado, Pageable pageable) {
+        if (usuarioLogado == null) {
+            throw new AcessoNegadoException("É necessário estar autenticado.");
+        }
+        Conversa conversa = buscarConversaDoParticipante(conversaId, usuarioLogado.getId(), ParticipanteTipo.ENTREGADOR);
+        return mensagemRepository.findByConversaIdOrderByEnviadaEmDesc(conversa.getId(), pageable)
+                .map(MensagemDTO::new);
+    }
+
+    @Transactional
+    public void marcarComoLidaPeloEntregador(String conversaId, Usuario usuarioLogado) {
+        if (usuarioLogado == null) {
+            throw new AcessoNegadoException("É necessário estar autenticado.");
+        }
+        Conversa conversa = buscarConversaDoParticipante(conversaId, usuarioLogado.getId(), ParticipanteTipo.ENTREGADOR);
+        conversa.marcarComoLidaPeloCliente(); // campo genérico do lado "participante" — ver Conversa
+        conversaRepository.save(conversa);
+    }
+
+    private Conversa obterOuCriarConversaInterna(String lojaId, String participanteId, ParticipanteTipo tipo) {
+        return conversaRepository.findByLojaIdAndClienteIdAndParticipanteTipo(lojaId, participanteId, tipo)
                 .orElseGet(() -> {
                     try {
                         Loja loja = lojaRepository.findById(lojaId)
                                 .orElseThrow(() -> new LojaNaoEncontradaException(lojaId));
-                        Conversa nova = new Conversa("conv_" + UUID.randomUUID(), loja, clienteId);
+                        Conversa nova = new Conversa("conv_" + UUID.randomUUID(), loja, participanteId, tipo);
                         return conversaRepository.saveAndFlush(nova);
                     } catch (DataIntegrityViolationException e) {
-               
-                        return conversaRepository.findByLojaIdAndClienteId(lojaId, clienteId)
+                        return conversaRepository.findByLojaIdAndClienteIdAndParticipanteTipo(lojaId, participanteId, tipo)
                                 .orElseThrow(() -> new IllegalStateException(
                                         "Conversa deveria existir após violação de unique", e));
                     }
                 });
     }
 
-       @Transactional(readOnly = true)
-    public Page<MensagemDTO> listarMensagensDoCliente(String conversaId, Usuario usuarioLogado, Pageable pageable) {
-        if (usuarioLogado == null) {
-            throw new AcessoNegadoException("É necessário estar autenticado.");
-        }
+    private Conversa buscarConversaDoParticipante(String conversaId, String participanteId, ParticipanteTipo tipoEsperado) {
         Conversa conversa = conversaRepository.findById(conversaId)
                 .orElseThrow(() -> new IdNaoEncontradoException("Conversa não encontrada."));
-        if (!usuarioLogado.getId().equals(conversa.getClienteId())) {
-            throw new AcessoNegadoException("Você não é o cliente desta conversa.");
+        if (conversa.getParticipanteTipo() != tipoEsperado || !participanteId.equals(conversa.getClienteId())) {
+            throw new AcessoNegadoException("Você não faz parte desta conversa.");
         }
-        return mensagemRepository.findByConversaIdOrderByEnviadaEmDesc(conversa.getId(), pageable)
-                .map(MensagemDTO::new);
+        return conversa;
     }
 
     // ---------- Lado LOJA (lojista / funcionário) ----------
 
     @Transactional(readOnly = true)
     public Page<ConversaResumoDTO> listarConversasDaLoja(Usuario usuarioLogado, Pageable pageable) {
-        Loja loja = lojaAccessService.obterLojaAcessivel(usuarioLogado);
-        Page<Conversa> pagina = conversaRepository.findByLojaIdOrderByUltimaMensagemEmDesc(loja.getId(), pageable);
+        return listarConversasDaLoja(usuarioLogado, null, pageable);
+    }
 
-        List<String> clienteIds = pagina.getContent().stream().map(Conversa::getClienteId).distinct().toList();
-        Map<String, String> nomesPorClienteId = usuarioRepository.findAllById(clienteIds).stream()
+    /**
+     * tipoFiltro null lista os dois canais juntos (clientes e entregadores),
+     * ordenados só pela última mensagem — útil pra uma caixa de entrada única
+     * no painel. Passar CLIENTE ou ENTREGADOR filtra só aquele canal.
+     */
+    @Transactional(readOnly = true)
+    public Page<ConversaResumoDTO> listarConversasDaLoja(Usuario usuarioLogado, ParticipanteTipo tipoFiltro, Pageable pageable) {
+        Loja loja = lojaAccessService.obterLojaAcessivel(usuarioLogado);
+        Page<Conversa> pagina = tipoFiltro == null
+                ? conversaRepository.findByLojaIdOrderByUltimaMensagemEmDesc(loja.getId(), pageable)
+                : conversaRepository.findByLojaIdAndParticipanteTipoOrderByUltimaMensagemEmDesc(loja.getId(), tipoFiltro, pageable);
+
+        List<String> participanteIds = pagina.getContent().stream().map(Conversa::getClienteId).distinct().toList();
+        Map<String, String> nomesPorId = usuarioRepository.findAllById(participanteIds).stream()
                 .collect(Collectors.toMap(Usuario::getId, Usuario::getNome, (a, b) -> a));
 
-        return pagina.map(conversa -> new ConversaResumoDTO(conversa, nomesPorClienteId.getOrDefault(conversa.getClienteId(), "Cliente")));
+        return pagina.map(conversa -> new ConversaResumoDTO(conversa, nomesPorId.getOrDefault(conversa.getClienteId(), "Usuário")));
     }
 
     @Transactional(readOnly = true)
@@ -124,27 +195,6 @@ public class ChatService {
         conversaRepository.save(conversa);
     }
 
-    // ---------- Lado CLIENTE (histórico + marcar como lida) ----------
-
-    /**
-     * Marca a conversa como lida pelo lado do cliente. Corresponde ao
-     * marcarComoLidaPelaLoja, mas do outro lado — sem endpoint próprio o
-     * contador do cliente só cresce.
-     */
-    @Transactional
-    public void marcarComoLidaPeloCliente(String conversaId, Usuario usuarioLogado) {
-        if (usuarioLogado == null) {
-            throw new AcessoNegadoException("É necessário estar autenticado.");
-        }
-        Conversa conversa = conversaRepository.findById(conversaId)
-                .orElseThrow(() -> new IdNaoEncontradoException("Conversa não encontrada."));
-        if (!usuarioLogado.getId().equals(conversa.getClienteId())) {
-            throw new AcessoNegadoException("Você não é o cliente desta conversa.");
-        }
-        conversa.marcarComoLidaPeloCliente();
-        conversaRepository.save(conversa);
-    }
-
     // ---------- Consulta usada pelo interceptor WebSocket ----------
 
     /**
@@ -152,7 +202,7 @@ public class ChatService {
      * SUBSCRIBE no /topic/conversas/{id} quanto pra enviar mensagem.
      *
      * Acesso permitido:
-     *  - CLIENTE dono da conversa (usuario.getId() == conversa.clienteId)
+     *  - participante dono da conversa (cliente OU entregador — usuario.getId() == conversa.clienteId)
      *  - Dono ou funcionário da loja da conversa (via LojaAccessService)
      *  - ADMIN (bypass via LojaAccessService.temAcessoALoja)
      */
@@ -165,12 +215,19 @@ public class ChatService {
                 .orElse(false);
     }
 
+    private Conversa buscarConversaAcessivelPelaLoja(String conversaId, Usuario usuarioLogado) {
+        Loja loja = lojaAccessService.obterLojaAcessivel(usuarioLogado);
+        return conversaRepository.findByIdAndLojaId(conversaId, loja.getId())
+                .orElseThrow(() -> new IdNaoEncontradoException("Conversa não encontrada."));
+    }
+
     // ---------- Envio (usado pelo controller WebSocket) ----------
 
     /**
      * Envia uma mensagem em nome de quem estiver autenticado na sessão WS.
-     * Determina remetenteTipo pela relação do usuário com a conversa: cliente
-     * dono da conversa manda como CLIENTE; dono/funcionário/admin da loja da
+     * Determina remetenteTipo pela relação do usuário com a conversa:
+     * participante dono da conversa manda como CLIENTE ou ENTREGADOR (o que
+     * for o participanteTipo da conversa); dono/funcionário/admin da loja da
      * conversa manda como LOJA. Qualquer outro usuário toma AcessoNegadoException.
      */
     @Transactional
@@ -191,18 +248,14 @@ public class ChatService {
 
     private RemetenteTipo resolverTipoRemetente(Conversa conversa, Usuario usuario) {
         if (usuario.getId().equals(conversa.getClienteId())) {
-            return RemetenteTipo.CLIENTE;
+            return conversa.getParticipanteTipo() == ParticipanteTipo.ENTREGADOR
+                    ? RemetenteTipo.ENTREGADOR
+                    : RemetenteTipo.CLIENTE;
         }
         if (lojaAccessService.temAcessoALoja(usuario, conversa.getLoja().getId())) {
             return RemetenteTipo.LOJA;
         }
         throw new AcessoNegadoException("Acesso negado: você não faz parte desta conversa.");
-    }
-
-    private Conversa buscarConversaAcessivelPelaLoja(String conversaId, Usuario usuarioLogado) {
-        Loja loja = lojaAccessService.obterLojaAcessivel(usuarioLogado);
-        return conversaRepository.findByIdAndLojaId(conversaId, loja.getId())
-                .orElseThrow(() -> new IdNaoEncontradoException("Conversa não encontrada."));
     }
 
     /**

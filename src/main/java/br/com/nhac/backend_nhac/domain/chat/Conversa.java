@@ -5,6 +5,8 @@ import java.time.Instant;
 import br.com.nhac.backend_nhac.domain.loja.Loja;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -18,8 +20,20 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Um canal contínuo entre uma Loja e UM participante do outro lado — que pode
+ * ser um CLIENTE (chat de pedido/dúvida) ou, desde a V039, um ENTREGADOR
+ * (combinar retirada, avisar atraso, etc). Os dois tipos nunca coexistem na
+ * mesma Conversa: são canais paralelos e independentes, cada um com seu
+ * próprio par único (loja, participante, tipo).
+ *
+ * O nome da coluna/campo "clienteId" foi mantido por compatibilidade — ela
+ * guarda o id do usuário do lado participante, seja ele CLIENTE ou
+ * ENTREGADOR. Renomear a coluna exigiria migração de dados sem benefício
+ * real; participanteTipo já deixa o significado explícito.
+ */
 @Entity
-@Table(name = "tb_conversas", uniqueConstraints = @UniqueConstraint(columnNames = {"loja_id", "cliente_id"}))
+@Table(name = "tb_conversas", uniqueConstraints = @UniqueConstraint(columnNames = {"loja_id", "cliente_id", "participante_tipo"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -35,8 +49,13 @@ public class Conversa {
     @JoinColumn(name = "loja_id", nullable = false)
     private Loja loja;
 
+    /** Id do usuário do lado participante (cliente OU entregador — ver participanteTipo). */
     @Column(name = "cliente_id", nullable = false, length = 50)
     private String clienteId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "participante_tipo", nullable = false, length = 20)
+    private ParticipanteTipo participanteTipo = ParticipanteTipo.CLIENTE;
 
     @Column(name = "criada_em", nullable = false)
     private Instant criadaEm;
@@ -50,6 +69,7 @@ public class Conversa {
     @Column(name = "nao_lidas_loja", nullable = false)
     private int naoLidasLoja = 0;
 
+    /** Não lidas do lado do participante (cliente ou entregador). */
     @Column(name = "nao_lidas_cliente", nullable = false)
     private int naoLidasCliente = 0;
 
@@ -63,10 +83,11 @@ public class Conversa {
     @Column(name = "version", nullable = false)
     private Long version = 0L;
 
-    public Conversa(String id, Loja loja, String clienteId) {
+    public Conversa(String id, Loja loja, String participanteId, ParticipanteTipo participanteTipo) {
         this.id = id;
         this.loja = loja;
-        this.clienteId = clienteId;
+        this.clienteId = participanteId;
+        this.participanteTipo = participanteTipo;
         this.criadaEm = Instant.now();
         this.ultimaMensagemEm = Instant.now();
     }
@@ -74,10 +95,12 @@ public class Conversa {
     public void registrarNovaMensagem(RemetenteTipo remetente, String preview) {
         this.ultimaMensagemEm = Instant.now();
         this.ultimaMensagemPreview = preview;
-        if (remetente == RemetenteTipo.CLIENTE) {
-            this.naoLidasLoja++;
-        } else {
+        if (remetente == RemetenteTipo.LOJA) {
             this.naoLidasCliente++;
+        } else {
+            // CLIENTE ou ENTREGADOR: qualquer um dos dois é sempre "o
+            // participante" desta conversa específica.
+            this.naoLidasLoja++;
         }
     }
 

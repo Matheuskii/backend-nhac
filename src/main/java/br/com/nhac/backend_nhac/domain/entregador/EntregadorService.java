@@ -104,6 +104,17 @@ public class EntregadorService {
                 .orElseThrow(() -> new IdNaoEncontradoException("Perfil de entregador não encontrado para o usuário logado."));
     }
 
+    /**
+     * Variante sem exceção, usada em pontos que não podem lançar em cima de um
+     * usuário que talvez nem seja entregador — como o StompAuthChannelInterceptor
+     * checando dono de canal de ofertas (V039), onde levantar IdNaoEncontradoException
+     * ali derrubaria a conexão WebSocket em vez de simplesmente negar o SUBSCRIBE.
+     */
+    @Transactional(readOnly = true)
+    public java.util.Optional<Entregador> buscarPorUsuarioOuNulo(Usuario usuario) {
+        return entregadorRepository.findByUsuarioId(usuario.getId());
+    }
+
     public static double calcularDistanciaKm(double lat1, double lon1, double lat2, double lon2) {
         final int R = 6371; // Raio médio da Terra em km
         double latDistance = Math.toRadians(lat2 - lat1);

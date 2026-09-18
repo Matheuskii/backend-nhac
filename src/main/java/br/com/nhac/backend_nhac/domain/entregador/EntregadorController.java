@@ -1,13 +1,14 @@
 package br.com.nhac.backend_nhac.domain.entregador;
 
-import br.com.nhac.backend_nhac.domain.entregador.dto.AtualizarLocalizacaoDTO;
-import br.com.nhac.backend_nhac.domain.entregador.dto.AtualizarStatusDTO;
-import br.com.nhac.backend_nhac.domain.entregador.dto.CadastroEntregadorDTO;
-import br.com.nhac.backend_nhac.domain.entregador.dto.EntregadorResponseDTO;
+import br.com.nhac.backend_nhac.domain.entregador.dto.*;
+import br.com.nhac.backend_nhac.domain.pedido.StatusPedido;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,8 +21,11 @@ public class EntregadorController {
 
     private final EntregadorService entregadorService;
 
-    public EntregadorController(EntregadorService entregadorService) {
+    private final GanhosEntregadorService ganhosEntregadorService;
+
+    public EntregadorController(EntregadorService entregadorService, GanhosEntregadorService ganhosEntregadorService) {
         this.entregadorService = entregadorService;
+        this.ganhosEntregadorService = ganhosEntregadorService;
     }
 
     @PostMapping("/cadastro")
@@ -58,5 +62,30 @@ public class EntregadorController {
             @AuthenticationPrincipal Usuario usuarioLogado
     ) {
         return ResponseEntity.ok(entregadorService.atualizarLocalizacao(dto, usuarioLogado));
+    }
+
+    @GetMapping("/entregas")
+    @Operation(
+            summary = "Histórico de corridas do entregador logado",
+            description = "Paginado, mais recentes primeiro. Filtro opcional por status (ex.: ENTREGUE para ver só as concluídas)."
+    )
+    public ResponseEntity<Page<EntregaHistoricoDTO>> listarHistorico(
+            @AuthenticationPrincipal Usuario usuarioLogado,
+            @RequestParam(required = false) StatusPedido status,
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return ResponseEntity.ok(ganhosEntregadorService.listarHistorico(usuarioLogado, status, pageable));
+    }
+
+    @GetMapping("/ganhos")
+    @Operation(
+            summary = "Resumo de ganhos do entregador por período",
+            description = "periodo: HOJE, SETE_DIAS ou TRINTA_DIAS (padrão HOJE). Soma a taxa de frete dos pedidos ENTREGUE dentro da janela e devolve a série diária completa, inclusive dias zerados."
+    )
+    public ResponseEntity<GanhosEntregadorDTO> obterGanhos(
+            @AuthenticationPrincipal Usuario usuarioLogado,
+            @RequestParam(required = false, defaultValue = "HOJE") PeriodoGanhos periodo
+    ) {
+        return ResponseEntity.ok(ganhosEntregadorService.obterGanhos(usuarioLogado, periodo));
     }
 }

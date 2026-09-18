@@ -3,6 +3,7 @@ package br.com.nhac.backend_nhac.domain.pedido;
 import java.math.BigDecimal;
 import java.util.Map;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -42,10 +43,12 @@ public class PedidoService {
     private final LojaAccessService lojaAccessService;
     private final StripePaymentService stripePaymentService;
     private final AsaasPaymentService asaasPaymentService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public PedidoService(PedidoRepository pedidoRepository, LojaRepository lojaRepository, ProdutoRepository produtoRepository,
                           UsuarioRepository usuarioRepository, LojaAccessService lojaAccessService,
-                          StripePaymentService stripePaymentService, AsaasPaymentService asaasPaymentService) {
+                          StripePaymentService stripePaymentService, AsaasPaymentService asaasPaymentService,
+                          ApplicationEventPublisher eventPublisher) {
         this.pedidoRepository = pedidoRepository;
         this.lojaRepository = lojaRepository;
         this.produtoRepository = produtoRepository;
@@ -53,6 +56,7 @@ public class PedidoService {
         this.lojaAccessService = lojaAccessService;
         this.stripePaymentService = stripePaymentService;
         this.asaasPaymentService = asaasPaymentService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -241,6 +245,24 @@ public class PedidoService {
         }
 
         pedidoRepository.save(pedido);
+
+        // Despacho automático: quando a loja aceita o pedido e começa a
+        // preparar, os motoboys próximos já recebem a oferta. Antes disso,
+        // despacharPedido() existia no backend mas nenhum caller chamava —
+        // nenhuma oferta era gerada em produção, e o app do motoboy ficava
+        // eternamente "procurando chamadas".
+        //
+        // Publicado como evento (consumido em AFTER_COMMIT pelo
+        // DespachoEventListener) em vez de chamada direta ao DespachoService,
+        // por dois motivos:
+        //   1. se o despacho falhasse dentro desta mesma transação (loja sem
+        //      coordenadas, nenhum entregador online), o interceptor do Spring
+        //      marcaria a transação como rollback-only e a mudança de status
+        //      seria perdida no commit — mesmo com try/catch aqui;
+        //   2. a oferta referencia um pedido que precisa já estar commitado.
+        if (novoStatus == StatusPedido.PREPARANDO && pedido.getEntregador() == null) {
+            eventPublisher.publishEvent(new PedidoPreparandoEvent(pedido.getId()));
+        }
     }
 
     @Transactional
