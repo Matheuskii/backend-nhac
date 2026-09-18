@@ -4,17 +4,24 @@ import java.time.Instant;
 
 import br.com.nhac.backend_nhac.domain.chat.Conversa;
 import br.com.nhac.backend_nhac.domain.chat.Mensagem;
+import br.com.nhac.backend_nhac.domain.chat.ParticipanteTipo;
 import br.com.nhac.backend_nhac.domain.chat.RemetenteTipo;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public class ChatDTOs {
 
-    /** Resumo de conversa para a listagem no painel do lojista. */
+    /**
+     * Resumo de conversa para a listagem no painel do lojista.
+     * participanteTipo (V039) deixa explícito se a linha é uma conversa com
+     * cliente ou com entregador — o painel usa isso pra decidir ícone/rótulo
+     * quando lista os dois canais juntos.
+     */
     public record ConversaResumoDTO(
             String id,
             String clienteId,
             String clienteNome,
+            ParticipanteTipo participanteTipo,
             String ultimaMensagemPreview,
             Instant ultimaMensagemEm,
             int naoLidas
@@ -24,6 +31,7 @@ public class ChatDTOs {
                     conversa.getId(),
                     conversa.getClienteId(),
                     clienteNome,
+                    conversa.getParticipanteTipo(),
                     conversa.getUltimaMensagemPreview(),
                     conversa.getUltimaMensagemEm(),
                     conversa.getNaoLidasLoja()

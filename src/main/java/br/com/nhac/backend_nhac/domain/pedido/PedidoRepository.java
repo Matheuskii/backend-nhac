@@ -49,4 +49,51 @@ public interface PedidoRepository extends JpaRepository<Pedido, String> {
     );
 
     Optional<Pedido> findFirstByEntregadorIdAndStatusIn(String entregadorId, java.util.List<StatusPedido> status);
+
+    // ---------- Entregador (V039) ----------
+
+    /**
+     * Histórico de corridas do entregador. COALESCE(entregueEm, criadoEm)
+     * porque os pedidos criados antes da V039 não têm entregue_em preenchido —
+     * sem o fallback eles sumiriam da ordenação.
+     */
+    @Query(value = """
+        SELECT p FROM Pedido p
+        JOIN FETCH p.loja
+        WHERE p.entregador.id = :entregadorId
+          AND (:status IS NULL OR p.status = :status)
+        ORDER BY COALESCE(p.entregueEm, p.criadoEm) DESC
+        """,
+            countQuery = """
+        SELECT COUNT(p) FROM Pedido p
+        WHERE p.entregador.id = :entregadorId
+          AND (:status IS NULL OR p.status = :status)
+        """)
+    Page<Pedido> findHistoricoDoEntregador(
+            @Param("entregadorId") String entregadorId,
+            @Param("status") StatusPedido status,
+            Pageable pageable
+    );
+
+    /**
+     * Pedidos do entregador dentro de uma janela, pra agregação de ganhos.
+     * Segue o mesmo padrão de findByLojaIdAndPeriodo (usado pelo financeiro do
+     * lojista): devolve a lista e a soma é feita em Java.
+     */
+    @Query("""
+        SELECT p FROM Pedido p
+        JOIN FETCH p.loja
+        WHERE p.entregador.id = :entregadorId
+          AND p.status = :status
+          AND COALESCE(p.entregueEm, p.criadoEm) >= :inicio
+          AND COALESCE(p.entregueEm, p.criadoEm) <= :fim
+        """)
+    java.util.List<Pedido> findDoEntregadorNoPeriodo(
+            @Param("entregadorId") String entregadorId,
+            @Param("status") StatusPedido status,
+            @Param("inicio") java.time.Instant inicio,
+            @Param("fim") java.time.Instant fim
+    );
+
+    long countByEntregadorIdAndStatus(String entregadorId, StatusPedido status);
 }

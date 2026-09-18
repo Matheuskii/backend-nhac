@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -22,6 +23,15 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
+// CORREÇÃO CRÍTICA (V039): esta anotação nunca existiu no projeto. Sem ela,
+// TODO @PreAuthorize do código — inclusive os já existentes em
+// PedidoController e ProdutoController — é silenciosamente ignorado pelo
+// Spring (sem erro nenhum no boot, sem warning). O RBAC "correto" confirmado
+// em rodadas anteriores funcionava só porque havia checagem manual de
+// ownership dentro dos Services (ex.: LojaAccessService.temAcessoALoja), não
+// por causa das anotações. Habilitar isto agora faz toda anotação já escrita
+// no projeto passar a valer de verdade — vale reexecutar a suíte de RBAC.
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     private final SecurityFilter securityFilter;
@@ -55,10 +65,32 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/v1/produtos/**").hasAnyRole("LOJISTA", "FUNCIONARIO", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/produtos/**").hasAnyRole("LOJISTA", "FUNCIONARIO", "ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/pedidos/*/status").hasAnyRole("ADMIN", "LOJISTA", "FUNCIONARIO")
+
+                        // ---- Entrega / despacho (V039) ----
+                        // Antes, tudo abaixo de /api/v1/entregas/** era só .authenticated():
+                        // qualquer conta logada (inclusive CLIENTE) conseguia chamar
+                        // /ofertas/pendentes, /aceitar, /coletar etc. Agora que
+                        // @EnableMethodSecurity está ativo, os @PreAuthorize dos
+                        // controllers passam a valer — mas mantemos os matchers de URL
+                        // aqui também como defesa em profundidade (mesmo padrão já usado
+                        // para /produtos/**).
                         .requestMatchers(HttpMethod.POST, "/api/v1/entregas/despachar/**").hasAnyRole("ADMIN", "LOJISTA", "FUNCIONARIO")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/entregas/ofertas/pendentes").hasAnyRole("ENTREGADOR", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/entregas/ofertas/*/aceitar").hasAnyRole("ENTREGADOR", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/entregas/ofertas/*/recusar").hasAnyRole("ENTREGADOR", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/entregas/ativa").hasAnyRole("ENTREGADOR", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/entregas/*/coletar").hasAnyRole("ENTREGADOR", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/entregas/*/concluir").hasAnyRole("ENTREGADOR", "ADMIN")
+                        // /{pedidoId}/rota fica só authenticated: cliente, loja e
+                        // entregador da corrida podem acessar (ownership checado no
+                        // controller, não dá pra expressar isso num requestMatcher).
+                        .requestMatchers(HttpMethod.GET, "/api/v1/entregas/*/rota").authenticated()
+                        .requestMatchers("/api/v1/entregas/**").authenticated()
+
                         .requestMatchers(HttpMethod.POST, "/api/v1/entregador/cadastro").authenticated()
                         .requestMatchers("/api/v1/entregador/**").hasAnyRole("ENTREGADOR", "ADMIN")
-                        .requestMatchers("/api/v1/entregas/**").authenticated()
+                        .requestMatchers("/api/v1/entregador/conversas/**").hasAnyRole("ENTREGADOR", "ADMIN")
+
                         .requestMatchers("/ws/**", "/ws-native/**").permitAll()
                         .anyRequest().authenticated()
                 )

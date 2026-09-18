@@ -62,7 +62,8 @@ public class ChatConcorrenciaIT extends AbstractIntegrationTest {
         cliente = criarUsuario("cliente.conc@teste.com", Papel.CLIENTE);
         loja = criarLoja("loja-conc", dono.getId());
         conversa = conversaRepository.saveAndFlush(
-                new Conversa("conv_conc_" + UUID.randomUUID(), loja, cliente.getId()));
+                new Conversa("conv_conc_" + UUID.randomUUID(), loja, cliente.getId(),
+                        ParticipanteTipo.CLIENTE));
     }
 
     /**

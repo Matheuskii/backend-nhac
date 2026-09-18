@@ -116,7 +116,7 @@ class DespachoServiceTest {
     }
 
     @Test
-    @DisplayName("Deve aceitar oferta, atribuir pedido ao entregador e alterar status")
+    @DisplayName("Deve aceitar oferta, atribuir pedido ao entregador e manter status PREPARANDO até a retirada")
     void deveAceitarOfertaComSucesso() {
         OfertaEntrega oferta = OfertaEntrega.builder()
                 .id("ofe_1")
@@ -136,13 +136,30 @@ class DespachoServiceTest {
 
         assertNotNull(resposta);
         assertEquals("ped_1", resposta.pedidoId());
-        assertEquals(StatusPedido.SAIU_ENTREGA, pedido.getStatus());
+        assertEquals(StatusPedido.PREPARANDO, pedido.getStatus());          // ← era SAIU_ENTREGA
+        assertSame(entregador, pedido.getEntregador());                     // ← novo: valida a vinculação
         assertEquals(StatusOperacional.EM_ENTREGA, entregador.getStatusOperacional());
         assertEquals(StatusOferta.ACEITA, oferta.getStatus());
 
         verify(pedidoRepository, times(1)).save(pedido);
         verify(entregadorRepository, times(1)).save(entregador);
         verify(ofertaEntregaRepository, times(1)).save(oferta);
+    }
+
+    @Test
+    @DisplayName("Deve marcar pedido como SAIU_ENTREGA quando o entregador coletar o pedido na loja")
+    void deveMarcarSaiuEntregaAoColetarPedido() {
+        pedido.setEntregador(entregador);   // simula pedido já aceito
+
+        when(entregadorService.buscarPorUsuario(usuarioEntregador)).thenReturn(entregador);
+        when(pedidoRepository.findById("ped_1")).thenReturn(Optional.of(pedido));
+        when(usuarioRepository.findById("cli_1")).thenReturn(Optional.of(new Usuario()));
+
+        EntregaAtivaResponseDTO resposta = despachoService.coletarPedido("ped_1", usuarioEntregador);
+
+        assertNotNull(resposta);
+        assertEquals(StatusPedido.SAIU_ENTREGA, pedido.getStatus());
+        verify(pedidoRepository, times(1)).save(pedido);
     }
 
     @Test

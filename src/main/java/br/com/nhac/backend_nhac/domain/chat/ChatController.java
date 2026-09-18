@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/v1/lojista/conversas")
-@Tag(name = "Painel do Lojista - Chat", description = "Histórico de conversas com clientes. Envio de mensagem em tempo real é via WebSocket em /ws (STOMP), não por aqui.")
+@Tag(name = "Painel do Lojista - Chat", description = "Histórico de conversas com clientes e entregadores. Envio de mensagem em tempo real é via WebSocket em /ws (STOMP), não por aqui.")
 public class ChatController {
 
     private final ChatService chatService;
@@ -30,12 +30,17 @@ public class ChatController {
         this.chatService = chatService;
     }
 
-    @Operation(summary = "Listar conversas", description = "Lista as conversas da loja do usuário autenticado (dono ou funcionário), mais recentes primeiro.")
+    @Operation(
+            summary = "Listar conversas",
+            description = "Lista as conversas da loja do usuário autenticado (dono ou funcionário), mais recentes primeiro. "
+                    + "Filtro opcional 'tipo' (CLIENTE ou ENTREGADOR, V039); omitido, lista os dois canais juntos numa caixa única."
+    )
     @GetMapping
     public ResponseEntity<Page<ConversaResumoDTO>> listar(
             @AuthenticationPrincipal Usuario usuarioLogado,
+            @RequestParam(required = false) ParticipanteTipo tipo,
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(chatService.listarConversasDaLoja(usuarioLogado, pageable));
+        return ResponseEntity.ok(chatService.listarConversasDaLoja(usuarioLogado, tipo, pageable));
     }
 
     @Operation(summary = "Histórico de mensagens", description = "Mensagens de uma conversa da loja do usuário autenticado, mais recentes primeiro (paginado).")

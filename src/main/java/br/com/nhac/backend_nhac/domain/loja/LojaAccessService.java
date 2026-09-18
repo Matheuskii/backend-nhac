@@ -51,19 +51,13 @@ public class LojaAccessService {
      * desativarProduto, atualizarStatus de pedido, etc.
      */
    public boolean temAcessoALoja(Usuario usuarioLogado, String lojaId) {
-    // === DEBUG ===
-    System.out.println("=== temAcessoALoja ===");
-    System.out.println("papel: " + usuarioLogado.getPapel());
-    // =============
+
 
     if (usuarioLogado.getPapel() == Papel.ADMIN) return true;
     try {
         Loja lojaAcessivel = obterLojaAcessivel(usuarioLogado);
-        System.out.println("lojaAcessivel.id: " + lojaAcessivel.getId());  // DEBUG
-        System.out.println("lojaId esperado: " + lojaId);                   // DEBUG
         return lojaAcessivel.getId().equals(lojaId);
     } catch (LojaNaoEncontradaException e) {
-        System.out.println("LojaNaoEncontradaException — retornando false");  // DEBUG
         return false;
     }
 }

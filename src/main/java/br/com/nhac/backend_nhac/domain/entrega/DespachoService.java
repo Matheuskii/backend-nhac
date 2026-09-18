@@ -11,6 +11,7 @@ import br.com.nhac.backend_nhac.domain.pedido.PedidoRepository;
 import br.com.nhac.backend_nhac.domain.pedido.StatusPedido;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
 import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 import org.slf4j.Logger;
@@ -131,11 +132,11 @@ public class DespachoService {
             throw new RegraDeNegocioException("Outro entregador já aceitou esta corrida antes de você.");
         }
 
-        // Vincula entregador ao pedido e altera status
+        // Vincula o entregador ao pedido. O status NÃO muda aqui: aceitar a
+        // oferta é só atribuição da corrida. SAIU_ENTREGA passa a valer só
+        // quando ele confirma a retirada na loja (coletarPedido), senão o
+        // cliente vê "saiu para entrega" com a comida ainda no balcão.
         pedido.setEntregador(entregador);
-        if (pedido.getStatus() == StatusPedido.PREPARANDO) {
-            pedido.alterarStatus(StatusPedido.SAIU_ENTREGA);
-        }
         pedidoRepository.save(pedido);
 
         // Marca oferta atual como ACEITA
@@ -156,17 +157,9 @@ public class DespachoService {
         }
 
         // Notifica via WebSocket que o pedido foi assumido
-        try {
-            messagingTemplate.convertAndSend("/topic/pedidos/" + pedido.getId() + "/status", pedido.getStatus().name());
-        } catch (Exception e) {
-            log.warn("Falha ao emitir WebSocket de atualização do pedido {}: {}", pedido.getId(), e.getMessage());
-        }
+        notificarStatus(pedido);
 
-        Usuario cliente = usuarioRepository.findById(pedido.getUsuarioId()).orElse(null);
-        String clienteNome = cliente != null ? cliente.getNome() : "Cliente";
-        String clienteTelefone = cliente != null ? cliente.getTelefone() : null;
-
-        return new EntregaAtivaResponseDTO(pedido, clienteNome, clienteTelefone);
+        return montarEntregaAtiva(pedido);
     }
 
     @Transactional
@@ -191,6 +184,126 @@ public class DespachoService {
                 .filter(o -> !o.isExpirada())
                 .map(OfertaEntregaDTO::new)
                 .toList();
+    }
+
+    /**
+     * Confirma que o entregador retirou o pedido na loja. É aqui que o pedido
+     * vira SAIU_ENTREGA (antes isso acontecia no aceite da oferta).
+     */
+    @Transactional
+    public EntregaAtivaResponseDTO coletarPedido(String pedidoId, Usuario usuarioLogado) {
+        Entregador entregador = entregadorService.buscarPorUsuario(usuarioLogado);
+        Pedido pedido = buscarPedidoDoEntregador(pedidoId, entregador);
+
+        if (pedido.getStatus() == StatusPedido.SAIU_ENTREGA) {
+            // Idempotente: o app pode reenviar depois de um timeout de rede.
+            return montarEntregaAtiva(pedido);
+        }
+
+        if (pedido.getStatus() != StatusPedido.PREPARANDO) {
+            throw new RegraDeNegocioException(
+                    "Só é possível coletar um pedido que esteja em preparo. Status atual: " + pedido.getStatus());
+        }
+
+        pedido.alterarStatus(StatusPedido.SAIU_ENTREGA);
+        pedido.setColetadoEm(Instant.now());
+
+        // Garante que o entregador fique marcado como EM_ENTREGA mesmo se o
+        // aceite tiver acontecido antes desta versão do código.
+        if (entregador.getStatusOperacional() != StatusOperacional.EM_ENTREGA) {
+            entregador.setStatusOperacional(StatusOperacional.EM_ENTREGA);
+            entregadorRepository.save(entregador);
+        }
+
+        pedidoRepository.save(pedido);
+        notificarStatus(pedido);
+
+        return montarEntregaAtiva(pedido);
+    }
+
+    /**
+     * Baixa da entrega pelo entregador. Sem isto o pedido morria em
+     * SAIU_ENTREGA e o entregador ficava travado em EM_ENTREGA — ou seja,
+     * nunca mais recebia oferta nenhuma, porque o despacho só procura ONLINE.
+     */
+    @Transactional
+    public void concluirEntrega(String pedidoId, Usuario usuarioLogado) {
+        Entregador entregador = entregadorService.buscarPorUsuario(usuarioLogado);
+        Pedido pedido = buscarPedidoDoEntregador(pedidoId, entregador);
+
+        if (pedido.getStatus() == StatusPedido.ENTREGUE) {
+            liberarEntregador(entregador);
+            return; // idempotente
+        }
+
+        if (pedido.getStatus() != StatusPedido.SAIU_ENTREGA) {
+            throw new RegraDeNegocioException(
+                    "Só é possível concluir um pedido que já saiu para entrega. Status atual: " + pedido.getStatus());
+        }
+
+        pedido.alterarStatus(StatusPedido.ENTREGUE);
+        pedido.setEntregueEm(Instant.now());
+        pedidoRepository.save(pedido);
+
+        liberarEntregador(entregador);
+        notificarStatus(pedido);
+    }
+
+    /**
+     * Devolve o entregador para a fila de disponíveis. Só volta pra ONLINE se
+     * ele estava EM_ENTREGA — se ele tiver ficado OFFLINE de propósito no meio
+     * da corrida, respeita a escolha dele.
+     */
+    private void liberarEntregador(Entregador entregador) {
+        if (entregador.getStatusOperacional() == StatusOperacional.EM_ENTREGA) {
+            entregador.setStatusOperacional(StatusOperacional.ONLINE);
+            entregadorRepository.save(entregador);
+        }
+    }
+
+    private Pedido buscarPedidoDoEntregador(String pedidoId, Entregador entregador) {
+        Pedido pedido = pedidoRepository.findById(pedidoId)
+                .orElseThrow(() -> new IdNaoEncontradoException("Pedido " + pedidoId + " não encontrado."));
+
+        if (pedido.getEntregador() == null || !pedido.getEntregador().getId().equals(entregador.getId())) {
+            throw new AcessoNegadoException("Este pedido não está atribuído a você.");
+        }
+        return pedido;
+    }
+
+    private EntregaAtivaResponseDTO montarEntregaAtiva(Pedido pedido) {
+        Usuario cliente = usuarioRepository.findById(pedido.getUsuarioId()).orElse(null);
+        return new EntregaAtivaResponseDTO(
+                pedido,
+                cliente != null ? cliente.getNome() : "Cliente",
+                cliente != null ? cliente.getTelefone() : null
+        );
+    }
+
+    private void notificarStatus(Pedido pedido) {
+        try {
+            messagingTemplate.convertAndSend("/topic/pedidos/" + pedido.getId() + "/status", pedido.getStatus().name());
+        } catch (Exception e) {
+            log.warn("Falha ao emitir WebSocket de atualização do pedido {}: {}", pedido.getId(), e.getMessage());
+        }
+    }
+
+    /**
+     * Marca como EXPIRADA toda oferta PENDENTE cujo prazo já passou. Chamado
+     * pelo OfertaExpiracaoScheduler: sem isso, uma oferta recusada por silêncio
+     * fica PENDENTE pra sempre e reaparece no GET /ofertas/pendentes assim que
+     * o filtro de isExpirada() for relaxado, além de sujar o índice.
+     */
+    @Transactional
+    public int expirarOfertasVencidas() {
+        List<OfertaEntrega> vencidas =
+                ofertaEntregaRepository.findByStatusAndExpiraEmBefore(StatusOferta.PENDENTE, Instant.now());
+        if (vencidas.isEmpty()) {
+            return 0;
+        }
+        vencidas.forEach(o -> o.setStatus(StatusOferta.EXPIRADA));
+        ofertaEntregaRepository.saveAll(vencidas);
+        return vencidas.size();
     }
 
     @Transactional(readOnly = true)

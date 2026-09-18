@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
+import br.com.nhac.backend_nhac.domain.chat.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,10 +31,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import br.com.nhac.backend_nhac.domain.chat.ChatController;
-import br.com.nhac.backend_nhac.domain.chat.ChatService;
-import br.com.nhac.backend_nhac.domain.chat.ConversaClienteController;
-import br.com.nhac.backend_nhac.domain.chat.RemetenteTipo;
 import br.com.nhac.backend_nhac.domain.chat.dto.ChatDTOs.ConversaResumoDTO;
 import br.com.nhac.backend_nhac.domain.chat.dto.ChatDTOs.MensagemDTO;
 import br.com.nhac.backend_nhac.domain.financeiro.FinanceiroController;
@@ -181,8 +178,10 @@ void configurarAutenticacao() {
 
     @Test
     void deveListarConversasEMensagensEMarcarComoLida() throws Exception {
-        ConversaResumoDTO conversa = new ConversaResumoDTO("conv_1", "cliente_1", "Cliente", "Oi", Instant.now(), 1);
-        MensagemDTO mensagem = new MensagemDTO("msg_1", "conv_1", RemetenteTipo.CLIENTE, "cliente_1", "Oi", Instant.now());
+        ConversaResumoDTO conversa = new ConversaResumoDTO(
+                "conv_1", "cliente_1", "Cliente",
+                ParticipanteTipo.CLIENTE,   // ← 4º argumento, novo
+                "Oi", Instant.now(), 1);        MensagemDTO mensagem = new MensagemDTO("msg_1", "conv_1", RemetenteTipo.CLIENTE, "cliente_1", "Oi", Instant.now());
         when(chatService.listarConversasDaLoja(eq(usuario), any())).thenReturn(Page.empty());
         when(chatService.listarMensagens(eq("conv_1"), eq(usuario), any())).thenReturn(
                 new PageImpl<>(List.of(mensagem), PageRequest.of(0, 30), 1));

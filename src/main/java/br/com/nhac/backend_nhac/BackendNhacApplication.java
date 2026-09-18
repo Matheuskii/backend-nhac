@@ -5,6 +5,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 @org.springframework.scheduling.annotation.EnableAsync
+// Necessário para o OfertaExpiracaoScheduler (V039). Sem isto o @Scheduled é
+// simplesmente ignorado, sem erro nenhum no boot.
+@org.springframework.scheduling.annotation.EnableScheduling
 public class BackendNhacApplication {
 
 	public static void main(String[] args) {
