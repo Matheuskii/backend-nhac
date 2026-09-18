@@ -24,6 +24,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -44,6 +45,7 @@ class PedidoServiceTest {
     @Mock private StripePaymentService stripePaymentService;
     @Mock private AsaasPaymentService asaasPaymentService;
     @Mock private LojaAccessService lojaAccessService;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks private PedidoService pedidoService;
 
