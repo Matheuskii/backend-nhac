@@ -1,13 +1,13 @@
 package br.com.nhac.backend_nhac.domain.pedido;
 
+import br.com.nhac.backend_nhac.infra.security.WebMvcControllerTest;   // ✅ pacote correto
 import br.com.nhac.backend_nhac.domain.pedido.PedidoService;
-import com.google.gson.JsonObject;
+import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import br.com.nhac.backend_nhac.infra.security.TokenService;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
@@ -22,11 +22,11 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(
-    value = AsaasWebhookController.class,
+@br.com.nhac.backend_nhac.infra.security.WebMvcControllerTest(
+    controllers = AsaasWebhookController.class,
     properties = {"asaas.webhook.token=test_webhook_token"}
 )
-@AutoConfigureMockMvc(addFilters = false)
+@org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc(addFilters = false)
 public class AsaasWebhookControllerTest {
 
     @Autowired
@@ -36,10 +36,10 @@ public class AsaasWebhookControllerTest {
     private PedidoService pedidoService;
 
     @MockitoBean
-    private br.com.nhac.backend_nhac.infra.security.TokenService tokenService;
+    private TokenService tokenService;
 
     @MockitoBean
-    private br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository usuarioRepository;
+    private UsuarioRepository usuarioRepository;
 
     // Ignora a segurança apenas para o Webhook no ambiente de teste de Controller
     @TestConfiguration
@@ -51,6 +51,8 @@ public class AsaasWebhookControllerTest {
             return http.build();
         }
     }
+
+    
 
     @Test
     @DisplayName("Deve retornar 401 Unauthorized quando API key do header for inválida")

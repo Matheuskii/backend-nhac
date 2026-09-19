@@ -37,8 +37,10 @@ import br.com.nhac.backend_nhac.domain.auth.dto.LoginRequestDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.LoginResponseDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.RegistroRequestDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.SocialLoginRequestDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Papel;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
 import br.com.nhac.backend_nhac.exceptions.CredenciaisInvalidasException;
 import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 import br.com.nhac.backend_nhac.infra.security.TokenService;
@@ -88,6 +90,14 @@ class AuthControllerTest {
 
         when(smsAuthService.autenticarComSms(requisicao)).thenReturn(respostaEsperada);
 
+        // O controller agora rebusca o usuário pelo id devolvido pelo login
+        // social/SMS para checar a origem do app (header X-App-Origin).
+        Usuario usuarioAutenticado = new Usuario();
+        usuarioAutenticado.setId("user_novo");
+        usuarioAutenticado.setNome("Novo Usuário");
+        usuarioAutenticado.setPapel(Papel.CLIENTE);
+        when(usuarioRepository.findById("user_novo")).thenReturn(Optional.of(usuarioAutenticado));
+
         mockMvc.perform(post("/api/v1/auth/login-sms")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requisicao)))
@@ -112,7 +122,7 @@ class AuthControllerTest {
         when(passwordEncoder.matches("senha_errada", "hash_da_senha_correta")).thenReturn(false);
 
         assertThrows(CredenciaisInvalidasException.class, () -> {
-            authController.login(requisicao);
+            authController.login(requisicao, null);
         });
 
         verify(tokenService, never()).gerarToken(any());
@@ -134,12 +144,73 @@ class AuthControllerTest {
         when(passwordEncoder.matches("senha_correta", "hash_da_senha_correta")).thenReturn(true);
         when(tokenService.gerarToken(usuarioDoBanco)).thenReturn("token_jwt_gerado");
 
-        ResponseEntity<LoginResponseDTO> resposta = authController.login(requisicao);
+        ResponseEntity<LoginResponseDTO> resposta = authController.login(requisicao, null);
 
         assertEquals(HttpStatus.OK, resposta.getStatusCode());
         assertEquals("token_jwt_gerado", resposta.getBody().token());
         assertEquals("user_1", resposta.getBody().usuarioId());
         assertEquals("CLIENTE", resposta.getBody().papel());
+    }
+
+    @Test
+    @DisplayName("Deve bloquear login por senha de conta de loja no app do motoboy (X-App-Origin: motoboy)")
+    void deveBloquearContaDeLojaNoAppDoMotoboy() {
+        LoginRequestDTO requisicao = new LoginRequestDTO("loja@nhac.com", "senha_correta");
+
+        Usuario lojista = new Usuario();
+        lojista.setId("user_loja");
+        lojista.setEmail("loja@nhac.com");
+        lojista.setSenha("hash_da_senha_correta");
+        lojista.setEmailVerificado(true);
+        lojista.setAtivo(true);
+        lojista.setPapel(Papel.LOJISTA);
+
+        when(usuarioRepository.findByEmailIgnoreCase("loja@nhac.com")).thenReturn(Optional.of(lojista));
+        when(passwordEncoder.matches("senha_correta", "hash_da_senha_correta")).thenReturn(true);
+
+        assertThrows(AcessoNegadoException.class, () -> authController.login(requisicao, "motoboy"));
+
+        verify(tokenService, never()).gerarToken(any());
+    }
+
+    @Test
+    @DisplayName("Deve manter a mensagem genérica ao errar a senha, mesmo vindo do app do motoboy")
+    void deveManterMensagemGenericaComSenhaErradaNoAppDoMotoboy() {
+        LoginRequestDTO requisicao = new LoginRequestDTO("loja@nhac.com", "senha_errada");
+
+        Usuario lojista = new Usuario();
+        lojista.setId("user_loja");
+        lojista.setEmail("loja@nhac.com");
+        lojista.setSenha("hash_da_senha_correta");
+        lojista.setEmailVerificado(true);
+        lojista.setAtivo(true);
+        lojista.setPapel(Papel.LOJISTA);
+
+        when(usuarioRepository.findByEmailIgnoreCase("loja@nhac.com")).thenReturn(Optional.of(lojista));
+        when(passwordEncoder.matches("senha_errada", "hash_da_senha_correta")).thenReturn(false);
+
+        // A checagem de origem só roda depois de validar a senha: quem erra a
+        // senha não descobre se aquele e-mail pertence a uma conta de loja.
+        assertThrows(CredenciaisInvalidasException.class, () -> authController.login(requisicao, "motoboy"));
+    }
+
+    @Test
+    @DisplayName("Deve permitir login social de conta de loja quando o header X-App-Origin estiver ausente")
+    void devePermitirLoginSocialSemHeaderDeOrigem() {
+        SocialLoginRequestDTO requisicao = new SocialLoginRequestDTO("token_google_loja");
+        LoginResponseDTO respostaEsperada = new LoginResponseDTO("jwt_loja", "user_loja", "Dona da Loja", false, "LOJISTA");
+
+        Usuario lojista = new Usuario();
+        lojista.setId("user_loja");
+        lojista.setPapel(Papel.LOJISTA);
+
+        when(googleAuthService.autenticarComGoogle("token_google_loja")).thenReturn(respostaEsperada);
+        when(usuarioRepository.findById("user_loja")).thenReturn(Optional.of(lojista));
+
+        ResponseEntity<LoginResponseDTO> resposta = authController.loginSocial(requisicao, null);
+
+        assertEquals(HttpStatus.OK, resposta.getStatusCode());
+        assertEquals("jwt_loja", resposta.getBody().token());
     }
 
     @Test
@@ -149,7 +220,7 @@ class AuthControllerTest {
 
         when(usuarioRepository.findByEmailIgnoreCase("fantasma@nhac.com")).thenReturn(Optional.empty());
 
-        assertThrows(CredenciaisInvalidasException.class, () -> authController.login(requisicao));
+        assertThrows(CredenciaisInvalidasException.class, () -> authController.login(requisicao, null));
 
         verify(tokenService, never()).gerarToken(any());
     }
@@ -225,6 +296,12 @@ class AuthControllerTest {
         LoginResponseDTO respostaEsperada = new LoginResponseDTO("jwt_gerado_pelo_backend", "user_1", "Usuário Nhac", false, "CLIENTE");
 
         when(googleAuthService.autenticarComGoogle("token_google_falso_mas_mockado")).thenReturn(respostaEsperada);
+
+        Usuario usuarioGoogle = new Usuario();
+        usuarioGoogle.setId("user_1");
+        usuarioGoogle.setNome("Usuário Nhac");
+        usuarioGoogle.setPapel(Papel.CLIENTE);
+        when(usuarioRepository.findById("user_1")).thenReturn(Optional.of(usuarioGoogle));
 
         mockMvc.perform(post("/api/v1/auth/social")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -20,7 +20,4 @@ public interface ConversaRepository extends JpaRepository<Conversa, String> {
 
     @Query("SELECT c FROM Conversa c WHERE c.id = :id AND c.loja.id = :lojaId")
     Optional<Conversa> findByIdAndLojaId(@Param("id") String id, @Param("lojaId") String lojaId);
-
-    @Query("SELECT c FROM Conversa c JOIN FETCH c.loja WHERE c.id = :id")
-    Optional<Conversa> findByIdComLoja(@Param("id") String id);
 }

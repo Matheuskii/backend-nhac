@@ -7,7 +7,9 @@ import br.com.nhac.backend_nhac.domain.auth.dto.LoginRequestDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.LoginResponseDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.RegistroRequestDTO;
 import br.com.nhac.backend_nhac.domain.auth.dto.SocialLoginRequestDTO;
+import br.com.nhac.backend_nhac.domain.usuario.Papel;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
+import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
 import br.com.nhac.backend_nhac.exceptions.CredenciaisInvalidasException;
 import br.com.nhac.backend_nhac.exceptions.RegraDeNegocioException;
 import br.com.nhac.backend_nhac.infra.security.TokenService;
@@ -58,7 +60,9 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid LoginRequestDTO body) {
+    public ResponseEntity<LoginResponseDTO> login(
+            @RequestBody @Valid LoginRequestDTO body,
+            @RequestHeader(value = "X-App-Origin", required = false) String appOrigin) {
         Usuario usuario = usuarioRepository.findByEmailIgnoreCase(body.email())
                 .orElseThrow(() -> new CredenciaisInvalidasException("E-mail não encontrado ou senha inválida."));
 
@@ -71,11 +75,37 @@ public class AuthController {
         }
 
         if (passwordEncoder.matches(body.senha(), usuario.getSenha())) {
+            // Checagem de origem SÓ depois de confirmar a senha — assim uma
+            // tentativa com senha errada continua devolvendo a mesma
+            // mensagem genérica de sempre, sem vazar se aquele e-mail é de
+            // uma conta LOJISTA/FUNCIONARIO só pelo fato de mandar o header
+            // do app do motoboy.
+            validarOrigemApp(usuario, appOrigin);
             String token = tokenService.gerarToken(usuario);
             return ResponseEntity.ok(LoginResponseDTO.from(usuario, token, false));
         }
 
         throw new CredenciaisInvalidasException("E-mail não encontrado ou senha inválida.");
+    }
+
+    /**
+     * Bloqueia contas LOJISTA/FUNCIONARIO no app do motoboy. O header
+     * X-App-Origin é enviado pelo cliente (opcional, ausente = comportamento
+     * de sempre); "motoboy" é o único valor que ativa a checagem, então os
+     * apps de cliente e do lojista continuam funcionando sem qualquer
+     * mudança mesmo que ainda não mandem o header.
+     *
+     * CLIENTE passa normalmente mesmo sem cadastro de entregador ainda — o
+     * próprio app do motoboy decide, depois do login, se manda a pessoa pro
+     * fluxo de completar o cadastro (POST /entregador/cadastro).
+     */
+    private void validarOrigemApp(Usuario usuario, String appOrigin) {
+        if (!"motoboy".equalsIgnoreCase(appOrigin)) {
+            return;
+        }
+        if (usuario.getPapel() == Papel.LOJISTA || usuario.getPapel() == Papel.FUNCIONARIO) {
+            throw new AcessoNegadoException("Esta conta é de loja e não pode ser usada no app do motoboy.");
+        }
     }
 
     @Operation(summary = "Enviar código de verificação para cadastro", description = "Envia um código de 6 dígitos para o e-mail informado. Necessário para confirmar o e-mail antes do registro.")
@@ -139,15 +169,30 @@ public class AuthController {
     }
 
     @PostMapping("/social")
-    public ResponseEntity<LoginResponseDTO> loginSocial(@RequestBody @Valid SocialLoginRequestDTO dto){
+    public ResponseEntity<LoginResponseDTO> loginSocial(
+            @RequestBody @Valid SocialLoginRequestDTO dto,
+            @RequestHeader(value = "X-App-Origin", required = false) String appOrigin) {
         LoginResponseDTO response = googleAuthService.autenticarComGoogle(dto.idToken());
+        // O Google pode logar automaticamente uma conta já existente (é
+        // exatamente o caso relatado: alguém com conta de loja tenta entrar
+        // no app do motoboy e o Google loga sem pedir confirmação) — por
+        // isso a mesma checagem de origem entra aqui também, buscando o
+        // usuário de novo pelo id que já veio pronto na resposta.
+        Usuario usuario = usuarioRepository.findById(response.usuarioId())
+                .orElseThrow(() -> new CredenciaisInvalidasException("Não foi possível autenticar com o Google."));
+        validarOrigemApp(usuario, appOrigin);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login-sms")
     @Operation(summary = "Realiza login via SMS (Passwordless)", description = "Valida o OTP. Se o telefone não existir, cadastra um novo usuário de forma invisível.")
-    public ResponseEntity<LoginResponseDTO> loginSms(@RequestBody @Valid br.com.nhac.backend_nhac.domain.auth.dto.ValidarCodigoSmsDTO dto) {
+    public ResponseEntity<LoginResponseDTO> loginSms(
+            @RequestBody @Valid br.com.nhac.backend_nhac.domain.auth.dto.ValidarCodigoSmsDTO dto,
+            @RequestHeader(value = "X-App-Origin", required = false) String appOrigin) {
         LoginResponseDTO response = smsAuthService.autenticarComSms(dto);
+        Usuario usuario = usuarioRepository.findById(response.usuarioId())
+                .orElseThrow(() -> new CredenciaisInvalidasException("Não foi possível autenticar via SMS."));
+        validarOrigemApp(usuario, appOrigin);
         return ResponseEntity.ok(response);
     }
 
