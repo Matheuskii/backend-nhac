@@ -48,7 +48,7 @@ class EntregadorServiceTest {
     }
 
     @Test
-    @DisplayName("Deve cadastrar novo entregador com sucesso e atualizar papel")
+    @DisplayName("Deve cadastrar novo entregador mantendo o papel principal intacto")
     void deveCadastrarEntregadorComSucesso() {
         CadastroEntregadorDTO dto = new CadastroEntregadorDTO("12345678900", "ABC1D23", TipoVeiculo.MOTO);
 
@@ -60,9 +60,26 @@ class EntregadorServiceTest {
         assertNotNull(resposta);
         assertEquals("ABC1D23", resposta.placaVeiculo());
         assertEquals(StatusOperacional.OFFLINE, resposta.statusOperacional());
-        assertEquals(Papel.ENTREGADOR, usuario.getPapel());
-        verify(usuarioRepository, times(1)).save(usuario);
+        // O papel principal NÃO é mais sobrescrito para ENTREGADOR: quem
+        // confirma que esta conta também é entregadora é o registro em
+        // tb_entregadores (consultado por AutoridadesFactory).
+        assertEquals(Papel.CLIENTE, usuario.getPapel(), "o cadastro de entregador não deve mais sobrescrever o papel");
+        verify(usuarioRepository, never()).save(any(Usuario.class));
         verify(entregadorRepository, times(1)).save(any(Entregador.class));
+    }
+
+    @Test
+    @DisplayName("Deve recusar cadastro de entregador para contas de loja (LOJISTA/FUNCIONARIO)")
+    void deveRecusarCadastroDeEntregadorParaContaDeLoja() {
+        CadastroEntregadorDTO dto = new CadastroEntregadorDTO("12345678900", "ABC1D23", TipoVeiculo.MOTO);
+        when(entregadorRepository.existsByUsuarioId(usuario.getId())).thenReturn(false);
+
+        for (Papel papelDeLoja : List.of(Papel.LOJISTA, Papel.FUNCIONARIO)) {
+            usuario.setPapel(papelDeLoja);
+            assertThrows(RegraDeNegocioException.class, () -> entregadorService.cadastrar(dto, usuario));
+        }
+
+        verify(entregadorRepository, never()).save(any(Entregador.class));
     }
 
     @Test

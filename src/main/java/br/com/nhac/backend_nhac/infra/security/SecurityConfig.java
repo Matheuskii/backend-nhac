@@ -109,7 +109,7 @@ public CorsConfigurationSource corsConfigurationSource() {
     ));
     
     configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-    configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With", "Cache-Control"));
+    configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With", "Cache-Control", "X-App-Origin"));
     configuration.setExposedHeaders(List.of("Authorization"));
     configuration.setAllowCredentials(true); 
     configuration.setMaxAge(3600L);

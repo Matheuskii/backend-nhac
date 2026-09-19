@@ -104,19 +104,26 @@ public class ChatFlowIT extends AbstractIntegrationTest {
         return lojaRepository.save(loja);
     }
 
+    /**
+     * Abre/obtém a conversa e devolve o id lendo o JSON da resposta
+     * ({"id":"conv_..."}). Não usar o corpo cru: ele é JSON, não o id solto.
+     */
+    private String abrirConversaComLoja(String lojaId) throws Exception {
+        String corpo = mockMvc.perform(post("/api/v1/conversas/lojas/" + lojaId)
+                        .header("Authorization", "Bearer " + tokenCliente))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").isNotEmpty())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(corpo).get("id").asText();
+    }
+
     @Test
     void fluxoCompletoDeConversa() throws Exception {
         // 1. Cliente abre uma conversa com a loja A
-        String conversaId = mockMvc.perform(post("/api/v1/conversas/lojas/" + lojaA.getId())
-                        .header("Authorization", "Bearer " + tokenCliente))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString().replace("\"", "");
+        String conversaId = abrirConversaComLoja(lojaA.getId());
 
         // 2. Chamar de novo é idempotente: devolve a mesma conversa
-        String conversaIdRepetida = mockMvc.perform(post("/api/v1/conversas/lojas/" + lojaA.getId())
-                        .header("Authorization", "Bearer " + tokenCliente))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString().replace("\"", "");
+        String conversaIdRepetida = abrirConversaComLoja(lojaA.getId());
         assertEquals(conversaId, conversaIdRepetida);
 
         // 3. Cliente "envia" 2 mensagens (via ChatService, mesmo caminho usado pelo WebSocket)

@@ -14,7 +14,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -42,8 +41,9 @@ import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
 import br.com.nhac.backend_nhac.exceptions.AcessoNegadoException;
 import br.com.nhac.backend_nhac.exceptions.IdNaoEncontradoException;
 import br.com.nhac.backend_nhac.infra.security.TokenService;
+import br.com.nhac.backend_nhac.infra.security.WebMvcControllerTest;
 
-@WebMvcTest(ProdutoController.class)
+@WebMvcControllerTest(controllers = ProdutoController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class ProdutoControllerTest {
 

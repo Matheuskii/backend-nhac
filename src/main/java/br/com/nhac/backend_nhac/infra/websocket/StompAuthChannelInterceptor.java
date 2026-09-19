@@ -20,6 +20,7 @@ import br.com.nhac.backend_nhac.domain.loja.LojaAccessService;
 import br.com.nhac.backend_nhac.domain.usuario.Papel;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.domain.usuario.UsuarioRepository;
+import br.com.nhac.backend_nhac.infra.security.AutoridadesFactory;
 import br.com.nhac.backend_nhac.infra.security.TokenService;
 
 /**
@@ -51,6 +52,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
     private final TokenService tokenService;
     private final UsuarioRepository usuarioRepository;
+    private final AutoridadesFactory autoridadesFactory;
     private final ChatService chatService;
     private final EntregadorService entregadorService;
     private final PedidoRepository pedidoRepository;
@@ -61,10 +63,12 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
                                         ChatService chatService,
                                         EntregadorService entregadorService,
                                         PedidoRepository pedidoRepository,
-                                        LojaAccessService lojaAccessService) {
+                                        LojaAccessService lojaAccessService,
+                                        AutoridadesFactory autoridadesFactory) {
         this.tokenService = tokenService;
         this.usuarioRepository = usuarioRepository;
         this.chatService = chatService;
+        this.autoridadesFactory = autoridadesFactory;
         this.entregadorService = entregadorService;
         this.pedidoRepository = pedidoRepository;
         this.lojaAccessService = lojaAccessService;
@@ -94,7 +98,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
             throw new WebSocketAutenticacaoException("Token inválido ou ausente no CONNECT.");
         }
 
-        var authentication = new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities());
+        var authentication = new UsernamePasswordAuthenticationToken(usuario, null, autoridadesFactory.montar(usuario));
         accessor.setUser(authentication);
     }
 

@@ -5,7 +5,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
-import br.com.nhac.backend_nhac.domain.chat.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,7 +14,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -31,6 +29,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import br.com.nhac.backend_nhac.domain.chat.ChatController;
+import br.com.nhac.backend_nhac.domain.chat.ChatService;
+import br.com.nhac.backend_nhac.domain.chat.ConversaClienteController;
+import br.com.nhac.backend_nhac.domain.chat.ParticipanteTipo;
+import br.com.nhac.backend_nhac.domain.chat.RemetenteTipo;
 import br.com.nhac.backend_nhac.domain.chat.dto.ChatDTOs.ConversaResumoDTO;
 import br.com.nhac.backend_nhac.domain.chat.dto.ChatDTOs.MensagemDTO;
 import br.com.nhac.backend_nhac.domain.financeiro.FinanceiroController;
@@ -48,7 +51,7 @@ import br.com.nhac.backend_nhac.domain.usuario.FuncionarioService;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import br.com.nhac.backend_nhac.domain.usuario.dto.FuncionarioResponseDTO;
 
-@WebMvcTest({FuncionarioController.class, PainelController.class, FinanceiroController.class,
+@br.com.nhac.backend_nhac.infra.security.WebMvcControllerTest(controllers = {FuncionarioController.class, PainelController.class, FinanceiroController.class,
         ChatController.class, ConversaClienteController.class})
 @AutoConfigureMockMvc(addFilters = false)
 class NovosEndpointsControllerTest {
@@ -178,10 +181,8 @@ void configurarAutenticacao() {
 
     @Test
     void deveListarConversasEMensagensEMarcarComoLida() throws Exception {
-        ConversaResumoDTO conversa = new ConversaResumoDTO(
-                "conv_1", "cliente_1", "Cliente",
-                ParticipanteTipo.CLIENTE,   // ← 4º argumento, novo
-                "Oi", Instant.now(), 1);        MensagemDTO mensagem = new MensagemDTO("msg_1", "conv_1", RemetenteTipo.CLIENTE, "cliente_1", "Oi", Instant.now());
+        ConversaResumoDTO conversa = new ConversaResumoDTO("conv_1", "cliente_1", "Cliente", ParticipanteTipo.CLIENTE, "Oi", Instant.now(), 1);
+        MensagemDTO mensagem = new MensagemDTO("msg_1", "conv_1", RemetenteTipo.CLIENTE, "cliente_1", "Oi", Instant.now());
         when(chatService.listarConversasDaLoja(eq(usuario), any())).thenReturn(Page.empty());
         when(chatService.listarMensagens(eq("conv_1"), eq(usuario), any())).thenReturn(
                 new PageImpl<>(List.of(mensagem), PageRequest.of(0, 30), 1));
@@ -197,14 +198,15 @@ void configurarAutenticacao() {
     }
 
     @Test
-void deveAbrirConversaDoCliente() throws Exception {
-    br.com.nhac.backend_nhac.domain.chat.Conversa conversa = new br.com.nhac.backend_nhac.domain.chat.Conversa();
-    conversa.setId("conv_1");
-    when(chatService.obterOuCriarConversa(eq("loja_1"), eq(usuario))).thenReturn(conversa);
+    void deveAbrirConversaDoCliente() throws Exception {
+        br.com.nhac.backend_nhac.domain.chat.Conversa conversa = new br.com.nhac.backend_nhac.domain.chat.Conversa();
+        conversa.setId("conv_1");
+        when(chatService.obterOuCriarConversa(eq("loja_1"), eq(usuario))).thenReturn(conversa);
 
-    mockMvc.perform(post("/api/v1/conversas/lojas/loja_1").with(csrf()))
-            .andExpect(status().isOk())
-            .andExpect(content -> org.junit.jupiter.api.Assertions.assertEquals(
-                    "conv_1", content.getResponse().getContentAsString()));
-            }
-        }
+        // O endpoint devolve JSON ({"id": "..."}), não o id cru: responder
+        // text/plain com o id sem aspas quebrava o jsonDecode do app.
+        mockMvc.perform(post("/api/v1/conversas/lojas/loja_1").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("conv_1"));
+    }
+}

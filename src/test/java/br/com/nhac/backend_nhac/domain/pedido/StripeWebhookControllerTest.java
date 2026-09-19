@@ -4,7 +4,7 @@ import br.com.nhac.backend_nhac.domain.pedido.PedidoService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import br.com.nhac.backend_nhac.infra.security.WebMvcControllerTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -17,8 +17,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(
-    value = StripeWebhookController.class,
+@WebMvcControllerTest(
+    controllers = StripeWebhookController.class,
     properties = {"stripe.webhook.secret=whsec_test_secret_aqui"}
 )
 @AutoConfigureMockMvc(addFilters = false)

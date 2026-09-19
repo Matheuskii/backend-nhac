@@ -19,9 +19,13 @@ public class SecurityFilter extends OncePerRequestFilter {
 
     private final TokenService tokenService;
     private final UsuarioRepository usuarioRepository;
-    public SecurityFilter(TokenService tokenService, UsuarioRepository usuarioRepository){
+    private final AutoridadesFactory autoridadesFactory;
+
+    public SecurityFilter(TokenService tokenService, UsuarioRepository usuarioRepository,
+                           AutoridadesFactory autoridadesFactory) {
         this.tokenService = tokenService;
         this.usuarioRepository = usuarioRepository;
+        this.autoridadesFactory = autoridadesFactory;
     }
     
    @Override
@@ -42,8 +46,12 @@ protected void doFilterInternal(HttpServletRequest request, HttpServletResponse 
             if (id != null) {
                 Usuario usuario = usuarioRepository.findById(id).orElse(null);
                 if (usuario != null && usuario.isEnabled()) {
+                    // autoridadesFactory soma ROLE_ENTREGADOR quando há um
+                    // cadastro de entregador ativo vinculado a este usuário,
+                    // independente do papel principal dele (ver
+                    // AutoridadesFactory para o porquê).
                     var authentication = new UsernamePasswordAuthenticationToken(
-                            usuario, null, usuario.getAuthorities());
+                            usuario, null, autoridadesFactory.montar(usuario));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             }

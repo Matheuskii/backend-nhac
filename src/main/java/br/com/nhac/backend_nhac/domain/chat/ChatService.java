@@ -232,7 +232,7 @@ public class ChatService {
      */
     @Transactional
     public MensagemDTO enviarMensagem(String conversaId, Usuario remetente, String conteudo) {
-        Conversa conversa = conversaRepository.findByIdComLoja(conversaId)
+        Conversa conversa = conversaRepository.findById(conversaId)
                 .orElseThrow(() -> new IdNaoEncontradoException("Conversa não encontrada."));
 
         RemetenteTipo tipo = resolverTipoRemetente(conversa, remetente);
@@ -248,21 +248,14 @@ public class ChatService {
 
     private RemetenteTipo resolverTipoRemetente(Conversa conversa, Usuario usuario) {
         if (usuario.getId().equals(conversa.getClienteId())) {
-            return RemetenteTipo.CLIENTE;
+            return conversa.getParticipanteTipo() == ParticipanteTipo.ENTREGADOR
+                    ? RemetenteTipo.ENTREGADOR
+                    : RemetenteTipo.CLIENTE;
         }
-        if (ehDaLoja(usuario, conversa.getLoja())) {
+        if (lojaAccessService.temAcessoALoja(usuario, conversa.getLoja().getId())) {
             return RemetenteTipo.LOJA;
         }
         throw new AcessoNegadoException("Acesso negado: você não faz parte desta conversa.");
-    }
-
-    private boolean ehDaLoja(Usuario usuario, Loja loja) {
-        if (usuario.getPapel() == Papel.ADMIN) return true;
-        if (usuario.getPapel() == Papel.FUNCIONARIO) {
-            return loja.getId().equals(usuario.getLojaVinculadaId());
-        }
-        return loja.getId().equals(usuario.getLojaVinculadaId()) // funcionário já tratado acima
-                || (usuario.getId() != null && usuario.getId().equals(loja.getUsuarioId()));
     }
 
     /**

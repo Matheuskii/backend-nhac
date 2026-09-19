@@ -1,13 +1,19 @@
 package br.com.nhac.backend_nhac.domain.entregador;
 
-import br.com.nhac.backend_nhac.domain.entregador.dto.*;
+import br.com.nhac.backend_nhac.domain.entregador.dto.AtualizarLocalizacaoDTO;
+import br.com.nhac.backend_nhac.domain.entregador.dto.AtualizarStatusDTO;
+import br.com.nhac.backend_nhac.domain.entregador.dto.CadastroEntregadorDTO;
+import br.com.nhac.backend_nhac.domain.entregador.dto.EntregaHistoricoDTO;
+import br.com.nhac.backend_nhac.domain.entregador.dto.EntregadorResponseDTO;
+import br.com.nhac.backend_nhac.domain.entregador.dto.GanhosEntregadorDTO;
 import br.com.nhac.backend_nhac.domain.pedido.StatusPedido;
 import br.com.nhac.backend_nhac.domain.usuario.Usuario;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
+
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,10 +26,11 @@ import org.springframework.web.bind.annotation.*;
 public class EntregadorController {
 
     private final EntregadorService entregadorService;
-
     private final GanhosEntregadorService ganhosEntregadorService;
 
-    public EntregadorController(EntregadorService entregadorService, GanhosEntregadorService ganhosEntregadorService) {
+    public EntregadorController(EntregadorService entregadorService, GanhosEntregadorService ganhosEntregadorService
+
+    ) {
         this.entregadorService = entregadorService;
         this.ganhosEntregadorService = ganhosEntregadorService;
     }

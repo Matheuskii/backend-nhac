@@ -40,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import br.com.nhac.backend_nhac.domain.pedido.dto.PedidoResponseDTO;
 import br.com.nhac.backend_nhac.domain.pedido.StatusPedido;
 
-@org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest(PedidoController.class)
+@br.com.nhac.backend_nhac.infra.security.WebMvcControllerTest(controllers = PedidoController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class PedidoControllerTest {
 

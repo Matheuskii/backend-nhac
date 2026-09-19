@@ -34,6 +34,14 @@ public class EntregadorService {
             throw new RegraDeNegocioException("Este usuário já possui cadastro como entregador.");
         }
 
+        // LOJISTA/FUNCIONARIO/ADMIN não viram entregador pela mesma conta —
+        // decisão de produto: essas contas já têm outro vínculo forte com o
+        // sistema. CLIENTE é o único papel que pode "ganhar" o cadastro de
+        // entregador sem perder nada (ver nota abaixo).
+        if (usuario.getPapel() == Papel.LOJISTA || usuario.getPapel() == Papel.FUNCIONARIO) {
+            throw new RegraDeNegocioException("Contas de loja não podem se cadastrar como entregador.");
+        }
+
         Entregador entregador = Entregador.builder()
                 .id(UUID.randomUUID().toString())
                 .usuario(usuario)
@@ -45,8 +53,15 @@ public class EntregadorService {
                 .criadoEm(Instant.now())
                 .build();
 
-        usuario.setPapel(Papel.ENTREGADOR);
-        usuarioRepository.save(usuario);
+        // CORREÇÃO: antes, isto sobrescrevia usuario.papel para ENTREGADOR —
+        // uma conta CLIENTE que virava entregadora perdia o papel de
+        // CLIENTE (e com ele, o acesso a qualquer rota que checasse
+        // Papel.CLIENTE, como abrir conversa no chat do app do cliente).
+        // O vínculo com tb_entregadores já é suficiente para saber que esta
+        // conta também é entregadora — ver Usuario.getAuthorities() em
+        // Usuario.java e o uso de existsByUsuarioIdAndAtivoTrue em
+        // SecurityFilter/StompAuthChannelInterceptor, que somam
+        // ROLE_ENTREGADOR às authorities sem depender deste campo.
 
         Entregador salvo = entregadorRepository.save(entregador);
         return new EntregadorResponseDTO(salvo);

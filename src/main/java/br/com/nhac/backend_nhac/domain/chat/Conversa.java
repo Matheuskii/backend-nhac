@@ -92,6 +92,17 @@ public class Conversa {
         this.ultimaMensagemEm = Instant.now();
     }
 
+    /**
+     * Construtor de conveniência mantido por compatibilidade: todo o código
+     * (e os testes) escritos antes da V039 chamavam Conversa(id, loja,
+     * clienteId) assumindo implicitamente que era sempre uma conversa com
+     * cliente. Sem este overload, ChatConcorrenciaIT, ChatWebSocketIT e
+     * outros testes que ainda não foram atualizados param de compilar.
+     */
+    public Conversa(String id, Loja loja, String participanteId) {
+        this(id, loja, participanteId, ParticipanteTipo.CLIENTE);
+    }
+
     public void registrarNovaMensagem(RemetenteTipo remetente, String preview) {
         this.ultimaMensagemEm = Instant.now();
         this.ultimaMensagemPreview = preview;

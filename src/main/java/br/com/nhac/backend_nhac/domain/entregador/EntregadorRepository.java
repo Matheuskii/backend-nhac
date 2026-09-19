@@ -14,4 +14,12 @@ public interface EntregadorRepository extends JpaRepository<Entregador, String> 
     List<Entregador> findByStatusOperacionalAndAtivoTrue(StatusOperacional statusOperacional);
 
     boolean existsByUsuarioId(String usuarioId);
+
+    /**
+     * Usado na autenticação (SecurityFilter / StompAuthChannelInterceptor)
+     * para somar ROLE_ENTREGADOR às authorities de quem tem cadastro ativo,
+     * sem depender de Usuario.papel (que continua CLIENTE mesmo depois do
+     * cadastro de entregador — ver EntregadorService.cadastrar()).
+     */
+    boolean existsByUsuarioIdAndAtivoTrue(String usuarioId);
 }

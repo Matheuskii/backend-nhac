@@ -31,6 +31,7 @@ class SecurityFilterTest {
 
     @Mock private TokenService tokenService;
     @Mock private UsuarioRepository usuarioRepository;
+    @Mock private AutoridadesFactory autoridadesFactory;
     @Mock private HttpServletRequest request;
     @Mock private HttpServletResponse response;
     @Mock private FilterChain filterChain;
@@ -82,6 +83,12 @@ class SecurityFilterTest {
         when(tokenService.validarToken("token_valido")).thenReturn("user_1");
         when(usuarioRepository.findById("user_1")).thenReturn(java.util.Optional.of(usuario));
 
+        // As authorities agora vêm do AutoridadesFactory (que soma
+        // ROLE_ENTREGADOR quando o usuário tem cadastro de entregador ativo),
+        // e não mais de usuario.getAuthorities() diretamente.
+        var roleEntregador = new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ENTREGADOR");
+        org.mockito.Mockito.doReturn(java.util.List.of(roleEntregador)).when(autoridadesFactory).montar(usuario);
+
         // A Authentication só existe DENTRO da cadeia — o filtro limpa o contexto
         // no finally (SecurityContextHolder.clearContext()). Por isso capturamos
         // o valor no momento em que doFilter é invocado, e não depois do método.
@@ -95,6 +102,8 @@ class SecurityFilterTest {
 
         assertNotNull(capturada[0], "Authentication deveria existir durante a cadeia de filtros");
         assertEquals(usuario, capturada[0].getPrincipal());
+        assertEquals(java.util.List.of(roleEntregador), java.util.List.copyOf(capturada[0].getAuthorities()),
+                "As authorities devem ser exatamente as devolvidas pelo AutoridadesFactory");
         verify(filterChain, times(1)).doFilter(request, response);
 
         // Comportamento novo (correção de segurança): o contexto é limpo após o filtro,
